@@ -18,30 +18,19 @@ module System.Wlog.Wrapper
        , setSeverity
        , setSeverityMaybe
 
-         -- * Logging functions
-       , logDebug
-       , logError
-       , logInfo
-       , logNotice
-       , logWarning
-       , logMessage
        ) where
 
 import           Control.Concurrent.MVar   (MVar, newMVar, withMVar)
 import           Control.Monad.Trans       (MonadIO (liftIO))
-
 import           Data.Default              (Default (def))
-import qualified Data.Text                 as T
-
 import           System.IO                 (Handle, stderr, stdout)
 import           System.Log.Handler.Simple (GenericHandler (..), streamHandler)
-import           System.Log.Logger         (Priority (DEBUG, ERROR), clearLevel, logM,
+import           System.Log.Logger         (Priority (DEBUG, ERROR), clearLevel,
                                             rootLoggerName, setHandlers, setLevel,
                                             updateGlobalLogger)
 
 import           System.Wlog.Formatter     (setStderrFormatter, setStdoutFormatter)
 import           System.Wlog.LoggerName    (LoggerName (..))
-import           System.Wlog.LoggerNameBox (WithNamedLogger (..))
 import           System.Wlog.Severity      (Severity (..), convertSeverity)
 
 
@@ -113,23 +102,3 @@ setSeverityMaybe
 setSeverityMaybe (LoggerName name) Nothing =
     liftIO $ updateGlobalLogger name clearLevel
 setSeverityMaybe n (Just x) = setSeverity n x
-
-
-
--- | Shortcut for `logMessage` to use according severity.
-logDebug, logInfo, logNotice, logWarning, logError
-    :: (WithNamedLogger m, MonadIO m)
-    => T.Text -> m ()
-logDebug   = logMessage Debug
-logInfo    = logMessage Info
-logNotice  = logMessage Notice
-logWarning = logMessage Warning
-logError   = logMessage Error
-
--- | Logs message with specified severity using logger name in context.
-logMessage
-    :: (WithNamedLogger m, MonadIO m)
-    => Severity -> T.Text -> m ()
-logMessage severity t = do
-    LoggerName{..} <- getLoggerName
-    liftIO . logM loggerName (convertSeverity severity) $ T.unpack t

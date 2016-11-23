@@ -12,7 +12,8 @@
 -- Messages are colored depending on used serverity.
 
 module System.Wlog
-       ( module System.Wlog.LoggerConfig
+       ( module System.Wlog.CanLog
+       , module System.Wlog.LoggerConfig
        , module System.Wlog.LoggerName
        , module System.Wlog.LoggerNameBox
        , module System.Wlog.Parser
@@ -20,6 +21,7 @@ module System.Wlog
        , module System.Wlog.Wrapper
        ) where
 
+import           System.Wlog.CanLog
 import           System.Wlog.LoggerConfig
 import           System.Wlog.LoggerName
 import           System.Wlog.LoggerNameBox
