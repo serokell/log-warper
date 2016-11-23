@@ -23,6 +23,7 @@ library
                        System.Wlog.LoggerName
                        System.Wlog.LoggerNameBox
                        System.Wlog.Parser
+                       System.Wlog.Severity
                        System.Wlog.Wrapper
 
   other-modules:       System.Wlog.Color

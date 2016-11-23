@@ -32,39 +32,18 @@ import           Control.Monad.Trans       (MonadIO (liftIO))
 
 import           Data.Default              (Default (def))
 import qualified Data.Text                 as T
-import           Data.Typeable             (Typeable)
-import           Data.Yaml                 (FromJSON, ToJSON)
-import           GHC.Generics              (Generic)
 
 import           System.IO                 (Handle, stderr, stdout)
 import           System.Log.Handler.Simple (GenericHandler (..), streamHandler)
-import           System.Log.Logger         (Priority (DEBUG, ERROR, INFO, NOTICE, WARNING),
-                                            clearLevel, logM, rootLoggerName, setHandlers,
-                                            setLevel, updateGlobalLogger)
+import           System.Log.Logger         (Priority (DEBUG, ERROR), clearLevel, logM,
+                                            rootLoggerName, setHandlers, setLevel,
+                                            updateGlobalLogger)
 
 import           System.Wlog.Formatter     (setStderrFormatter, setStdoutFormatter)
 import           System.Wlog.LoggerName    (LoggerName (..))
 import           System.Wlog.LoggerNameBox (WithNamedLogger (..))
+import           System.Wlog.Severity      (Severity (..), convertSeverity)
 
--- | This type is intended to be used as command line option
--- which specifies which messages to print.
-data Severity
-    = Debug
-    | Info
-    | Notice
-    | Warning
-    | Error
-    deriving (Generic, Typeable, Show, Read, Eq)
-
-instance FromJSON Severity
-instance ToJSON   Severity
-
-convertSeverity :: Severity -> Priority
-convertSeverity Debug   = DEBUG
-convertSeverity Info    = INFO
-convertSeverity Notice  = NOTICE
-convertSeverity Warning = WARNING
-convertSeverity Error   = ERROR
 
 -- | Options determining formatting of messages.
 data LoggingFormat = LoggingFormat
