@@ -6,7 +6,7 @@ import           Control.Exception (bracket_)
 import           System.Log.Logger (removeAllHandlers)
 
 import           System.Wlog       (initLoggingFromYaml, logDebug, logError, logInfo,
-                                    logWarning, usingLoggerName)
+                                    logNotice, logWarning, usingLoggerName)
 main :: IO ()
 main = bracket_ (initLoggingFromYaml "logger-config-example.yaml" $ Just "logs")
                 removeAllHandlers
@@ -15,5 +15,6 @@ main = bracket_ (initLoggingFromYaml "logger-config-example.yaml" $ Just "logs")
     testLogging = usingLoggerName "node" $ do
         logDebug   "skovoroda"
         logInfo    "patak"
+        logNotice  "boroda"
         logWarning "haha"
         logError   "BARDAQ"

@@ -53,9 +53,9 @@ import           System.Log.Logger         (addHandler, updateGlobalLogger)
 
 import           System.Wlog.Formatter     (setStdoutFormatter)
 import           System.Wlog.LoggerConfig  (LoggerConfig (..))
-import           System.Wlog.Wrapper       (LoggerName (..), Severity (Debug, Warning),
-                                            convertSeverity, initLogging,
-                                            setSeverityMaybe)
+import           System.Wlog.LoggerName    (LoggerName (..))
+import           System.Wlog.Wrapper       (Severity (Debug, Warning), convertSeverity,
+                                            initLogging, setSeverityMaybe)
 
 -- | This function traverses 'LoggerConfig' initializing all subloggers
 -- with 'Severity' and redirecting output in file handlers. Also takes

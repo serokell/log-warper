@@ -20,6 +20,8 @@ Flag PatakDebugSkovorodaBARDAQ
 library
   exposed-modules:     System.Wlog
                        System.Wlog.LoggerConfig
+                       System.Wlog.LoggerName
+                       System.Wlog.LoggerNameBox
                        System.Wlog.Parser
                        System.Wlog.Wrapper
 
@@ -62,7 +64,7 @@ library
   if flag(PatakDebugSkovorodaBARDAQ)
       cpp-options:     -DPatakDebugSkovorodaBARDAQ
 
-executable playground
+executable play-log
   main-is:             Playground.hs
 
   build-depends:       base       >= 4.7 && < 5
