@@ -12,6 +12,7 @@ module System.Wlog.CanLog
        ( CanLog (..)
 
          -- * Pure logging manipulation
+       , PureLogger (..)
        , runPureLog
 
          -- * Logging functions
