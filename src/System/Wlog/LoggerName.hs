@@ -2,12 +2,16 @@
 
 module System.Wlog.LoggerName
        ( LoggerName (..)
+       , loggerNameF
        ) where
 
-import           Data.Hashable  (Hashable)
-import           Data.Semigroup (Semigroup)
-import qualified Data.Semigroup as Semigroup
-import           Data.String    (IsString)
+import           Data.Hashable       (Hashable)
+import           Data.Semigroup      (Semigroup)
+import qualified Data.Semigroup      as Semigroup
+import           Data.String         (IsString)
+import           Data.Text.Buildable (Buildable)
+import qualified Data.Text.Buildable as Buildable
+import           Formatting          (Format, bprint, build, string)
 
 -- | Logger name to keep in context.
 newtype LoggerName = LoggerName
@@ -25,3 +29,10 @@ instance Semigroup LoggerName where
 instance Monoid LoggerName where
     mempty = ""
     mappend = (Semigroup.<>)
+
+instance Buildable LoggerName where
+    build = bprint string . loggerName
+
+-- | 'LoggerName' formatter which restricts type.
+loggerNameF :: Format r (LoggerName -> r)
+loggerNameF = build

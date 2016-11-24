@@ -35,12 +35,12 @@ import           Data.Bifunctor            (second)
 import           Data.DList                (DList, toList)
 import           Data.Text                 (Text)
 import qualified Data.Text                 as T
-import           Data.Time.Clock           (UTCTime, getCurrentTime)
-import           Formatting                (Format, sformat, shown, stext, string, (%))
+import           Data.Time.Clock           (getCurrentTime)
 
 import           System.IO.Unsafe          (unsafePerformIO)
 import           System.Log.Logger         (logM)
 
+import           System.Wlog.Formatter     (formatLogMessage)
 import           System.Wlog.LoggerName    (LoggerName (..))
 import           System.Wlog.LoggerNameBox (HasLoggerName (..), LoggerNameBox (..))
 import           System.Wlog.Severity      (Severity (..), convertSeverity)
@@ -79,14 +79,6 @@ newtype PureLogger m a = PureLogger
     { runPureLogger :: WriterT (DList Text) m a
     } deriving (Functor, Applicative, Monad, MonadTrans, MonadWriter (DList Text),
                 MonadState s, MonadReader r, HasLoggerName)
-
--- TODO: do we need coloring here?
--- TODO: add Buildable to LoggerName
-formatLogMessage :: LoggerName -> Severity -> UTCTime -> Text -> Text
-formatLogMessage = sformat ("["%string%":"%shown%"] ["%utcTimeF%"] "%stext) . loggerName
-  where
-    utcTimeF :: Format r (UTCTime -> r)
-    utcTimeF = shown
 
 instance Monad m => CanLog (PureLogger m) where
     dispatchMessage loggerName severity text = do

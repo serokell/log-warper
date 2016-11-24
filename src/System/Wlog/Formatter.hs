@@ -9,18 +9,24 @@
 -- This module contains pretty looking formatters for logger.
 
 module System.Wlog.Formatter
-       ( setStderrFormatter
+       ( formatLogMessage
+       , setStderrFormatter
        , setStdoutFormatter
        ) where
 
-import           Data.Monoid          (mconcat)
-import           Data.String          (IsString)
+import           Data.Monoid            (mconcat)
+import           Data.String            (IsString)
+import           Data.Text              (Text)
+import           Data.Time.Clock        (UTCTime)
+import           Formatting             (Format, sformat, shown, stext, (%))
 
-import           System.Log.Formatter (LogFormatter, simpleLogFormatter)
-import           System.Log.Handler   (LogHandler (setFormatter))
-import           System.Log.Logger    (Priority (ERROR))
+import           System.Log.Formatter   (LogFormatter, simpleLogFormatter)
+import           System.Log.Handler     (LogHandler (setFormatter))
+import           System.Log.Logger      (Priority (ERROR))
 
-import           System.Wlog.Color    (colorizer)
+import           System.Wlog.Color      (colorizer)
+import           System.Wlog.LoggerName (LoggerName, loggerNameF)
+import           System.Wlog.Severity   (Severity)
 
 timeFmt :: IsString s => s
 timeFmt = "[$time] "
@@ -48,3 +54,10 @@ setStdoutFormatter isShowTime = (`setFormatter` stdoutFormatter isShowTime)
 
 setStderrFormatter :: LogHandler h => h -> h
 setStderrFormatter = (`setFormatter` stderrFormatter)
+
+-- TODO: do we need coloring here?
+formatLogMessage :: LoggerName -> Severity -> UTCTime -> Text -> Text
+formatLogMessage = sformat ("["%loggerNameF%":"%shown%"] ["%utcTimeF%"] "%stext)
+  where
+    utcTimeF :: Format r (UTCTime -> r)
+    utcTimeF = shown
