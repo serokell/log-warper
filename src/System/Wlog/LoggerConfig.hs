@@ -27,9 +27,9 @@ import           System.Wlog.Wrapper (Severity)
 type LoggerMap = HashMap Text LoggerConfig
 
 data LoggerConfig = LoggerConfig
-    { lcSubloggers :: LoggerMap
-    , lcFile       :: Maybe FilePath
-    , lcSeverity   :: Maybe Severity
+    { lcSubloggers :: !LoggerMap
+    , lcFile       :: !(Maybe FilePath)
+    , lcSeverity   :: !(Maybe Severity)
     } deriving (Generic, Show)
 
 instance ToJSON LoggerConfig

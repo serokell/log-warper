@@ -12,6 +12,7 @@
 
 module System.Wlog.CanLog
        ( CanLog (..)
+       , WithLogger
 
          -- * Pure logging manipulation
        , PureLogger (..)
@@ -26,8 +27,8 @@ module System.Wlog.CanLog
        , logMessage
        ) where
 
-import           Control.Monad.Reader      (MonadReader, ReaderT (..))
-import           Control.Monad.State       (MonadState, StateT (..))
+import           Control.Monad.Reader      (MonadReader, ReaderT)
+import           Control.Monad.State       (MonadState, StateT)
 import           Control.Monad.Trans       (MonadTrans (lift))
 import           Control.Monad.Writer      (MonadWriter (tell), WriterT (runWriterT))
 
