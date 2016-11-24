@@ -24,8 +24,8 @@ module System.Wlog.CanLog
        , logMessage
        ) where
 
-import           Control.Monad.Reader      (ReaderT)
-import           Control.Monad.State       (StateT)
+import           Control.Monad.Reader      (MonadReader, ReaderT)
+import           Control.Monad.State       (MonadState, StateT)
 import           Control.Monad.Trans       (MonadTrans (lift))
 import           Control.Monad.Writer      (MonadWriter (tell), WriterT (runWriterT))
 
@@ -72,7 +72,8 @@ instance CanLog m => CanLog (StateT s m) where
 -- by chosen loger names?
 newtype PureLogger m a = PureLogger
     { runPureLogger :: WriterT (DList Text) m a
-    } deriving (Functor, Applicative, Monad, MonadTrans, MonadWriter (DList Text))
+    } deriving (Functor, Applicative, Monad, MonadTrans, MonadWriter (DList Text),
+                MonadState s, MonadReader r, WithNamedLogger)
 
 -- TODO: do we need coloring here?
 -- TODO: add Buildable to LoggerName

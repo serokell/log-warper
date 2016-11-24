@@ -22,6 +22,7 @@ import           Control.Monad.State         (MonadState (get), StateT, evalStat
 import           Control.Monad.Trans         (MonadIO, MonadTrans, lift)
 import           Control.Monad.Trans.Cont    (ContT, mapContT)
 import           Control.Monad.Trans.Control (MonadBaseControl (..))
+import           Control.Monad.Writer        (WriterT (..))
 
 import           System.Wlog.LoggerName      (LoggerName)
 
@@ -48,6 +49,11 @@ instance (Monad m, WithNamedLogger m) =>
 
     modifyLoggerName how m =
         get >>= lift . modifyLoggerName how . evalStateT m
+
+instance (Monoid w, Monad m, WithNamedLogger m) => WithNamedLogger (WriterT w m) where
+    getLoggerName = lift getLoggerName
+
+    modifyLoggerName how m = WriterT $ modifyLoggerName how $ runWriterT m
 
 instance (Monad m, WithNamedLogger m) =>
          WithNamedLogger (ExceptT e m) where
