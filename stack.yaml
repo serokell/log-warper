@@ -16,6 +16,9 @@ extra-deps:
 - recursion-schemes-5
 - time-units-1.0.0
 
+nix: 
+  packages: [git, openssh]
+
 # Override default flag values for local packages and extra-deps
 flags: {}
 

@@ -41,7 +41,7 @@ library
                      , exceptions           >= 0.8.3
                      , extra                >= 1.4.10
                      , filepath             >= 1.4.1
-                     , formatting           >= 6.2.3
+                     , formatting           >= 6.2.2
                      , hashable             >= 1.2.4.0
                      , hslogger             >= 1.2.10
                      , lens                 >= 4.14
