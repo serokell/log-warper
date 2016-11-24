@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLists       #-}
@@ -40,8 +41,13 @@ import           System.IO.Unsafe          (unsafePerformIO)
 import           System.Log.Logger         (logM)
 
 import           System.Wlog.LoggerName    (LoggerName (..))
-import           System.Wlog.LoggerNameBox (LoggerNameBox (..), WithNamedLogger (..))
+import           System.Wlog.LoggerNameBox (HasLoggerName (..), LoggerNameBox (..))
 import           System.Wlog.Severity      (Severity (..), convertSeverity)
+
+-- | Type alias for constraints 'CanLog' and 'HasLoggerName'.
+-- We need two different type classes to support more flexible interface
+-- but in practice we usually use them both.
+type WithLogger m = (CanLog m, HasLoggerName m)
 
 -- | Instances of this class should explain how they add messages to their log.
 class Monad m => CanLog m where
@@ -73,7 +79,7 @@ instance CanLog m => CanLog (StateT s m) where
 newtype PureLogger m a = PureLogger
     { runPureLogger :: WriterT (DList Text) m a
     } deriving (Functor, Applicative, Monad, MonadTrans, MonadWriter (DList Text),
-                MonadState s, MonadReader r, WithNamedLogger)
+                MonadState s, MonadReader r, HasLoggerName)
 
 -- TODO: do we need coloring here?
 -- TODO: add Buildable to LoggerName
@@ -95,7 +101,7 @@ runPureLog = fmap (second toList) . runWriterT . runPureLogger
 
 -- | Shortcut for 'logMessage' to use according severity.
 logDebug, logInfo, logNotice, logWarning, logError
-    :: (WithNamedLogger m, CanLog m)
+    :: WithLogger m
     => Text
     -> m ()
 logDebug   = logMessage Debug
@@ -106,7 +112,7 @@ logError   = logMessage Error
 
 -- | Logs message with specified severity using logger name in context.
 logMessage
-    :: (WithNamedLogger m, CanLog m)
+    :: WithLogger m
     => Severity
     -> Text
     -> m ()

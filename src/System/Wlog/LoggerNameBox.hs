@@ -7,8 +7,8 @@
 
 module System.Wlog.LoggerNameBox
        ( -- * Remove boilerplater
-         LoggerNameBox   (..)
-       , WithNamedLogger (..)
+         HasLoggerName (..)
+       , LoggerNameBox (..)
        , setLoggerName
        , usingLoggerName
        ) where
@@ -28,7 +28,9 @@ import           System.Wlog.LoggerName      (LoggerName)
 
 -- | This type class exists to remove boilerplate logging
 -- by adding the logger's name to the context in each module.
-class WithNamedLogger m where
+--
+-- TODO: replace current methods with Lens?
+class HasLoggerName m where
     -- | Extract logger name from context
     getLoggerName :: m LoggerName
 
@@ -36,39 +38,35 @@ class WithNamedLogger m where
     modifyLoggerName :: (LoggerName -> LoggerName) -> m a -> m a
 
 
-instance (Monad m, WithNamedLogger m) =>
-         WithNamedLogger (ReaderT a m) where
+instance (Monad m, HasLoggerName m) => HasLoggerName (ReaderT a m) where
     getLoggerName = lift getLoggerName
 
     modifyLoggerName how m =
         ask >>= lift . modifyLoggerName how . runReaderT m
 
-instance (Monad m, WithNamedLogger m) =>
-         WithNamedLogger (StateT a m) where
+instance (Monad m, HasLoggerName m) => HasLoggerName (StateT a m) where
     getLoggerName = lift getLoggerName
 
     modifyLoggerName how m =
         get >>= lift . modifyLoggerName how . evalStateT m
 
-instance (Monoid w, Monad m, WithNamedLogger m) => WithNamedLogger (WriterT w m) where
+instance (Monoid w, Monad m, HasLoggerName m) => HasLoggerName (WriterT w m) where
     getLoggerName = lift getLoggerName
 
-    modifyLoggerName how m = WriterT $ modifyLoggerName how $ runWriterT m
+    modifyLoggerName how = WriterT . modifyLoggerName how . runWriterT
 
-instance (Monad m, WithNamedLogger m) =>
-         WithNamedLogger (ExceptT e m) where
+instance (Monad m, HasLoggerName m) => HasLoggerName (ExceptT e m) where
     getLoggerName = lift getLoggerName
 
     modifyLoggerName how = ExceptT . modifyLoggerName how . runExceptT
 
-instance (Monad m, WithNamedLogger m) =>
-         WithNamedLogger (ContT r m) where
+instance (Monad m, HasLoggerName m) => HasLoggerName (ContT r m) where
     getLoggerName = lift getLoggerName
 
     modifyLoggerName = mapContT . modifyLoggerName
 
 -- | Set logger name in context.
-setLoggerName :: WithNamedLogger m => LoggerName -> m a -> m a
+setLoggerName :: HasLoggerName m => LoggerName -> m a -> m a
 setLoggerName = modifyLoggerName . const
 
 -- | Default implementation of `WithNamedLogger`.
@@ -97,8 +95,7 @@ instance Wrapped (LoggerNameBox m a) where
 usingLoggerName :: LoggerName -> LoggerNameBox m a -> m a
 usingLoggerName name = flip runReaderT name . loggerNameBoxEntry
 
-instance Monad m =>
-         WithNamedLogger (LoggerNameBox m) where
+instance Monad m => HasLoggerName (LoggerNameBox m) where
     getLoggerName = LoggerNameBox ask
 
     modifyLoggerName how = LoggerNameBox . local how . loggerNameBoxEntry
