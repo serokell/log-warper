@@ -23,6 +23,8 @@ module System.Wlog.CanLog
        , logMessage
        ) where
 
+import           Control.Monad.Reader      (ReaderT)
+import           Control.Monad.State       (StateT)
 import           Control.Monad.Trans       (MonadTrans (lift))
 import           Control.Monad.Writer      (MonadWriter (tell), WriterT, execWriterT)
 
@@ -51,6 +53,12 @@ instance CanLog IO where
       = logM name prior t
 
 instance CanLog m => CanLog (LoggerNameBox m) where
+    dispatchMessage name sev t = lift $ dispatchMessage name sev t
+
+instance CanLog m => CanLog (ReaderT r m) where
+    dispatchMessage name sev t = lift $ dispatchMessage name sev t
+
+instance CanLog m => CanLog (StateT s m) where
     dispatchMessage name sev t = lift $ dispatchMessage name sev t
 
 -- | Pure implementation of 'CanLog' type class. Instead of writing log messages

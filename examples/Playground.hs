@@ -2,17 +2,16 @@
 
 module Main where
 
-import           Control.Exception   (bracket_)
-import           Control.Monad.Trans (MonadIO)
+import           Control.Exception (bracket_)
 
-import           Data.Monoid         ((<>))
-import qualified Data.Text           as T (unlines)
-import qualified Data.Text.IO        as TIO (putStrLn)
-import           System.Log.Logger   (removeAllHandlers)
+import           Data.Monoid       ((<>))
+import qualified Data.Text         as T (unlines)
+import qualified Data.Text.IO      as TIO (putStrLn)
+import           System.Log.Logger (removeAllHandlers)
 
-import           System.Wlog         (CanLog, acquirePureLog, initLoggingFromYaml,
-                                      logDebug, logError, logInfo, logNotice, logWarning,
-                                      modifyLoggerName, usingLoggerName)
+import           System.Wlog       (CanLog, acquirePureLog, initLoggingFromYaml, logDebug,
+                                    logError, logInfo, logNotice, logWarning,
+                                    modifyLoggerName, usingLoggerName)
 
 testLogging :: CanLog m => m ()
 testLogging = usingLoggerName "node" $ do
