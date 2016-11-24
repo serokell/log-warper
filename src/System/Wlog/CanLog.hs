@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE DefaultSignatures     #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLists       #-}
@@ -25,8 +26,8 @@ module System.Wlog.CanLog
        , logMessage
        ) where
 
-import           Control.Monad.Reader      (MonadReader, ReaderT)
-import           Control.Monad.State       (MonadState, StateT)
+import           Control.Monad.Reader      (MonadReader, ReaderT (..))
+import           Control.Monad.State       (MonadState, StateT (..))
 import           Control.Monad.Trans       (MonadTrans (lift))
 import           Control.Monad.Writer      (MonadWriter (tell), WriterT (runWriterT))
 
@@ -53,6 +54,9 @@ type WithLogger m = (CanLog m, HasLoggerName m)
 class Monad m => CanLog m where
     dispatchMessage :: LoggerName -> Severity -> Text -> m ()
 
+    default dispatchMessage :: MonadTrans t => LoggerName -> Severity -> Text -> t m ()
+    dispatchMessage name sev t = lift $ dispatchMessage name sev t
+
 instance CanLog IO where
     dispatchMessage
         (loggerName      -> name)
@@ -60,14 +64,9 @@ instance CanLog IO where
         (T.unpack        -> t)
       = logM name prior t
 
-instance CanLog m => CanLog (LoggerNameBox m) where
-    dispatchMessage name sev t = lift $ dispatchMessage name sev t
-
-instance CanLog m => CanLog (ReaderT r m) where
-    dispatchMessage name sev t = lift $ dispatchMessage name sev t
-
-instance CanLog m => CanLog (StateT s m) where
-    dispatchMessage name sev t = lift $ dispatchMessage name sev t
+instance CanLog m => CanLog (LoggerNameBox m)
+instance CanLog m => CanLog (ReaderT r m)
+instance CanLog m => CanLog (StateT s m)
 
 -- | Pure implementation of 'CanLog' type class. Instead of writing log messages
 -- into console it appends log messages into 'WriterT' log. It uses 'DList' for
