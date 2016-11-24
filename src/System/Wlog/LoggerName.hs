@@ -14,8 +14,11 @@ import qualified Data.Text.Buildable as Buildable
 import           Formatting          (Format, bprint, build, string)
 
 -- | Logger name to keep in context.
+
+-- TODO: replace 'String' with 'Text'
+-- TODO: change field name into @getLoggerName@ to follow naming convention
 newtype LoggerName = LoggerName
-    { loggerName :: String    -- TODO: replace with 'Text'
+    { loggerName :: String
     } deriving (Show, IsString, Eq, Hashable)
 
 -- | Defined such that @n1@ is parent for @(n1 <> n2)@
