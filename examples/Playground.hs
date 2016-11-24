@@ -5,13 +5,13 @@ module Main where
 import           Control.Exception (bracket_)
 
 import           Data.Monoid       ((<>))
-import qualified Data.Text         as T (unlines)
+import qualified Data.Text         as T (pack, unlines)
 import qualified Data.Text.IO      as TIO (putStrLn)
 import           System.Log.Logger (removeAllHandlers)
 
-import           System.Wlog       (CanLog, acquirePureLog, initLoggingFromYaml, logDebug,
-                                    logError, logInfo, logNotice, logWarning,
-                                    modifyLoggerName, usingLoggerName)
+import           System.Wlog       (CanLog, initLoggingFromYaml, logDebug, logError,
+                                    logInfo, logNotice, logWarning, modifyLoggerName,
+                                    runPureLog, usingLoggerName)
 
 testLogging :: CanLog m => m ()
 testLogging = usingLoggerName "node" $ do
@@ -28,8 +28,8 @@ testLogging = usingLoggerName "node" $ do
 
 showPureLog :: IO ()
 showPureLog = do
-    pureLog <- acquirePureLog testLogging
-    TIO.putStrLn "Pure log:"
+    (res, pureLog) <- runPureLog testLogging
+    TIO.putStrLn $ "Pure log for result = " <> (T.pack $ show res) <> ":"
     TIO.putStrLn $ T.unlines pureLog
 
 main :: IO ()

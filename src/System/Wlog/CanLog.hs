@@ -12,7 +12,7 @@ module System.Wlog.CanLog
        ( CanLog (..)
 
          -- * Pure logging manipulation
-       , acquirePureLog
+       , runPureLog
 
          -- * Logging functions
        , logDebug
@@ -26,8 +26,9 @@ module System.Wlog.CanLog
 import           Control.Monad.Reader      (ReaderT)
 import           Control.Monad.State       (StateT)
 import           Control.Monad.Trans       (MonadTrans (lift))
-import           Control.Monad.Writer      (MonadWriter (tell), WriterT, execWriterT)
+import           Control.Monad.Writer      (MonadWriter (tell), WriterT (runWriterT))
 
+import           Data.Bifunctor            (second)
 import           Data.DList                (DList, toList)
 import           Data.Text                 (Text)
 import qualified Data.Text                 as T
@@ -87,8 +88,8 @@ instance Monad m => CanLog (PureLogger m) where
         tell [message]
 
 -- | Return log of pure logging action.
-acquirePureLog :: Monad m => PureLogger m a -> m [Text]
-acquirePureLog = fmap toList . execWriterT . runPureLogger
+runPureLog :: Monad m => PureLogger m a -> m (a, [Text])
+runPureLog = fmap (second toList) . runWriterT . runPureLogger
 
 -- | Shortcut for 'logMessage' to use according severity.
 logDebug, logInfo, logNotice, logWarning, logError
