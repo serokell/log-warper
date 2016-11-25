@@ -5,7 +5,7 @@ module Main where
 import           Control.Exception (bracket_)
 
 import           Data.Monoid       ((<>))
-import qualified Data.Text         as T (pack, unlines)
+import qualified Data.Text         as T (pack)
 import qualified Data.Text.IO      as TIO (putStrLn)
 import           System.Log.Logger (removeAllHandlers)
 
@@ -30,7 +30,7 @@ showPureLog :: IO ()
 showPureLog = do
     (res, pureLog) <- runPureLog testLogging
     TIO.putStrLn $ "Pure log for result = " <> (T.pack $ show res) <> ":"
-    TIO.putStrLn $ T.unlines pureLog
+    TIO.putStrLn pureLog
 
 main :: IO ()
 main = do

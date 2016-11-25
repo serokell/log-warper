@@ -17,6 +17,7 @@ module System.Wlog.CanLog
          -- * Pure logging manipulation
        , PureLogger (..)
        , runPureLog
+       , runPureLogL
 
          -- * Logging functions
        , logDebug
@@ -87,9 +88,13 @@ instance Monad m => CanLog (PureLogger m) where
         let !message  = formatLogMessage loggerName severity pureTime text
         tell [message]
 
--- | Return log of pure logging action.
-runPureLog :: Monad m => PureLogger m a -> m (a, [Text])
-runPureLog = fmap (second toList) . runWriterT . runPureLogger
+-- | Return log of pure logging action as list of log messages.
+runPureLogL :: Monad m => PureLogger m a -> m (a, [Text])
+runPureLogL = fmap (second toList) . runWriterT . runPureLogger
+
+-- | Return log of pure logging action as concatenation of log messages.
+runPureLog :: Monad m => PureLogger m a -> m (a, Text)
+runPureLog = fmap (second T.unlines) . runPureLogL
 
 -- | Shortcut for 'logMessage' to use according severity.
 logDebug, logInfo, logNotice, logWarning, logError
