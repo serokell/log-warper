@@ -15,6 +15,7 @@ module System.Wlog.CanLog
 
          -- * Pure logging manipulation
        , PureLogger (..)
+       , LogEvent   (..)
        , dispatchEvents
        , runPureLog
 
