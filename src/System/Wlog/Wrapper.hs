@@ -15,9 +15,9 @@ module System.Wlog.Wrapper
        , convertSeverity
        , initLogging
        , initLoggingWith
+       , releaseAllHandlers
        , setSeverity
        , setSeverityMaybe
-
        ) where
 
 import           Control.Concurrent.MVar   (MVar, newMVar, withMVar)
@@ -26,8 +26,8 @@ import           Data.Default              (Default (def))
 import           System.IO                 (Handle, stderr, stdout)
 import           System.Log.Handler.Simple (GenericHandler (..), streamHandler)
 import           System.Log.Logger         (Priority (DEBUG, ERROR), clearLevel,
-                                            rootLoggerName, setHandlers, setLevel,
-                                            updateGlobalLogger)
+                                            removeAllHandlers, rootLoggerName,
+                                            setHandlers, setLevel, updateGlobalLogger)
 
 import           System.Wlog.Formatter     (setStderrFormatter, setStdoutFormatter)
 import           System.Wlog.LoggerName    (LoggerName (..))
@@ -102,3 +102,7 @@ setSeverityMaybe
 setSeverityMaybe (LoggerName name) Nothing =
     liftIO $ updateGlobalLogger name clearLevel
 setSeverityMaybe n (Just x) = setSeverity n x
+
+-- | Lifted alias to 'removeAllHandlers'.
+releaseAllHandlers :: MonadIO m => m ()
+releaseAllHandlers = liftIO removeAllHandlers
