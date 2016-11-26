@@ -6,12 +6,11 @@ import           Control.Exception (bracket_)
 
 import           Data.Monoid       ((<>))
 import qualified Data.Text         as T (pack)
-import qualified Data.Text.IO      as TIO (putStrLn)
 import           System.Log.Logger (removeAllHandlers)
 
-import           System.Wlog       (CanLog, initLoggingFromYaml, logDebug, logError,
-                                    logInfo, logNotice, logWarning, modifyLoggerName,
-                                    runPureLog, usingLoggerName)
+import           System.Wlog       (CanLog, dispatchEvents, initLoggingFromYaml, logDebug,
+                                    logError, logInfo, logNotice, logWarning,
+                                    modifyLoggerName, runPureLog, usingLoggerName)
 
 testLogging :: CanLog m => m ()
 testLogging = usingLoggerName "node" $ do
@@ -29,14 +28,13 @@ testLogging = usingLoggerName "node" $ do
 showPureLog :: IO ()
 showPureLog = do
     (res, pureLog) <- runPureLog testLogging
-    TIO.putStrLn $ "Pure log for result = " <> (T.pack $ show res) <> ":"
-    TIO.putStrLn pureLog
+    putStrLn "Pure log:"
+    usingLoggerName "naked" $ do
+        logWarning $ "Pure log for result = " <> (T.pack $ show res) <> ":"
+        dispatchEvents pureLog
 
 main :: IO ()
-main = do
-    bracket_
-        (initLoggingFromYaml "logger-config-example.yaml" $ Just "logs")
-        removeAllHandlers
-        testLogging
-
-    showPureLog
+main = bracket_
+           (initLoggingFromYaml "logger-config-example.yaml" $ Just "logs")
+           removeAllHandlers
+           (testLogging >> showPureLog)

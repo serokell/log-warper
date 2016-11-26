@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE DefaultSignatures     #-}
 {-# LANGUAGE FlexibleInstances     #-}
@@ -16,8 +15,8 @@ module System.Wlog.CanLog
 
          -- * Pure logging manipulation
        , PureLogger (..)
+       , dispatchEvents
        , runPureLog
-       , runPureLogL
 
          -- * Logging functions
        , logDebug
@@ -37,12 +36,9 @@ import           Data.Bifunctor            (second)
 import           Data.DList                (DList, toList)
 import           Data.Text                 (Text)
 import qualified Data.Text                 as T
-import           Data.Time.Clock           (getCurrentTime)
 
-import           System.IO.Unsafe          (unsafePerformIO)
 import           System.Log.Logger         (logM)
 
-import           System.Wlog.Formatter     (formatLogMessage)
 import           System.Wlog.LoggerName    (LoggerName (..))
 import           System.Wlog.LoggerNameBox (HasLoggerName (..), LoggerNameBox (..))
 import           System.Wlog.Severity      (Severity (..), convertSeverity)
@@ -70,6 +66,13 @@ instance CanLog m => CanLog (LoggerNameBox m)
 instance CanLog m => CanLog (ReaderT r m)
 instance CanLog m => CanLog (StateT s m)
 
+-- | Holds all required information for 'dispatchLoggerName' function.
+data LogEvent = LogEvent
+    { leLoggerName :: !LoggerName
+    , leSeverity   :: !Severity
+    , leMessage    :: !Text
+    } deriving (Show)
+
 -- | Pure implementation of 'CanLog' type class. Instead of writing log messages
 -- into console it appends log messages into 'WriterT' log. It uses 'DList' for
 -- better performance, because messages can be added only at the end of log.
@@ -78,23 +81,23 @@ instance CanLog m => CanLog (StateT s m)
 -- TODO: Should we use some @Data.Tree@-like structure to observe message only
 -- by chosen loger names?
 newtype PureLogger m a = PureLogger
-    { runPureLogger :: WriterT (DList Text) m a
-    } deriving (Functor, Applicative, Monad, MonadTrans, MonadWriter (DList Text),
+    { runPureLogger :: WriterT (DList LogEvent) m a
+    } deriving (Functor, Applicative, Monad, MonadTrans, MonadWriter (DList LogEvent),
                 MonadState s, MonadReader r, HasLoggerName)
 
 instance Monad m => CanLog (PureLogger m) where
-    dispatchMessage loggerName severity text = do
-        let !pureTime = unsafePerformIO getCurrentTime
-        let !message  = formatLogMessage loggerName severity pureTime text
-        tell [message]
+    dispatchMessage leLoggerName leSeverity leMessage = tell [LogEvent{..}]
 
--- | Return log of pure logging action as list of log messages.
-runPureLogL :: Monad m => PureLogger m a -> m (a, [Text])
-runPureLogL = fmap (second toList) . runWriterT . runPureLogger
+-- | Return log of pure logging action as list of 'LogEvent'.
+runPureLog :: Monad m => PureLogger m a -> m (a, [LogEvent])
+runPureLog = fmap (second toList) . runWriterT . runPureLogger
 
--- | Return log of pure logging action as concatenation of log messages.
-runPureLog :: Monad m => PureLogger m a -> m (a, Text)
-runPureLog = fmap (second T.unlines) . runPureLogL
+-- | Logs all 'LogEvent'`s from given list. This function supposed to
+-- be used after 'runPureLog'.
+dispatchEvents :: WithLogger m => [LogEvent] -> m ()
+dispatchEvents = mapM_ dispatchLogEvent
+  where
+    dispatchLogEvent (LogEvent name sev t) = dispatchMessage name sev t
 
 -- | Shortcut for 'logMessage' to use according severity.
 logDebug, logInfo, logNotice, logWarning, logError
