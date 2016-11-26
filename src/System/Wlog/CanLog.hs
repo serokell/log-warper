@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLists       #-}
+{-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE ViewPatterns          #-}
 
@@ -35,6 +36,7 @@ import           Control.Monad.Writer      (MonadWriter (tell), WriterT (runWrit
 
 import           Data.Bifunctor            (second)
 import           Data.DList                (DList, toList)
+import           Data.SafeCopy             (base, deriveSafeCopySimple)
 import           Data.Text                 (Text)
 import qualified Data.Text                 as T
 
@@ -73,6 +75,8 @@ data LogEvent = LogEvent
     , leSeverity   :: !Severity
     , leMessage    :: !Text
     } deriving (Show)
+
+deriveSafeCopySimple 0 'base ''LogEvent
 
 -- | Pure implementation of 'CanLog' type class. Instead of writing log messages
 -- into console it appends log messages into 'WriterT' log. It uses 'DList' for
