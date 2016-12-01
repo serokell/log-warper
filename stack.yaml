@@ -4,16 +4,19 @@ resolver: lts-7.9
 # Local packages, usually specified by relative directory name
 packages:
 - '.'
+- location:
+    git: https://github.com/serokell/serokell-util.git
+    commit: 7b735ec3cceca85d9c65910c32c08a8cdb6aad48
+  extra-dep: true
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps:
 - aeson-extra-0.4.0.0
 - data-msgpack-0.0.8
 - recursion-schemes-5
-- serokell-util-0.1.2.0
 - time-units-1.0.0
 
-nix: 
+nix:
   packages: [git, openssh]
 
 # Override default flag values for local packages and extra-deps
