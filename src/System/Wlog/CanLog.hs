@@ -4,6 +4,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLists       #-}
 {-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE ViewPatterns          #-}
 
@@ -55,7 +56,13 @@ type WithLogger m = (CanLog m, HasLoggerName m)
 class Monad m => CanLog m where
     dispatchMessage :: LoggerName -> Severity -> Text -> m ()
 
-    default dispatchMessage :: MonadTrans t => LoggerName -> Severity -> Text -> t m ()
+    -- Redundant constraint here due to type checker regressing in ghc-8.0.2-rc1
+    -- https://ghc.haskell.org/trac/ghc/ticket/12784
+    default dispatchMessage :: (MonadTrans t, t n ~ m, CanLog n)
+                            => LoggerName
+                            -> Severity
+                            -> Text
+                            -> t n ()
     dispatchMessage name sev t = lift $ dispatchMessage name sev t
 
 instance CanLog IO where
