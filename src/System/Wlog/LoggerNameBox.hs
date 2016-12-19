@@ -17,6 +17,7 @@ import           Control.Lens                (iso)
 import           Control.Monad.Base          (MonadBase)
 import           Control.Monad.Catch         (MonadCatch, MonadMask, MonadThrow)
 import           Control.Monad.Except        (ExceptT (..), runExceptT)
+import           Control.Monad.Fix           (MonadFix)
 import           Control.Monad.Reader        (MonadReader (..), ReaderT, runReaderT)
 import           Control.Monad.State         (MonadState (get), StateT, evalStateT)
 import           Control.Monad.Trans         (MonadIO, MonadTrans, lift)
@@ -75,7 +76,7 @@ setLoggerName = modifyLoggerName . const
 newtype LoggerNameBox m a = LoggerNameBox
     { loggerNameBoxEntry :: ReaderT LoggerName m a
     } deriving (Functor, Applicative, Monad, MonadIO, MonadTrans, MonadBase b,
-                MonadThrow, MonadCatch, MonadMask, MonadState s)
+                MonadThrow, MonadCatch, MonadMask, MonadState s, MonadFix)
 
 
 instance MonadReader r m => MonadReader r (LoggerNameBox m) where
