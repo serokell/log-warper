@@ -11,7 +11,8 @@
 -- which allows to keep logger name in monadic context.
 
 module System.Wlog.Wrapper
-       ( Severity (..)
+       ( LoggingFormat (..)
+       , Severity (..)
        , convertSeverity
        , initLogging
        , initLoggingWith
