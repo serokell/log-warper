@@ -2,7 +2,7 @@ name:                log-warper
 version:             0.2.1
 synopsis:            Flexible, configurable, monadic and pretty logging
 homepage:            https://github.com/serokell/log-warper
-license:             GPL-3
+license:             MIT
 license-file:        LICENSE
 author:              Serokell team
 maintainer:          Serokell <hi@serokell.io>
