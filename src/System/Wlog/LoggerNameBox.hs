@@ -13,7 +13,6 @@ module System.Wlog.LoggerNameBox
        , usingLoggerName
        ) where
 
-import           Control.Lens                (iso)
 import           Control.Monad.Base          (MonadBase)
 import           Control.Monad.Catch         (MonadCatch, MonadMask, MonadThrow)
 import           Control.Monad.Except        (ExceptT (..), runExceptT)
@@ -24,8 +23,6 @@ import           Control.Monad.Trans         (MonadIO, MonadTrans, lift)
 import           Control.Monad.Trans.Cont    (ContT, mapContT)
 import           Control.Monad.Trans.Control (MonadBaseControl (..))
 import           Control.Monad.Writer        (WriterT (..))
-
-import           Serokell.Util.Lens          (WrappedM (..))
 
 import           System.Wlog.LoggerName      (LoggerName)
 
@@ -89,10 +86,6 @@ instance MonadBaseControl b m => MonadBaseControl b (LoggerNameBox m) where
     liftBaseWith io =
         LoggerNameBox $ liftBaseWith $ \runInBase -> io $ runInBase . loggerNameBoxEntry
     restoreM = LoggerNameBox . restoreM
-
-instance Monad m => WrappedM (LoggerNameBox m) where
-    type UnwrappedM (LoggerNameBox m) = ReaderT LoggerName m
-    _WrappedM = iso loggerNameBoxEntry LoggerNameBox
 
 -- | Runs a `LoggerNameBox` with specified initial `LoggerName`.
 usingLoggerName :: LoggerName -> LoggerNameBox m a -> m a

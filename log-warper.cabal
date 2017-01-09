@@ -48,7 +48,6 @@ library
                      , monad-control        >= 1.0.1.0
                      , mtl                  >= 2.2.1
                      , safecopy             >= 0.9.1
-                     , serokell-util        >= 0.1.1
                      , text                 >= 1.2.2.0
                      , text-format          >= 0.3.1.1
                      , time                 >= 1.6.0.1
