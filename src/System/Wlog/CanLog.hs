@@ -30,6 +30,7 @@ module System.Wlog.CanLog
        , logMessage
        ) where
 
+import           Control.Monad.Except      (ExceptT, MonadError)
 import           Control.Monad.Reader      (MonadReader, ReaderT)
 import           Control.Monad.State       (MonadState, StateT)
 import           Control.Monad.Trans       (MonadTrans (lift))
@@ -75,6 +76,7 @@ instance CanLog IO where
 instance CanLog m => CanLog (LoggerNameBox m)
 instance CanLog m => CanLog (ReaderT r m)
 instance CanLog m => CanLog (StateT s m)
+instance CanLog m => CanLog (ExceptT s m)
 
 -- | Holds all required information for 'dispatchLoggerName' function.
 data LogEvent = LogEvent
@@ -95,7 +97,7 @@ deriveSafeCopySimple 0 'base ''LogEvent
 newtype PureLogger m a = PureLogger
     { runPureLogger :: WriterT (DList LogEvent) m a
     } deriving (Functor, Applicative, Monad, MonadTrans, MonadWriter (DList LogEvent),
-                MonadState s, MonadReader r, HasLoggerName)
+                MonadState s, MonadReader r, MonadError e, HasLoggerName)
 
 instance Monad m => CanLog (PureLogger m) where
     dispatchMessage leLoggerName leSeverity leMessage = tell [LogEvent{..}]
