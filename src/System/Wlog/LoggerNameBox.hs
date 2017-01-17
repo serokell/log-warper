@@ -15,14 +15,15 @@ module System.Wlog.LoggerNameBox
 
 import           Control.Monad.Base          (MonadBase)
 import           Control.Monad.Catch         (MonadCatch, MonadMask, MonadThrow)
-import           Control.Monad.Except        (ExceptT (..), runExceptT)
+import           Control.Monad.Except        (ExceptT (..), mapExceptT)
 import           Control.Monad.Fix           (MonadFix)
-import           Control.Monad.Reader        (MonadReader (..), ReaderT, runReaderT)
-import           Control.Monad.State         (MonadState (get), StateT, evalStateT)
+import           Control.Monad.Reader        (MonadReader (..), ReaderT, mapReaderT,
+                                              runReaderT)
+import           Control.Monad.State         (MonadState, StateT, mapStateT)
 import           Control.Monad.Trans         (MonadIO, MonadTrans, lift)
 import           Control.Monad.Trans.Cont    (ContT, mapContT)
 import           Control.Monad.Trans.Control (MonadBaseControl (..))
-import           Control.Monad.Writer        (WriterT (..))
+import           Control.Monad.Writer        (WriterT (..), mapWriterT)
 
 import           System.Wlog.LoggerName      (LoggerName)
 
@@ -37,28 +38,25 @@ class HasLoggerName m where
     -- | Change logger name in context
     modifyLoggerName :: (LoggerName -> LoggerName) -> m a -> m a
 
-
 instance (Monad m, HasLoggerName m) => HasLoggerName (ReaderT a m) where
     getLoggerName = lift getLoggerName
 
-    modifyLoggerName how m =
-        ask >>= lift . modifyLoggerName how . runReaderT m
+    modifyLoggerName = mapReaderT . modifyLoggerName
 
 instance (Monad m, HasLoggerName m) => HasLoggerName (StateT a m) where
     getLoggerName = lift getLoggerName
 
-    modifyLoggerName how m =
-        get >>= lift . modifyLoggerName how . evalStateT m
+    modifyLoggerName = mapStateT . modifyLoggerName
 
 instance (Monoid w, Monad m, HasLoggerName m) => HasLoggerName (WriterT w m) where
     getLoggerName = lift getLoggerName
 
-    modifyLoggerName how = WriterT . modifyLoggerName how . runWriterT
+    modifyLoggerName = mapWriterT . modifyLoggerName
 
 instance (Monad m, HasLoggerName m) => HasLoggerName (ExceptT e m) where
     getLoggerName = lift getLoggerName
 
-    modifyLoggerName how = ExceptT . modifyLoggerName how . runExceptT
+    modifyLoggerName = mapExceptT . modifyLoggerName
 
 instance (Monad m, HasLoggerName m) => HasLoggerName (ContT r m) where
     getLoggerName = lift getLoggerName
