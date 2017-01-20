@@ -7,12 +7,12 @@ import           Control.Exception (bracket_)
 import           Data.Monoid       ((<>))
 import qualified Data.Text         as T (pack)
 
-import           System.Wlog       (CanLog, dispatchEvents, initLoggingFromYaml, logDebug,
-                                    logError, logInfo, logNotice, logWarning,
-                                    modifyLoggerName, releaseAllHandlers, runPureLog,
-                                    usingLoggerName)
+import           System.Wlog       (CanLog, IsRotatingLogger, dispatchEvents,
+                                    initLoggingFromYaml, logDebug, logError, logInfo,
+                                    logNotice, logWarning, modifyLoggerName,
+                                    releaseAllHandlers, runPureLog, usingLoggerName)
 
-testLogging :: CanLog m => m ()
+testLogging :: (IsRotatingLogger m, CanLog m) => m ()
 testLogging = usingLoggerName "node" $ do
     logDebug   "skovoroda"
     logInfo    "patak"

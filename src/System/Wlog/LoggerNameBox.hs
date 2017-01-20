@@ -73,7 +73,6 @@ newtype LoggerNameBox m a = LoggerNameBox
     } deriving (Functor, Applicative, Monad, MonadIO, MonadTrans, MonadBase b,
                 MonadThrow, MonadCatch, MonadMask, MonadState s, MonadFix)
 
-
 instance MonadReader r m => MonadReader r (LoggerNameBox m) where
     ask = lift ask
     reader = lift . reader

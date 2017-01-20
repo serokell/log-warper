@@ -16,6 +16,7 @@ module System.Wlog
        , module System.Wlog.LoggerConfig
        , module System.Wlog.LoggerName
        , module System.Wlog.LoggerNameBox
+       , module System.Wlog.LoggerRotation
        , module System.Wlog.Parser
        , module System.Wlog.Severity
        , module System.Wlog.Wrapper
@@ -25,6 +26,7 @@ import           System.Wlog.CanLog
 import           System.Wlog.LoggerConfig
 import           System.Wlog.LoggerName
 import           System.Wlog.LoggerNameBox
+import           System.Wlog.LoggerRotation
 import           System.Wlog.Parser
 import           System.Wlog.Severity
 import           System.Wlog.Wrapper
