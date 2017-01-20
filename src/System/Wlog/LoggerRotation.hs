@@ -1,8 +1,10 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
+
+-- | This module contains type classes for loggers that rotate over filepaths
 
 module System.Wlog.LoggerRotation
        ( IsRotatingLogger (..)
@@ -26,6 +28,9 @@ import           System.FilePath             (FilePath)
 
 import           System.Wlog.LoggerNameBox   (LoggerNameBox (..))
 
+-- | This type class exists to allow loggers to cycle over filepaths as each gets full,
+-- traversing a structure from left to right and going back to the oldest one after every
+-- filepath has been filled.
 class IsRotatingLogger m where
     -- | Rotate the logger's log location to avoid very long logs
     rotateLogger :: Text -> m a -> m a
