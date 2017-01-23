@@ -100,12 +100,10 @@ instance Default LoggerConfig where
           , lcTree     = def
           }
 
--- TODO: make this prettier
-nonRotation :: [Text]
-nonRotation = ["logLimit", "keepFiles"]
-
 instance FromJSON LoggerConfig where
     parseJSON = withObject "rotation params" $ \o -> do
         lcRotation <- o .:? "rotation"
-        lcTree     <- parseJSON $ Object $ filterObject nonRotation o
+        lcTree     <- parseJSON $ Object $ filterObject ["rotation"] o
         return LoggerConfig{..}
+
+instance ToJSON LoggerConfig

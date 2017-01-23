@@ -52,7 +52,7 @@ import           System.Log.Handler.Simple (fileHandler)
 import           System.Log.Logger         (addHandler, updateGlobalLogger)
 
 import           System.Wlog.Formatter     (setStdoutFormatter)
-import           System.Wlog.LoggerConfig  (LoggerTree (..))
+import           System.Wlog.LoggerConfig  (LoggerConfig (..), LoggerTree (..))
 import           System.Wlog.LoggerName    (LoggerName (..))
 import           System.Wlog.Wrapper       (Severity (Debug, Warning), convertSeverity,
                                             initLogging, setSeverityMaybe)
@@ -63,7 +63,7 @@ import           System.Wlog.Wrapper       (Severity (Debug, Warning), convertSe
 traverseLoggerConfig
     :: MonadIO m
     => (LoggerName -> LoggerName)  -- ^ mapper to transform logger names during traversal
-    -> LoggerTree                  -- ^ given LoggerConfig to traverse
+    -> LoggerTree                  -- ^ given 'LoggerConfig' to traverse
     -> Maybe FilePath              -- ^ prefix for file handlers
     -> m ()
 traverseLoggerConfig logMapper config (fromMaybe "." -> handlerPrefix) = do
@@ -87,7 +87,7 @@ traverseLoggerConfig logMapper config (fromMaybe "." -> handlerPrefix) = do
             processLoggers thisLogger loggerConfig
 
 -- | Parses logger config from given file path.
-parseLoggerConfig :: MonadIO m => FilePath -> m LoggerTree
+parseLoggerConfig :: MonadIO m => FilePath -> m LoggerConfig
 parseLoggerConfig loggerConfigPath =
     liftIO $ join $ either throwIO return <$> decodeFileEither loggerConfigPath
 
@@ -100,13 +100,13 @@ initLoggingFromYamlWithMapper
     -> Maybe FilePath
     -> m ()
 initLoggingFromYamlWithMapper loggerMapper loggerConfigPath handlerPrefix = do
-    loggerConfig <- parseLoggerConfig loggerConfigPath
+    cfg@LoggerConfig{..} <- parseLoggerConfig loggerConfigPath
 
 #if PatakDebugSkovorodaBARDAQ
-    liftIO $ BS.putStrLn $ encodePretty defConfig loggerConfig
+    liftIO $ BS.putStrLn $ encodePretty defConfig cfg
 #endif
 
-    traverseLoggerConfig loggerMapper loggerConfig handlerPrefix
+    traverseLoggerConfig loggerMapper lcTree handlerPrefix
 
 initLoggingFromYaml :: MonadIO m => FilePath -> Maybe FilePath -> m ()
 initLoggingFromYaml = initLoggingFromYamlWithMapper id
