@@ -52,7 +52,7 @@ import           System.Log.Handler.Simple (fileHandler)
 import           System.Log.Logger         (addHandler, updateGlobalLogger)
 
 import           System.Wlog.Formatter     (setStdoutFormatter)
-import           System.Wlog.LoggerConfig  (LoggerConfig (..))
+import           System.Wlog.LoggerConfig  (LoggerTree (..))
 import           System.Wlog.LoggerName    (LoggerName (..))
 import           System.Wlog.Wrapper       (Severity (Debug, Warning), convertSeverity,
                                             initLogging, setSeverityMaybe)
@@ -63,7 +63,7 @@ import           System.Wlog.Wrapper       (Severity (Debug, Warning), convertSe
 traverseLoggerConfig
     :: MonadIO m
     => (LoggerName -> LoggerName)  -- ^ mapper to transform logger names during traversal
-    -> LoggerConfig                -- ^ given LoggerConfig to traverse
+    -> LoggerTree                  -- ^ given LoggerConfig to traverse
     -> Maybe FilePath              -- ^ prefix for file handlers
     -> m ()
 traverseLoggerConfig logMapper config (fromMaybe "." -> handlerPrefix) = do
@@ -71,23 +71,23 @@ traverseLoggerConfig logMapper config (fromMaybe "." -> handlerPrefix) = do
     initLogging Warning
     processLoggers mempty config
   where
-    processLoggers:: MonadIO m => LoggerName -> LoggerConfig -> m ()
-    processLoggers parent LoggerConfig{..} = do
-        setSeverityMaybe parent lcSeverity
+    processLoggers:: MonadIO m => LoggerName -> LoggerTree -> m ()
+    processLoggers parent LoggerTree{..} = do
+        setSeverityMaybe parent ltSeverity
 
-        whenJust lcFile $ \fileName -> liftIO $ do
-            let fileSeverity   = convertSeverity $ lcSeverity ?: Debug
+        whenJust ltFile $ \fileName -> liftIO $ do
+            let fileSeverity   = convertSeverity $ ltSeverity ?: Debug
             let handlerPath    = handlerPrefix </> fileName
             thisLoggerHandler <- setStdoutFormatter True <$> fileHandler handlerPath fileSeverity
             updateGlobalLogger (loggerName parent) $ addHandler thisLoggerHandler
 
-        for_ (HM.toList lcSubloggers) $ \(name, loggerConfig) -> do
+        for_ (HM.toList ltSubloggers) $ \(name, loggerConfig) -> do
             let thisLoggerName = LoggerName $ unpack name
             let thisLogger     = parent <> logMapper thisLoggerName
             processLoggers thisLogger loggerConfig
 
 -- | Parses logger config from given file path.
-parseLoggerConfig :: MonadIO m => FilePath -> m LoggerConfig
+parseLoggerConfig :: MonadIO m => FilePath -> m LoggerTree
 parseLoggerConfig loggerConfigPath =
     liftIO $ join $ either throwIO return <$> decodeFileEither loggerConfigPath
 
