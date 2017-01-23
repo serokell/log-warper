@@ -24,7 +24,7 @@ library
                        System.Wlog.LoggerConfig
                        System.Wlog.LoggerName
                        System.Wlog.LoggerNameBox
-                       System.Wlog.LoggerRotation
+                       System.Wlog.Roller
                        System.Wlog.Severity
                        System.Wlog.Wrapper
 
@@ -54,6 +54,7 @@ library
                      , time                 >= 1.6.0.1
                      , transformers         >= 0.5.2
                      , transformers-base    >= 0.4.4
+                     , universum
                      , unordered-containers >= 0.2.7.1
                      , yaml                 >= 0.8.20
 

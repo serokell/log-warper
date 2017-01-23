@@ -1,5 +1,6 @@
-{-# LANGUAGE CPP          #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE CPP                       #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE ViewPatterns              #-}
 
 -- |
 -- Module      : System.Wlog.Parser
@@ -48,38 +49,54 @@ import           Data.Yaml                 (decodeFileEither)
 
 import           System.Directory          (createDirectoryIfMissing)
 import           System.FilePath           ((</>))
+import           System.Log                (Priority)
+import           System.Log.Handler        (LogHandler)
 import           System.Log.Handler.Simple (fileHandler)
 import           System.Log.Logger         (addHandler, updateGlobalLogger)
 
 import           System.Wlog.Formatter     (setStdoutFormatter)
-import           System.Wlog.LoggerConfig  (LoggerConfig (..), LoggerTree (..))
+import           System.Wlog.LoggerConfig  (LoggerConfig (..), LoggerTree (..),
+                                            RotationParameters)
 import           System.Wlog.LoggerName    (LoggerName (..))
+import           System.Wlog.Roller        (rotationFileHandler)
 import           System.Wlog.Wrapper       (Severity (Debug, Warning), convertSeverity,
                                             initLogging, setSeverityMaybe)
 
+data HandlerFabric
+    = forall h . LogHandler h => HandlerFabric (FilePath -> Priority -> IO h)
+
 -- | This function traverses 'LoggerConfig' initializing all subloggers
 -- with 'Severity' and redirecting output in file handlers. Also takes
--- 'FilePath' prefix to create directory for file handlers output.
+-- 'FilePath' prefix to create directory for file handlers output. Create
+-- logging rotation if appropriate arguments are passed.
 traverseLoggerConfig
     :: MonadIO m
     => (LoggerName -> LoggerName)  -- ^ mapper to transform logger names during traversal
+    -> Maybe RotationParameters    -- ^ rotation parameters for roller handle
     -> LoggerTree                  -- ^ given 'LoggerConfig' to traverse
     -> Maybe FilePath              -- ^ prefix for file handlers
     -> m ()
-traverseLoggerConfig logMapper config (fromMaybe "." -> handlerPrefix) = do
+traverseLoggerConfig logMapper mrot tree (fromMaybe "." -> handlerPrefix) = do
     liftIO $ createDirectoryIfMissing True handlerPrefix
     initLogging Warning
-    processLoggers mempty config
+    processLoggers mempty tree
   where
-    processLoggers:: MonadIO m => LoggerName -> LoggerTree -> m ()
+    handlerFabric :: HandlerFabric
+    handlerFabric = case mrot of
+        Nothing  -> HandlerFabric fileHandler
+        Just rot -> HandlerFabric $ rotationFileHandler rot
+
+    processLoggers :: MonadIO m => LoggerName -> LoggerTree -> m ()
     processLoggers parent LoggerTree{..} = do
         setSeverityMaybe parent ltSeverity
 
         whenJust ltFile $ \fileName -> liftIO $ do
-            let fileSeverity   = convertSeverity $ ltSeverity ?: Debug
+            let filePriority   = convertSeverity $ ltSeverity ?: Debug
             let handlerPath    = handlerPrefix </> fileName
-            thisLoggerHandler <- setStdoutFormatter True <$> fileHandler handlerPath fileSeverity
-            updateGlobalLogger (loggerName parent) $ addHandler thisLoggerHandler
+            case handlerFabric of
+              HandlerFabric fabric -> do
+                thisLoggerHandler <- setStdoutFormatter True <$> fabric handlerPath filePriority
+                updateGlobalLogger (loggerName parent) $ addHandler thisLoggerHandler
 
         for_ (HM.toList ltSubloggers) $ \(name, loggerConfig) -> do
             let thisLoggerName = LoggerName $ unpack name
@@ -106,7 +123,7 @@ initLoggingFromYamlWithMapper loggerMapper loggerConfigPath handlerPrefix = do
     liftIO $ BS.putStrLn $ encodePretty defConfig cfg
 #endif
 
-    traverseLoggerConfig loggerMapper lcTree handlerPrefix
+    traverseLoggerConfig loggerMapper lcRotation lcTree handlerPrefix
 
 initLoggingFromYaml :: MonadIO m => FilePath -> Maybe FilePath -> m ()
 initLoggingFromYaml = initLoggingFromYamlWithMapper id

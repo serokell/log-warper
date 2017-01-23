@@ -1,5 +1,5 @@
 rotation:                # parameters for logger rotation
-    logLimit: 128        # size of file in bytes
+    logLimit: 256        # size of file in bytes
     keepFiles: 3         # max number of files to keep
 severity: Warning        # severity for «root» logger
 node:                    # logger named «node»
