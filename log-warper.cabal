@@ -20,11 +20,11 @@ Flag PatakDebugSkovorodaBARDAQ
 library
   exposed-modules:     System.Wlog
                        System.Wlog.CanLog
+                       System.Wlog.Launcher
                        System.Wlog.LoggerConfig
                        System.Wlog.LoggerName
                        System.Wlog.LoggerNameBox
                        System.Wlog.LoggerRotation
-                       System.Wlog.Parser
                        System.Wlog.Severity
                        System.Wlog.Wrapper
 

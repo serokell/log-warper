@@ -21,7 +21,7 @@
 -- And this configuration corresponds two loggers with 'LoggerName'`s
 -- @node@ and @node.comm@.
 
-module System.Wlog.Parser
+module System.Wlog.Launcher
        ( initLoggingFromYaml
        , initLoggingFromYamlWithMapper
        , parseLoggerConfig
