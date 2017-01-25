@@ -13,6 +13,9 @@
 -- Parser for configuring and initializing logger from YAML file.
 -- Logger configuration should look like this:
 --
+-- > rotation:                # [optional] parameters for logging rotation
+-- >     logLimit: 1024       # max size of log file in bytes
+-- >     keepFiles: 3         # number of files with logs to keep including current one
 -- > node:                    # logger named «node»
 -- >     severity: Warning    # severity for logger «node»
 -- >     comm:                # logger named «node.comm»

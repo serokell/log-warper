@@ -4,7 +4,9 @@
 -- | Custom implementation of 'LogHandler' with log rotation support.
 
 module System.Wlog.Roller
-       ( RollerHandler (..)
+       ( InvalidRotation (..)
+       , RollerHandler   (..)
+       , logIndex
        , rotationFileHandler
        ) where
 
@@ -14,7 +16,7 @@ import           Control.Concurrent        (MVar, modifyMVar_, newMVar)
 import           Formatting                (sformat, shown, (%))
 import qualified Prelude                   (show)
 
-import           System.Directory          (doesFileExist, removeFile, renameFile)
+import           System.Directory          (removeFile, renameFile)
 import           System.FilePath           ((<.>))
 import           System.IO                 (Handle, IOMode (AppendMode), hClose,
                                             hFileSize)
@@ -23,7 +25,8 @@ import           System.Log.Formatter      (LogFormatter, nullFormatter)
 import           System.Log.Handler        (LogHandler (..))
 import           System.Log.Handler.Simple (GenericHandler (..), fileHandler)
 
-import           System.Wlog.LoggerConfig  (RotationParameters (..))
+import           System.Wlog.FileUtils     (whenExist)
+import           System.Wlog.LoggerConfig  (RotationParameters (..), isValidRotation)
 
 -- | Similar to 'GenericHandler'. But holds file 'Handle' inside
 -- mutable variable ('MVar') to be able to rotate loggers.
@@ -45,9 +48,12 @@ instance LogHandler RollerHandler where
     close RollerHandler{..} = withMVar rhFileHandle rhCloseAction
 
 data InvalidRotation = InvalidRotation !Text
-    deriving (Show)
+    deriving (Show, Eq)
 
 instance Exception InvalidRotation
+
+logIndex :: FilePath -> Word -> FilePath
+logIndex handlerPath i = handlerPath <.> Prelude.show i
 
 -- | Create rotation logging handler.
 rotationFileHandler
@@ -57,7 +63,7 @@ rotationFileHandler
     -> Priority
     -> m RollerHandler
 rotationFileHandler rp@RotationParameters{..} _ _
-    | rpLogLimit == 0 || rpKeepFiles == 0 = liftIO $ throwM $ InvalidRotation $
+    | not $ isValidRotation rp = liftIO $ throwM $ InvalidRotation $
       sformat ("Rotation parameters must be positive: "%shown) rp
 rotationFileHandler RotationParameters{..} handlerPath rhPriority = liftIO $ do
     GenericHandler{..} <- fileHandler handlerPath rhPriority
@@ -68,12 +74,6 @@ rotationFileHandler RotationParameters{..} handlerPath rhPriority = liftIO $ do
                         , ..
                         }
   where
-    whenExist :: FilePath -> (FilePath -> IO ()) -> IO ()
-    whenExist filePath action = whenM (doesFileExist filePath) $ action filePath
-
-    logIndex :: Word -> FilePath
-    logIndex i = handlerPath <.> Prelude.show i
-
     -- TODO: correct exceptions handling here is too smart for me
     rollerWriting
         :: (Handle -> String -> IO ())
@@ -91,13 +91,13 @@ rotationFileHandler RotationParameters{..} handlerPath rhPriority = liftIO $ do
            let lastIndex = rpKeepFiles - 1
 
            for_ [lastIndex - 1, lastIndex - 2 .. 0] $ \i -> do
-               let oldLogFile = logIndex i
-               let newLogFile = logIndex (i + 1)
+               let oldLogFile = logIndex handlerPath i
+               let newLogFile = logIndex handlerPath (i + 1)
                whenExist oldLogFile $ (`renameFile` newLogFile)
 
-           let zeroIndex = logIndex 0
+           let zeroIndex = logIndex handlerPath 0
            renameFile handlerPath zeroIndex
 
-           let lastLogFile = logIndex lastIndex
+           let lastLogFile = logIndex handlerPath lastIndex
            whenExist lastLogFile removeFile
            openFile handlerPath AppendMode

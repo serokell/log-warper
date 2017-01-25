@@ -20,6 +20,7 @@ Flag PatakDebugSkovorodaBARDAQ
 library
   exposed-modules:     System.Wlog
                        System.Wlog.CanLog
+                       System.Wlog.FileUtils
                        System.Wlog.Launcher
                        System.Wlog.LoggerConfig
                        System.Wlog.LoggerName
@@ -99,11 +100,16 @@ test-suite log-test
   other-modules:       Spec
                        Test.Wlog.RollingSpec
 
-  build-depends:       base
+  build-depends:       async
+                     , base
+                     , data-default
+                     , directory
+                     , filepath
                      , hspec
                      , log-warper
                      , QuickCheck
                      , universum
+                     , unordered-containers
 
   default-language:    Haskell2010
   ghc-options:         -threaded

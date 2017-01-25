@@ -13,6 +13,7 @@ module System.Wlog.LoggerConfig
        , LoggerTree   (..)
        , LoggerMap
        , RotationParameters (..)
+       , isValidRotation
        ) where
 
 import           Data.Aeson          (withObject)
@@ -20,9 +21,11 @@ import           Data.Default        (Default (def))
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM hiding (HashMap)
 import           Data.Text           (Text)
+import qualified Data.Text.Buildable as Buildable
 import           Data.Traversable    (for)
 import           Data.Word           (Word64)
 import           Data.Yaml           (FromJSON (..), ToJSON, Value (Object), (.:), (.:?))
+import           Formatting          (bprint, shown)
 import           GHC.Generics        (Generic)
 
 import           System.Wlog.Wrapper (Severity)
@@ -76,6 +79,9 @@ data RotationParameters = RotationParameters
     , rpKeepFiles :: !Word    -- ^ number of files to keep
     } deriving (Generic, Show)
 
+instance Buildable.Buildable RotationParameters where
+    build = bprint shown
+
 instance ToJSON RotationParameters
 
 instance FromJSON RotationParameters where
@@ -83,6 +89,9 @@ instance FromJSON RotationParameters where
         rpLogLimit  <- o .: "logLimit"
         rpKeepFiles <- o .: "keepFiles"
         return RotationParameters{..}
+
+isValidRotation :: RotationParameters -> Bool
+isValidRotation RotationParameters{..} = rpLogLimit > 0 && rpKeepFiles > 0
 
 ----------------------------------------------------------------------------
 -- LoggerConfig
