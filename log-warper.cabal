@@ -1,5 +1,5 @@
 name:                log-warper
-version:             0.2.3
+version:             0.2.4
 synopsis:            Flexible, configurable, monadic and pretty logging
 homepage:            https://github.com/serokell/log-warper
 license:             MIT
@@ -20,10 +20,12 @@ Flag PatakDebugSkovorodaBARDAQ
 library
   exposed-modules:     System.Wlog
                        System.Wlog.CanLog
+                       System.Wlog.FileUtils
+                       System.Wlog.Launcher
                        System.Wlog.LoggerConfig
                        System.Wlog.LoggerName
                        System.Wlog.LoggerNameBox
-                       System.Wlog.Parser
+                       System.Wlog.Roller
                        System.Wlog.Severity
                        System.Wlog.Wrapper
 
@@ -53,6 +55,7 @@ library
                      , time                 >= 1.6.0.1
                      , transformers         >= 0.5.2
                      , transformers-base    >= 0.4.4
+                     , universum
                      , unordered-containers >= 0.2.7.1
                      , yaml                 >= 0.8.20
 
@@ -89,3 +92,46 @@ executable play-log
                        OverloadedStrings
                        TypeApplications
                        RecordWildCards
+
+test-suite log-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Test.hs
+  other-modules:       Spec
+                       Test.Wlog.RollingSpec
+
+  build-depends:       async
+                     , base
+                     , data-default
+                     , directory
+                     , filepath
+                     , hspec
+                     , log-warper
+                     , QuickCheck
+                     , universum
+                     , unordered-containers
+
+  default-language:    Haskell2010
+  ghc-options:         -threaded
+                       -rtsopts
+                       -Wall
+                       -fno-warn-orphans
+                       -with-rtsopts=-N
+
+  default-extensions:   DeriveDataTypeable
+                        DeriveGeneric
+                        GeneralizedNewtypeDeriving
+                        StandaloneDeriving
+                        FlexibleContexts
+                        FlexibleInstances
+                        MultiParamTypeClasses
+                        FunctionalDependencies
+                        DefaultSignatures
+                        NoImplicitPrelude
+                        OverloadedStrings
+                        RecordWildCards
+                        TypeApplications
+                        TupleSections
+                        ViewPatterns
+                        LambdaCase
+                        MultiWayIf

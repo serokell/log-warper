@@ -12,7 +12,7 @@ import           System.Wlog       (CanLog, dispatchEvents, initLoggingFromYaml,
                                     modifyLoggerName, releaseAllHandlers, runPureLog,
                                     usingLoggerName)
 
-testLogging :: CanLog m => m ()
+testLogging :: (CanLog m) => m ()
 testLogging = usingLoggerName "node" $ do
     logDebug   "skovoroda"
     logInfo    "patak"

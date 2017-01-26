@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLists       #-}
+{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE UndecidableInstances  #-}
@@ -93,7 +94,7 @@ deriveSafeCopySimple 0 'base ''LogEvent
 -- But it uses 'unsafePerformIO' so use with caution within IO.
 --
 -- TODO: Should we use some @Data.Tree@-like structure to observe message only
--- by chosen loger names?
+-- by chosen logger names?
 newtype PureLogger m a = PureLogger
     { runPureLogger :: WriterT (DList LogEvent) m a
     } deriving (Functor, Applicative, Monad, MonadTrans, MonadWriter (DList LogEvent),
