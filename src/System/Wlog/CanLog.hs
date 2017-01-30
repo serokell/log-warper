@@ -33,6 +33,8 @@ module System.Wlog.CanLog
 
 import           Control.Monad.Except      (ExceptT, MonadError)
 import           Control.Monad.Reader      (MonadReader, ReaderT)
+import qualified Control.Monad.RWS         as RWSLazy
+import qualified Control.Monad.RWS.Strict  as RWSStrict
 import           Control.Monad.State       (MonadState, StateT)
 import           Control.Monad.Trans       (MonadTrans (lift))
 import           Control.Monad.Writer      (MonadWriter (tell), WriterT (runWriterT))
@@ -78,6 +80,8 @@ instance CanLog m => CanLog (LoggerNameBox m)
 instance CanLog m => CanLog (ReaderT r m)
 instance CanLog m => CanLog (StateT s m)
 instance CanLog m => CanLog (ExceptT s m)
+instance (CanLog m, Monoid w) => CanLog (RWSLazy.RWST r w s m)
+instance (CanLog m, Monoid w) => CanLog (RWSStrict.RWST r w s m)
 
 -- | Holds all required information for 'dispatchLoggerName' function.
 data LogEvent = LogEvent

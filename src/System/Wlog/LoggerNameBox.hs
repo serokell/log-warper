@@ -19,6 +19,8 @@ import           Control.Monad.Except        (ExceptT (..), mapExceptT)
 import           Control.Monad.Fix           (MonadFix)
 import           Control.Monad.Reader        (MonadReader (..), ReaderT, mapReaderT,
                                               runReaderT)
+import qualified Control.Monad.RWS           as RWSLazy
+import qualified Control.Monad.RWS.Strict    as RWSStrict
 import           Control.Monad.State         (MonadState, StateT, mapStateT)
 import           Control.Monad.Trans         (MonadIO, MonadTrans, lift)
 import           Control.Monad.Trans.Cont    (ContT, mapContT)
@@ -62,6 +64,16 @@ instance (Monad m, HasLoggerName m) => HasLoggerName (ContT r m) where
     getLoggerName = lift getLoggerName
 
     modifyLoggerName = mapContT . modifyLoggerName
+
+instance (Monad m, HasLoggerName m, Monoid w) => HasLoggerName (RWSLazy.RWST r w s m) where
+    getLoggerName = lift getLoggerName
+
+    modifyLoggerName = RWSLazy.mapRWST . modifyLoggerName
+
+instance (Monad m, HasLoggerName m, Monoid w) => HasLoggerName (RWSStrict.RWST r w s m) where
+    getLoggerName = lift getLoggerName
+
+    modifyLoggerName = RWSStrict.mapRWST . modifyLoggerName
 
 -- | Set logger name in context.
 setLoggerName :: HasLoggerName m => LoggerName -> m a -> m a
