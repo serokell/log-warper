@@ -31,6 +31,7 @@ module System.Wlog.CanLog
        , logMessage
        ) where
 
+import           Control.Monad.Base        (MonadBase)
 import           Control.Monad.Except      (ExceptT, MonadError)
 import           Control.Monad.Reader      (MonadReader, ReaderT)
 import qualified Control.Monad.RWS         as RWSLazy
@@ -102,7 +103,7 @@ deriveSafeCopySimple 0 'base ''LogEvent
 newtype PureLogger m a = PureLogger
     { runPureLogger :: WriterT (DList LogEvent) m a
     } deriving (Functor, Applicative, Monad, MonadTrans, MonadWriter (DList LogEvent),
-                MonadState s, MonadReader r, MonadError e, HasLoggerName)
+                MonadBase b, MonadState s, MonadReader r, MonadError e, HasLoggerName)
 
 instance Monad m => CanLog (PureLogger m) where
     dispatchMessage leLoggerName leSeverity leMessage = tell [LogEvent{..}]
