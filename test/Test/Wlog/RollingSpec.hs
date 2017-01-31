@@ -15,10 +15,10 @@ import           System.FilePath          (takeExtension)
 import           System.IO                (hFileSize)
 
 import           Test.Hspec               (Spec, describe, it, shouldThrow)
-import           Test.Hspec.QuickCheck    (prop)
-import           Test.QuickCheck          (Arbitrary (..), Large (..), Positive (..),
-                                           Property, (==>))
-import           Test.QuickCheck.Monadic  (PropertyM, assert, monadicIO, run)
+import           Test.Hspec.QuickCheck    (modifyMaxSuccess, prop)
+import           Test.HUnit.Base          (assert)
+import           Test.QuickCheck          (Arbitrary (..), Property, choose, (==>))
+import           Test.QuickCheck.Monadic  (PropertyM, monadicIO, run)
 
 import           System.Wlog              (InvalidRotation (..), LoggerConfig (..),
                                            LoggerTree (..), RotationParameters (..),
@@ -28,32 +28,40 @@ import           System.Wlog              (InvalidRotation (..), LoggerConfig (.
                                            usingLoggerName, whenExist)
 
 spec :: Spec
-spec = describe "System.Wlog.Roller" $ do
-    describe "Exception" $ do
-        it "throws exception in case of invalid roller params" $ do
-            let wrongRP1 = RotationParameters 0 1
-            let wrongRP2 = RotationParameters 1 0
-            let expectedRollException rp =
-                  (== InvalidRotation ("Rotation parameters must be positive: " <> pretty rp))
-            let rollExceptionChecker rp
-                  = rotationFileHandler rp "" (panic "Test roll!")
-                      `shouldThrow`
-                    expectedRollException rp
+spec = do
+    let smaller = modifyMaxSuccess $ const 30
+    describe "System.Wlog.Roller" $ do
+      describe "Exception" $ do
+          it "throws exception in case of invalid roller params" $ do
+              let wrongRP1 = RotationParameters 0 1
+              let wrongRP2 = RotationParameters 1 0
+              let expectedRollException rp =
+                    (== InvalidRotation ("Rotation parameters must be positive: " <> pretty rp))
+              let rollExceptionChecker rp
+                    = rotationFileHandler rp "" (panic "Test roll!")
+                        `shouldThrow`
+                      expectedRollException rp
 
-            rollExceptionChecker wrongRP1
-            rollExceptionChecker wrongRP2
+              rollExceptionChecker wrongRP1
+              rollExceptionChecker wrongRP2
 
-    describe "Concurrent rolling" $
-        prop description_verifyLoggerRotation verifyLoggerRotation
+      describe "Concurrent rolling" $ smaller $
+          prop description_verifyLoggerRotation verifyLoggerRotation
   where
     description_verifyLoggerRotation =
       "logger rotation successfully creates files in concurrent environment"
 
 instance Arbitrary RotationParameters where
     arbitrary = do
-        Large    rpLogLimit  <- arbitrary
-        Positive rpKeepFiles <- arbitrary
+        rpLogLimit  <- choose (1000, 10000)
+        rpKeepFiles <- choose (1, 10)
         pure RotationParameters{..}
+
+newtype LinesToLog = LinesToLog { getNumberOfLinesToLog :: Word64 }
+    deriving (Show)
+
+instance Arbitrary LinesToLog where
+    arbitrary = LinesToLog <$> choose (1, 500)
 
 testLogFile :: FilePath
 testLogFile = "patak.log"
@@ -66,11 +74,11 @@ testLoggerConfig (Just -> lcRotation) = LoggerConfig{..}
                  }
 
 logThreadsNum :: Word
-logThreadsNum = 1
+logThreadsNum = 4
 
 -- | Runs 'logThreadsnum' threads to write dummy logs into @log-warper\/logs\/patak.log@ file.
-writeConcurrentLogs :: RotationParameters -> IO ()
-writeConcurrentLogs rp@RotationParameters{..} =
+writeConcurrentLogs :: RotationParameters -> LinesToLog -> IO ()
+writeConcurrentLogs rp@RotationParameters{..} (getNumberOfLinesToLog -> linesNum) =
     bracket_
         (traverseLoggerConfig identity lcRotation lcTree $ Just "logs")
         releaseAllHandlers
@@ -80,7 +88,8 @@ writeConcurrentLogs rp@RotationParameters{..} =
     concurrentWriting = () <$ mapConcurrently logThread [1 .. logThreadsNum]
 
     -- | Starting thread with number @i@
-    logThread _i = replicateM 10 $ usingLoggerName "test" $ logDebug "skovoroda"
+    logThread i = forM_ [1 .. linesNum] $ \j ->
+        usingLoggerName "test" $ logDebug $ "skovoroda: " <> show (i, j)
 
 -- | Verifies that logging in concurrent application works correctly. Thus
 -- * it actually works
@@ -88,9 +97,9 @@ writeConcurrentLogs rp@RotationParameters{..} =
 -- * size of each file is not very big
 -- * number of files is not bigger than allowed
 -- TODO: more properties?
-verifyLoggerRotation :: RotationParameters -> Property
-verifyLoggerRotation rp@RotationParameters{..} = isValidRotation rp ==> monadicIO $ do
-    run $ writeConcurrentLogs rp
+verifyLoggerRotation :: RotationParameters -> LinesToLog -> Property
+verifyLoggerRotation rp@RotationParameters{..} linesNum = isValidRotation rp ==> monadicIO $ do
+    run $ writeConcurrentLogs rp linesNum
     checkFilesNumber
     checkFilesSize
     run $ cleanupFiles
@@ -100,7 +109,7 @@ verifyLoggerRotation rp@RotationParameters{..} = isValidRotation rp ==> monadicI
     -- | Checks assert on every rolled file if this file exist
     forRolledOut :: MonadIO m => Bool -> (FilePath -> m ()) -> m ()
     forRolledOut checkNonIndexed rollAction = do
-        for_ [0 .. rpKeepFiles - 1] $ \i -> do
+        for_ [0 .. rpKeepFiles - 1] $ \(fromIntegral -> i) -> do
             let logFileName = logIndex testLogPath i
             whenExist logFileName rollAction
         when checkNonIndexed $ rollAction testLogPath
@@ -114,12 +123,13 @@ verifyLoggerRotation rp@RotationParameters{..} = isValidRotation rp ==> monadicI
         forRolledOut False $ \filePath -> do
             let ('.' : rest) = takeExtension  filePath
             let index = Prelude.read rest
-            assert (0 <= index && index < rpKeepFiles - 1)
-        for_ [rpKeepFiles .. 2 * rpKeepFiles] $ \i -> do
+            liftIO $ assert (0 <= index && index < rpKeepFiles - 1)
+
+        for_ [rpKeepFiles .. 2 * rpKeepFiles] $ \(fromIntegral -> i) -> do
             let logFileName = logIndex testLogPath i
-            assert =<< (not <$> liftIO (doesFileExist logFileName))
+            liftIO $ assert (not <$> doesFileExist logFileName)
 
     checkFilesSize :: MonadIO m => PropertyM m ()
     checkFilesSize = forRolledOut True $ \filePath -> do
         fileSize <- liftIO $ withFile filePath ReadMode hFileSize
-        assert (fromIntegral fileSize < 2 * rpLogLimit)
+        liftIO $ assert (fromIntegral fileSize < 2 * rpLogLimit)

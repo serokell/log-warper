@@ -52,7 +52,7 @@ data InvalidRotation = InvalidRotation !Text
 
 instance Exception InvalidRotation
 
-logIndex :: FilePath -> Word -> FilePath
+logIndex :: FilePath -> Int -> FilePath
 logIndex handlerPath i = handlerPath <.> Prelude.show i
 
 -- | Create rotation logging handler.
@@ -88,7 +88,7 @@ rotationFileHandler RotationParameters{..} handlerPath rhPriority = liftIO $ do
             return landle
         else do  -- otherwise should rename all files and create new handle putting in MVar
            hClose landle
-           let lastIndex = rpKeepFiles - 1
+           let lastIndex = fromIntegral $ rpKeepFiles - 1
 
            for_ [lastIndex - 1, lastIndex - 2 .. 0] $ \i -> do
                let oldLogFile = logIndex handlerPath i
