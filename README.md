@@ -13,3 +13,4 @@ Key features:
 2. Supports logging initialization from `.yaml` configuration file.
 3. Has wrapper for pure logging via `WriterT`.
 4. Supports log rotation
+5. Flexibles and easy setting up of loggers (using monoidal builders and lenses)
