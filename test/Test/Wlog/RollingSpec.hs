@@ -7,7 +7,7 @@ module Test.Wlog.RollingSpec
 import           Universum
 
 import           Control.Concurrent.Async (mapConcurrently)
-import           Control.Lens             (zoom, (.=), (?=))
+import           Control.Lens             (zoom, (?=))
 import qualified Prelude                  (read)
 import           System.Directory         (doesFileExist, removeFile)
 import           System.FilePath          (takeExtension)
@@ -67,8 +67,8 @@ testLogFile :: FilePath
 testLogFile = "patak.log"
 
 testLoggerConfig :: RotationParameters -> LoggerConfig
-testLoggerConfig (Just -> rotParam ) = fromScratch $ do
-    lcRotation   .= rotParam
+testLoggerConfig rotParam = fromScratch $ do
+    lcRotation   ?= rotParam
     lcFilePrefix ?= "logs"
     zoom lcTree $ do
         ltSeverity ?= Debug
