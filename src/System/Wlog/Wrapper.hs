@@ -1,3 +1,6 @@
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE ViewPatterns      #-}
+
 -- |
 -- Module      : System.Wlog.Wrapper
 -- Copyright   : (c) Serokell, 2016
@@ -11,19 +14,17 @@
 -- which allows to keep logger name in monadic context.
 
 module System.Wlog.Wrapper
-       ( LoggingFormat (..)
-       , Severity (..)
+       ( Severity (..)
        , convertSeverity
-       , initLogging
-       , initLoggingWith
+       , initTerminalLogging
        , releaseAllHandlers
        , setSeverity
        , setSeverityMaybe
        ) where
 
+import           Universum
+
 import           Control.Concurrent.MVar   (MVar, newMVar, withMVar)
-import           Control.Monad.Trans       (MonadIO (liftIO))
-import           Data.Default              (Default (def))
 import           System.IO                 (Handle, stderr, stdout)
 import           System.Log.Handler.Simple (GenericHandler (..), streamHandler)
 import           System.Log.Logger         (Priority (DEBUG, ERROR), clearLevel,
@@ -33,17 +34,6 @@ import           System.Log.Logger         (Priority (DEBUG, ERROR), clearLevel,
 import           System.Wlog.Formatter     (setStderrFormatter, setStdoutFormatter)
 import           System.Wlog.LoggerName    (LoggerName (..))
 import           System.Wlog.Severity      (Severity (..), convertSeverity)
-
-
--- | Options determining formatting of messages.
-data LoggingFormat = LoggingFormat
-    { -- | Show time for non-error messages.
-      -- Note that error messages always have timestamp.
-      lfShowTime :: !Bool
-    } deriving (Show)
-
-instance Default LoggingFormat where
-    def = LoggingFormat {lfShowTime = True}
 
 -- | Like `streamHandler`, but syncronized using given `MVar` as lock
 -- (it should be filled before this function call).
@@ -58,9 +48,12 @@ streamHandlerWithLock lock h p = do
         , closeFunc = closeFunc
         }
 
--- | This function initializes global logging system. At high level, it sets
--- severity which will be used by all loggers by default, sets default
--- formatters and sets custom severity for given loggers (if any).
+-- | This function initializes global logging system for terminal output.
+-- At high level, it sets severity which will be used by all loggers by default,
+-- sets default formatters and sets custom severity for given loggers (if any).
+--
+-- NOTE: you probably don't want to use this function.
+-- Consider 'System.Wlog.Launcher.setupLogging'.
 --
 -- On a lower level it does the following:
 -- 1. Removes default handler from root logger, sets two handlers such that:
@@ -71,14 +64,12 @@ streamHandlerWithLock lock h p = do
 -- descendant loggers by default.
 -- 3. Applies `setSeverity` to given loggers. It can be done later using
 -- `setSeverity` directly.
-initLoggingWith
-    :: MonadIO m
-    => LoggingFormat -> Severity -> m ()
-initLoggingWith LoggingFormat {..} defaultSeverity = liftIO $ do
+initTerminalLogging :: MonadIO m => Bool -> Maybe Severity -> m ()
+initTerminalLogging isShowTime (fromMaybe Warning -> defaultSeverity) = liftIO $ do
     lock <- liftIO $ newMVar ()
     -- We set DEBUG here, to allow all messages by stdout handler.
     -- They will be filtered by loggers.
-    stdoutHandler <- setStdoutFormatter lfShowTime <$>
+    stdoutHandler <- setStdoutFormatter isShowTime <$>
         streamHandlerWithLock lock stdout DEBUG
     stderrHandler <- setStderrFormatter <$>
         streamHandlerWithLock lock stderr ERROR
@@ -86,10 +77,6 @@ initLoggingWith LoggingFormat {..} defaultSeverity = liftIO $ do
         setHandlers [stderrHandler, stdoutHandler]
     updateGlobalLogger rootLoggerName $
         setLevel (convertSeverity defaultSeverity)
-
--- | Version of initLoggingWith without any predefined loggers.
-initLogging :: MonadIO m => Severity -> m ()
-initLogging = initLoggingWith def
 
 -- | Set severity for given logger. By default parent's severity is used.
 setSeverity :: MonadIO m => LoggerName -> Severity -> m ()

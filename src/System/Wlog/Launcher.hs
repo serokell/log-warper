@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP                       #-}
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE ViewPatterns              #-}
+{-# LANGUAGE NoImplicitPrelude         #-}
 
 -- |
 -- Module      : System.Wlog.Parser
@@ -26,11 +26,13 @@
 -- @node@ and @node.comm@.
 
 module System.Wlog.Launcher
-       ( initLoggingFromYaml
-       , initLoggingFromYamlWithMapper
+       ( buildAndSetupYamlLogging
+       , initLoggingFromYaml
        , parseLoggerConfig
-       , traverseLoggerConfig
+       , setupLogging
        ) where
+
+import           Universum
 
 #if PatakDebugSkovorodaBARDAQ
 import qualified Data.ByteString.Char8     as BS (putStrLn)
@@ -39,13 +41,10 @@ import           Data.Yaml.Pretty          (defConfig, encodePretty)
 
 import           Control.Error.Util        ((?:))
 import           Control.Exception         (throwIO)
-import           Control.Monad             (join)
-import           Control.Monad.Extra       (whenJust)
+import           Control.Monad             (join, when)
 import           Control.Monad.IO.Class    (MonadIO (liftIO))
 
-import           Data.Foldable             (for_)
 import qualified Data.HashMap.Strict       as HM hiding (HashMap)
-import           Data.Maybe                (fromMaybe)
 import           Data.Monoid               ((<>))
 import           Data.Text                 (unpack)
 import           Data.Yaml                 (decodeFileEither)
@@ -58,48 +57,48 @@ import           System.Log.Handler.Simple (fileHandler)
 import           System.Log.Logger         (addHandler, updateGlobalLogger)
 
 import           System.Wlog.Formatter     (setStdoutFormatter)
-import           System.Wlog.LoggerConfig  (LoggerConfig (..), LoggerTree (..),
-                                            RotationParameters)
+import           System.Wlog.LoggerConfig  (LoggerConfig (..), LoggerTree (..))
 import           System.Wlog.LoggerName    (LoggerName (..))
 import           System.Wlog.Roller        (rotationFileHandler)
-import           System.Wlog.Wrapper       (Severity (Debug, Warning), convertSeverity,
-                                            initLogging, setSeverityMaybe)
+import           System.Wlog.Wrapper       (Severity (Debug), convertSeverity,
+                                            initTerminalLogging, setSeverityMaybe)
 
 data HandlerFabric
     = forall h . LogHandler h => HandlerFabric (FilePath -> Priority -> IO h)
 
 -- | This function traverses 'LoggerConfig' initializing all subloggers
--- with 'Severity' and redirecting output in file handlers. Also takes
--- 'FilePath' prefix to create directory for file handlers output. Create
--- logging rotation if appropriate arguments are passed.
-traverseLoggerConfig
-    :: MonadIO m
-    => (LoggerName -> LoggerName)  -- ^ mapper to transform logger names during traversal
-    -> Maybe RotationParameters    -- ^ rotation parameters for roller handle
-    -> LoggerTree                  -- ^ given 'LoggerConfig' to traverse
-    -> Maybe FilePath              -- ^ prefix for file handlers
-    -> m ()
-traverseLoggerConfig logMapper mrot tree (fromMaybe "." -> handlerPrefix) = do
+-- with 'Severity' and redirecting output in file handlers.
+-- See 'LoggerConfig' for more details.
+setupLogging :: MonadIO m => LoggerConfig -> m ()
+setupLogging LoggerConfig{..} = do
     liftIO $ createDirectoryIfMissing True handlerPrefix
-    initLogging Warning
-    processLoggers mempty tree
+    when consoleOutput $ initTerminalLogging isShowTime lcTermSeverity
+    processLoggers mempty lcTree
   where
+    handlerPrefix = lcFilePrefix ?: "."
+    logMapper     = appEndo lcMapper
+    isShowTime    = getAny lcShowTime
+    consoleOutput = getAny lcConsoleOutput
+
     handlerFabric :: HandlerFabric
-    handlerFabric = case mrot of
+    handlerFabric = case lcRotation of
         Nothing  -> HandlerFabric fileHandler
         Just rot -> HandlerFabric $ rotationFileHandler rot
 
     processLoggers :: MonadIO m => LoggerName -> LoggerTree -> m ()
     processLoggers parent LoggerTree{..} = do
-        setSeverityMaybe parent ltSeverity
+        -- This prevents logger output to appear in terminal
+        unless (parent == mempty && not consoleOutput) $
+            setSeverityMaybe parent ltSeverity
 
         whenJust ltFile $ \fileName -> liftIO $ do
             let filePriority   = convertSeverity $ ltSeverity ?: Debug
             let handlerPath    = handlerPrefix </> fileName
             case handlerFabric of
-              HandlerFabric fabric -> do
-                thisLoggerHandler <- setStdoutFormatter True <$> fabric handlerPath filePriority
-                updateGlobalLogger (loggerName parent) $ addHandler thisLoggerHandler
+                HandlerFabric fabric -> do
+                    let handlerCreator = fabric handlerPath filePriority
+                    thisLoggerHandler <- setStdoutFormatter isShowTime <$> handlerCreator
+                    updateGlobalLogger (loggerName parent) $ addHandler thisLoggerHandler
 
         for_ (HM.toList ltSubloggers) $ \(name, loggerConfig) -> do
             let thisLoggerName = LoggerName $ unpack name
@@ -111,22 +110,19 @@ parseLoggerConfig :: MonadIO m => FilePath -> m LoggerConfig
 parseLoggerConfig loggerConfigPath =
     liftIO $ join $ either throwIO return <$> decodeFileEither loggerConfigPath
 
--- | Initialize logger hierarchy from configuration file.
--- See this module description.
-initLoggingFromYamlWithMapper
-    :: MonadIO m
-    => (LoggerName -> LoggerName)
-    -> FilePath
-    -> Maybe FilePath
-    -> m ()
-initLoggingFromYamlWithMapper loggerMapper loggerConfigPath handlerPrefix = do
+-- | Applies given builder to parsed logger config and initializes logging.
+buildAndSetupYamlLogging :: MonadIO m => LoggerConfig -> FilePath -> m ()
+buildAndSetupYamlLogging configBuilder loggerConfigPath = do
     cfg@LoggerConfig{..} <- parseLoggerConfig loggerConfigPath
+    let builtConfig       = cfg <> configBuilder
 
 #if PatakDebugSkovorodaBARDAQ
-    liftIO $ BS.putStrLn $ encodePretty defConfig cfg
+    liftIO $ BS.putStrLn $ encodePretty defConfig builtConfig
 #endif
 
-    traverseLoggerConfig loggerMapper lcRotation lcTree handlerPrefix
+    setupLogging builtConfig
 
-initLoggingFromYaml :: MonadIO m => FilePath -> Maybe FilePath -> m ()
-initLoggingFromYaml = initLoggingFromYamlWithMapper id
+-- | Initialize logger hierarchy from configuration file.
+-- See this module description.
+initLoggingFromYaml :: MonadIO m => FilePath -> m ()
+initLoggingFromYaml = buildAndSetupYamlLogging mempty

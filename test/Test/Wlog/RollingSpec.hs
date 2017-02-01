@@ -7,7 +7,6 @@ module Test.Wlog.RollingSpec
 import           Universum
 
 import           Control.Concurrent.Async (mapConcurrently)
-import           Data.Default             (def)
 import qualified Data.HashMap.Strict      as HM (fromList)
 import qualified Prelude                  (read)
 import           System.Directory         (doesFileExist, removeFile)
@@ -24,7 +23,7 @@ import           System.Wlog              (InvalidRotation (..), LoggerConfig (.
                                            LoggerTree (..), RotationParameters (..),
                                            Severity (..), isValidRotation, logDebug,
                                            logIndex, releaseAllHandlers,
-                                           rotationFileHandler, traverseLoggerConfig,
+                                           rotationFileHandler, setupLogging,
                                            usingLoggerName, whenExist)
 
 spec :: Spec
@@ -67,11 +66,15 @@ testLogFile :: FilePath
 testLogFile = "patak.log"
 
 testLoggerConfig :: RotationParameters -> LoggerConfig
-testLoggerConfig (Just -> lcRotation) = LoggerConfig{..}
+testLoggerConfig (Just -> rotParam ) = logConfig
   where
-    lcTree = def { ltSeverity   = Just Debug
-                 , ltSubloggers = HM.fromList [("test", def { ltFile = Just testLogFile })]
-                 }
+    logConfig = mempty { lcTree = testTree
+                       , lcRotation = rotParam
+                       , lcFilePrefix = Just "logs"
+                       }
+    testTree  = mempty { ltSeverity   = Just Debug
+                       , ltSubloggers = HM.fromList [("test", mempty { ltFile = Just testLogFile })]
+                       }
 
 logThreadsNum :: Word
 logThreadsNum = 4
@@ -80,7 +83,7 @@ logThreadsNum = 4
 writeConcurrentLogs :: RotationParameters -> LinesToLog -> IO ()
 writeConcurrentLogs rp@RotationParameters{..} (getNumberOfLinesToLog -> linesNum) =
     bracket_
-        (traverseLoggerConfig identity lcRotation lcTree $ Just "logs")
+        (setupLogging $ testLoggerConfig rp)
         releaseAllHandlers
         concurrentWriting
   where
