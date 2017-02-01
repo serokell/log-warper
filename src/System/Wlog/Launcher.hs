@@ -72,16 +72,16 @@ data HandlerFabric
 setupLogging :: MonadIO m => LoggerConfig -> m ()
 setupLogging LoggerConfig{..} = do
     liftIO $ createDirectoryIfMissing True handlerPrefix
-    when consoleOutput $ initTerminalLogging isShowTime lcTermSeverity
-    processLoggers mempty lcTree
+    when consoleOutput $ initTerminalLogging isShowTime _lcTermSeverity
+    processLoggers mempty _lcTree
   where
-    handlerPrefix = lcFilePrefix ?: "."
-    logMapper     = appEndo lcMapper
-    isShowTime    = getAny lcShowTime
-    consoleOutput = getAny lcConsoleOutput
+    handlerPrefix = _lcFilePrefix ?: "."
+    logMapper     = appEndo _lcMapper
+    isShowTime    = getAny _lcShowTime
+    consoleOutput = getAny _lcConsoleOutput
 
     handlerFabric :: HandlerFabric
-    handlerFabric = case lcRotation of
+    handlerFabric = case _lcRotation of
         Nothing  -> HandlerFabric fileHandler
         Just rot -> HandlerFabric $ rotationFileHandler rot
 
@@ -89,10 +89,10 @@ setupLogging LoggerConfig{..} = do
     processLoggers parent LoggerTree{..} = do
         -- This prevents logger output to appear in terminal
         unless (parent == mempty && not consoleOutput) $
-            setSeverityMaybe parent ltSeverity
+            setSeverityMaybe parent _ltSeverity
 
-        whenJust ltFile $ \fileName -> liftIO $ do
-            let filePriority   = convertSeverity $ ltSeverity ?: Debug
+        whenJust _ltFile $ \fileName -> liftIO $ do
+            let filePriority   = convertSeverity $ _ltSeverity ?: Debug
             let handlerPath    = handlerPrefix </> fileName
             case handlerFabric of
                 HandlerFabric fabric -> do
@@ -100,7 +100,7 @@ setupLogging LoggerConfig{..} = do
                     thisLoggerHandler <- setStdoutFormatter isShowTime <$> handlerCreator
                     updateGlobalLogger (loggerName parent) $ addHandler thisLoggerHandler
 
-        for_ (HM.toList ltSubloggers) $ \(name, loggerConfig) -> do
+        for_ (HM.toList _ltSubloggers) $ \(name, loggerConfig) -> do
             let thisLoggerName = LoggerName $ unpack name
             let thisLogger     = parent <> logMapper thisLoggerName
             processLoggers thisLogger loggerConfig

@@ -7,7 +7,7 @@ module Test.Wlog.RollingSpec
 import           Universum
 
 import           Control.Concurrent.Async (mapConcurrently)
-import qualified Data.HashMap.Strict      as HM (fromList)
+import           Control.Lens             (zoom, (.=), (?=))
 import qualified Prelude                  (read)
 import           System.Directory         (doesFileExist, removeFile)
 import           System.FilePath          (takeExtension)
@@ -20,11 +20,12 @@ import           Test.QuickCheck          (Arbitrary (..), Property, choose, (==
 import           Test.QuickCheck.Monadic  (PropertyM, monadicIO, run)
 
 import           System.Wlog              (InvalidRotation (..), LoggerConfig (..),
-                                           LoggerTree (..), RotationParameters (..),
-                                           Severity (..), isValidRotation, logDebug,
-                                           logIndex, releaseAllHandlers,
+                                           RotationParameters (..), Severity (..),
+                                           fromScratch, isValidRotation, lcFilePrefix,
+                                           lcRotation, lcTree, logDebug, logIndex, ltFile,
+                                           ltSeverity, releaseAllHandlers,
                                            rotationFileHandler, setupLogging,
-                                           usingLoggerName, whenExist)
+                                           usingLoggerName, whenExist, zoomLogger)
 
 spec :: Spec
 spec = do
@@ -66,15 +67,13 @@ testLogFile :: FilePath
 testLogFile = "patak.log"
 
 testLoggerConfig :: RotationParameters -> LoggerConfig
-testLoggerConfig (Just -> rotParam ) = logConfig
-  where
-    logConfig = mempty { lcTree = testTree
-                       , lcRotation = rotParam
-                       , lcFilePrefix = Just "logs"
-                       }
-    testTree  = mempty { ltSeverity   = Just Debug
-                       , ltSubloggers = HM.fromList [("test", mempty { ltFile = Just testLogFile })]
-                       }
+testLoggerConfig (Just -> rotParam ) = fromScratch $ do
+    lcRotation   .= rotParam
+    lcFilePrefix ?= "logs"
+    zoom lcTree $ do
+        ltSeverity ?= Debug
+        zoomLogger "test" $
+            ltFile ?= testLogFile
 
 logThreadsNum :: Word
 logThreadsNum = 4
@@ -99,6 +98,7 @@ writeConcurrentLogs rp@RotationParameters{..} (getNumberOfLinesToLog -> linesNum
 -- * it works when multiple threads trying to write to log file
 -- * size of each file is not very big
 -- * number of files is not bigger than allowed
+-- * at least one (root) file with logs is created
 -- TODO: more properties?
 verifyLoggerRotation :: RotationParameters -> LinesToLog -> Property
 verifyLoggerRotation rp@RotationParameters{..} linesNum = isValidRotation rp ==> monadicIO $ do

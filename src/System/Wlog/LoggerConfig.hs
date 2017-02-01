@@ -1,4 +1,6 @@
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 -- |
 -- Module      : System.Wlog.LoggerConfig
@@ -11,13 +13,31 @@
 -- Logger configuration.
 
 module System.Wlog.LoggerConfig
-       ( LoggerConfig (..)
-       , LoggerTree   (..)
-       , LoggerMap
+       ( LoggerMap
        , RotationParameters (..)
+       , fromScratch
        , isValidRotation
 
-         -- * Builders for 'LoggerConfig'
+         -- * Hierarchical tree of loggers (with lenses)
+       , LoggerTree (..)
+       , ltFile
+       , ltSeverity
+       , ltSubloggers
+
+         -- * Global logger configuration
+       , LoggerConfig (..)
+
+         -- ** Lenses
+       , lcConsoleOutput
+       , lcFilePrefix
+       , lcMapper
+       , lcRotation
+       , lcShowTime
+       , lcTermSeverity
+       , lcTree
+       , zoomLogger
+
+         -- ** Builders for 'LoggerConfig'
        , consoleOutB
        , mapperB
        , prefixB
@@ -27,6 +47,8 @@ module System.Wlog.LoggerConfig
 
 import           Universum
 
+import           Control.Lens           (at, makeLenses, zoom, _Just)
+import           Control.Monad.State    (put)
 import           Data.Aeson             (withObject)
 import qualified Data.HashMap.Strict    as HM hiding (HashMap)
 import           Data.List              (notElem)
@@ -50,6 +72,10 @@ import           System.Wlog.Wrapper    (Severity)
 filterObject :: [Text] -> HashMap Text a -> HashMap Text a
 filterObject excluded = HM.filterWithKey $ \k _ -> k `notElem` excluded
 
+-- | Useful lens combinator to be used for logging initialization.
+fromScratch :: Monoid m => State m a -> m
+fromScratch = executingState mempty
+
 ----------------------------------------------------------------------------
 -- LoggerTree
 ----------------------------------------------------------------------------
@@ -58,24 +84,25 @@ type LoggerMap = HashMap Text LoggerTree
 
 -- | Stores configuration for hierarchical loggers.
 data LoggerTree = LoggerTree
-    { ltSubloggers :: !LoggerMap
-    , ltFile       :: !(Maybe FilePath)
-    , ltSeverity   :: !(Maybe Severity)
+    { _ltSubloggers :: !LoggerMap
+    , _ltFile       :: !(Maybe FilePath)
+    , _ltSeverity   :: !(Maybe Severity)
     } deriving (Generic, Show)
 
+makeLenses ''LoggerTree
 
 -- TODO: QuickCheck tests on monoid laws
 instance Monoid LoggerTree where
     mempty = LoggerTree
-        { ltFile       = Nothing
-        , ltSeverity   = Nothing
-        , ltSubloggers = mempty
+        { _ltFile       = Nothing
+        , _ltSeverity   = Nothing
+        , _ltSubloggers = mempty
         }
 
     lt1 `mappend` lt2 = LoggerTree
-        { ltFile        = ltFile      lt1 <|> ltFile       lt2
-        , ltSeverity   = ltSeverity   lt1 <|> ltSeverity   lt2
-        , ltSubloggers = ltSubloggers lt1  <> ltSubloggers lt2
+        { _ltFile       = _ltFile       lt1 <|> _ltFile       lt2
+        , _ltSeverity   = _ltSeverity   lt1 <|> _ltSeverity   lt2
+        , _ltSubloggers = _ltSubloggers lt1  <> _ltSubloggers lt2
         }
 
 nonLoggers :: [Text]
@@ -84,10 +111,16 @@ nonLoggers = ["file", "severity"]
 instance ToJSON LoggerTree
 instance FromJSON LoggerTree where
     parseJSON = withObject "loggers tree" $ \o -> do
-        ltFile       <- o .:? "file"
-        ltSeverity   <- o .:? "severity"
-        ltSubloggers <- for (filterObject nonLoggers o) parseJSON
+        _ltFile       <- o .:? "file"
+        _ltSeverity   <- o .:? "severity"
+        _ltSubloggers <- for (filterObject nonLoggers o) parseJSON
         return LoggerTree{..}
+
+-- | Zooming into logger name with putting specific key.
+zoomLogger :: Text -> State LoggerTree () -> State LoggerTree ()
+zoomLogger loggerName initializer = zoom (ltSubloggers.at loggerName) $ do
+    put $ Just mempty
+    zoom _Just initializer
 
 ----------------------------------------------------------------------------
 -- Logger rotattion
@@ -121,48 +154,50 @@ isValidRotation RotationParameters{..} = rpLogLimit > 0 && rpKeepFiles > 0
 -- | Logger configuration which keeps 'RotationParameters' and 'LoggerTree'.
 data LoggerConfig = LoggerConfig
     { -- | Rotation parameters for logger config. See 'System.Wlog.Roller'.
-      lcRotation      :: Maybe RotationParameters
+      _lcRotation      :: Maybe RotationParameters
 
       -- | Severity for terminal output. If @Nothing@ then 'Warning' is used.
-    , lcTermSeverity  :: Maybe Severity
+    , _lcTermSeverity  :: Maybe Severity
 
       -- | Show time for non-error messages.
       -- Note that error messages always have timestamp.
-    , lcShowTime      :: Any
+    , _lcShowTime      :: Any
 
       -- | @True@ if we should also print output into console.
-    , lcConsoleOutput :: Any
+    , _lcConsoleOutput :: Any
 
       -- | Defines how to transform logger names in config.
-    , lcMapper        :: Endo LoggerName
+    , _lcMapper        :: Endo LoggerName
 
       -- | Path prefix to add for each logger file
-    , lcFilePrefix    :: Maybe FilePath
+    , _lcFilePrefix    :: Maybe FilePath
 
       -- | Hierarchical tree of loggers.
-    , lcTree          :: LoggerTree
+    , _lcTree          :: LoggerTree
     }
+
+makeLenses ''LoggerConfig
 
 -- TODO: QuickCheck tests on monoid laws
 instance Monoid LoggerConfig where
     mempty = LoggerConfig
-        { lcRotation      = Nothing
-        , lcTermSeverity  = Nothing
-        , lcShowTime      = mempty
-        , lcConsoleOutput = mempty
-        , lcMapper        = mempty
-        , lcFilePrefix    = mempty
-        , lcTree          = mempty
+        { _lcRotation      = Nothing
+        , _lcTermSeverity  = Nothing
+        , _lcShowTime      = mempty
+        , _lcConsoleOutput = mempty
+        , _lcMapper        = mempty
+        , _lcFilePrefix    = mempty
+        , _lcTree          = mempty
         }
 
     lc1 `mappend` lc2 = LoggerConfig
-        { lcRotation      = lcRotation      lc1 <|> lcRotation      lc2
-        , lcTermSeverity  = lcTermSeverity  lc1 <|> lcTermSeverity  lc2
-        , lcShowTime      = lcShowTime      lc1  <> lcShowTime      lc2
-        , lcConsoleOutput = lcConsoleOutput lc1  <> lcConsoleOutput lc2
-        , lcMapper        = lcMapper        lc1  <> lcMapper        lc2
-        , lcFilePrefix    = lcFilePrefix    lc1 <|> lcFilePrefix    lc2
-        , lcTree          = lcTree          lc1  <> lcTree          lc2
+        { _lcRotation      = _lcRotation      lc1 <|> _lcRotation      lc2
+        , _lcTermSeverity  = _lcTermSeverity  lc1 <|> _lcTermSeverity  lc2
+        , _lcShowTime      = _lcShowTime      lc1  <> _lcShowTime      lc2
+        , _lcConsoleOutput = _lcConsoleOutput lc1  <> _lcConsoleOutput lc2
+        , _lcMapper        = _lcMapper        lc1  <> _lcMapper        lc2
+        , _lcFilePrefix    = _lcFilePrefix    lc1 <|> _lcFilePrefix    lc2
+        , _lcTree          = _lcTree          lc1  <> _lcTree          lc2
         }
 
 topLevelParams :: [Text]
@@ -170,36 +205,36 @@ topLevelParams = ["rotation", "showTime", "printOutput", "filePrefix"]
 
 instance FromJSON LoggerConfig where
     parseJSON = withObject "rotation params" $ \o -> do
-        lcRotation      <-         o .:? "rotation"
-        lcTermSeverity  <-         o .:? "termSeverity"
-        lcShowTime      <- Any <$> o .:? "showTime"    .!= False
-        lcConsoleOutput <- Any <$> o .:? "printOutput" .!= False
-        lcFilePrefix    <-         o .:? "filePrefix"
-        lcTree          <- parseJSON $ Object $ filterObject topLevelParams o
-        let lcMapper     = mempty
+        _lcRotation      <-         o .:? "rotation"
+        _lcTermSeverity  <-         o .:? "termSeverity"
+        _lcShowTime      <- Any <$> o .:? "showTime"    .!= False
+        _lcConsoleOutput <- Any <$> o .:? "printOutput" .!= False
+        _lcFilePrefix    <-         o .:? "filePrefix"
+        _lcTree          <- parseJSON $ Object $ filterObject topLevelParams o
+        let _lcMapper     = mempty
         return LoggerConfig{..}
 
 -- | This instances violates @fromJSON . toJSON = identity@ rule but doesn't matter
 -- because it is used only for debugging.
 instance ToJSON LoggerConfig where
     toJSON LoggerConfig{..} = object
-            [ "rotation"     .= lcRotation
-            , "termSeverity" .= lcTermSeverity
-            , "showTime"     .= getAny lcShowTime
-            , "printOutput"  .= getAny lcConsoleOutput
-            , "filePrefix"   .= lcFilePrefix
-            , ("logTree", toJSON lcTree)
+            [ "rotation"     .= _lcRotation
+            , "termSeverity" .= _lcTermSeverity
+            , "showTime"     .= getAny _lcShowTime
+            , "printOutput"  .= getAny _lcConsoleOutput
+            , "filePrefix"   .= _lcFilePrefix
+            , ("logTree", toJSON _lcTree)
             ]
 
 -- Builders for 'LoggerConfig'.
 
 -- | Setup 'lcShowTime' inside 'LoggerConfig'.
 showTimeB :: Bool -> LoggerConfig
-showTimeB isShowTime = mempty { lcShowTime = Any isShowTime }
+showTimeB isShowTime = mempty { _lcShowTime = Any isShowTime }
 
 -- | Setup 'lcConsoleOutput' inside 'LoggerConfig'.
 consoleOutB :: Bool -> LoggerConfig
-consoleOutB printToConsole = mempty { lcConsoleOutput = Any printToConsole }
+consoleOutB printToConsole = mempty { _lcConsoleOutput = Any printToConsole }
 
 -- | Adds sensible predefined set of parameters to logger.
 productionB :: LoggerConfig
@@ -207,8 +242,8 @@ productionB = showTimeB True <> consoleOutB True
 
 -- | Setup 'lcMapper' inside 'LoggerConfig'.
 mapperB :: (LoggerName -> LoggerName) -> LoggerConfig
-mapperB loggerNameMapper = mempty { lcMapper = Endo loggerNameMapper }
+mapperB loggerNameMapper = mempty { _lcMapper = Endo loggerNameMapper }
 
 -- | Setup 'lcFilePrefix' inside 'LoggerConfig'.
 prefixB :: FilePath -> LoggerConfig
-prefixB filePrefix = mempty { lcFilePrefix = Just filePrefix }
+prefixB filePrefix = mempty { _lcFilePrefix = Just filePrefix }
