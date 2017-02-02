@@ -1,10 +1,10 @@
 name:                log-warper
-version:             0.4
+version:             0.4.1
 synopsis:            Flexible, configurable, monadic and pretty logging
 homepage:            https://github.com/serokell/log-warper
 license:             MIT
 license-file:        LICENSE
-author:              Serokell team
+author:              Serokell
 maintainer:          Serokell <hi@serokell.io>
 copyright:           2016-2016 Serokell
 category:            Interfaces
