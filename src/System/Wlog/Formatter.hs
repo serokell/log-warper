@@ -39,11 +39,11 @@ timeFmtStdout isShowTime = if isShowTime
 stderrFormatter :: LogFormatter a
 stderrFormatter =
     simpleLogFormatter $
-        mconcat [colorizer ERROR "[$loggername:$prio] ", timeFmt, "$msg"]
+        mconcat [colorizer ERROR "[$loggername:$prio:$tid] ", timeFmt, "$msg"]
 
 stdoutFmt :: Priority -> Bool -> String
 stdoutFmt pr isShowTime = mconcat
-    [colorizer pr "[$loggername:$prio] ", timeFmtStdout isShowTime, "$msg"]
+    [colorizer pr "[$loggername:$prio:$tid] ", timeFmtStdout isShowTime, "$msg"]
 
 stdoutFormatter :: Bool -> LogFormatter a
 stdoutFormatter isShowTime handle r@(pr, _) =
