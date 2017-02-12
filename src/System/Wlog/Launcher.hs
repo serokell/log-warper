@@ -56,9 +56,11 @@ import           System.Log.Handler        (LogHandler)
 import           System.Log.Handler.Simple (fileHandler)
 import           System.Log.Logger         (addHandler, updateGlobalLogger)
 
+import           System.Wlog.CanLog        (memoryLogs)
 import           System.Wlog.Formatter     (setStdoutFormatter)
 import           System.Wlog.LoggerConfig  (LoggerConfig (..), LoggerTree (..))
 import           System.Wlog.LoggerName    (LoggerName (..))
+import           System.Wlog.MemoryQueue   (newMemoryQueue)
 import           System.Wlog.Roller        (rotationFileHandler)
 import           System.Wlog.Wrapper       (Severity (Debug), convertSeverity,
                                             initTerminalLogging, setSeverityMaybe)
@@ -73,6 +75,8 @@ setupLogging :: MonadIO m => LoggerConfig -> m ()
 setupLogging LoggerConfig{..} = do
     liftIO $ createDirectoryIfMissing True handlerPrefix
     when consoleOutput $ initTerminalLogging isShowTime _lcTermSeverity
+    -- TODO: use lifted version here
+    -- whenJust _lcMemModeLimit $ \limliftIO . modifyMVar_ memoryLogs . pure . Just . newMemoryQueue
     processLoggers mempty _lcTree
   where
     handlerPrefix = _lcFilePrefix ?: "."

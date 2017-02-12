@@ -15,6 +15,7 @@
 module System.Wlog.CanLog
        ( CanLog (..)
        , WithLogger
+       , memoryLogs
 
          -- * Pure logging manipulation
        , PureLogger (..)
@@ -31,6 +32,7 @@ module System.Wlog.CanLog
        , logMessage
        ) where
 
+import           Control.Concurrent        (MVar, modifyMVar_, newMVar)
 import           Control.Monad.Base        (MonadBase)
 import           Control.Monad.Except      (ExceptT, MonadError)
 import           Control.Monad.Reader      (MonadReader, ReaderT)
@@ -46,10 +48,12 @@ import           Data.SafeCopy             (base, deriveSafeCopySimple)
 import           Data.Text                 (Text)
 import qualified Data.Text                 as T
 
+import           System.IO.Unsafe          (unsafePerformIO)
 import           System.Log.Logger         (logM)
 
 import           System.Wlog.LoggerName    (LoggerName (..))
 import           System.Wlog.LoggerNameBox (HasLoggerName (..), LoggerNameBox (..))
+import           System.Wlog.MemoryQueue   (MemoryQueue, pushFront)
 import           System.Wlog.Severity      (Severity (..), convertSeverity)
 
 -- | Type alias for constraints 'CanLog' and 'HasLoggerName'.
@@ -70,12 +74,20 @@ class Monad m => CanLog m where
                             -> t n ()
     dispatchMessage name sev t = lift $ dispatchMessage name sev t
 
+-- TODO: dirty hack to have in-memory logs. Maybe will be refactored later.
+-- Maybe not.
+memoryLogs :: MVar (Maybe MemoryQueue)
+memoryLogs = unsafePerformIO $ newMVar Nothing
+{-# NOINLINE memoryLogs #-}
+
 instance CanLog IO where
     dispatchMessage
         (loggerName      -> name)
         (convertSeverity -> prior)
-        (T.unpack        -> t)
-      = logM name prior t
+        msg
+      = do
+          modifyMVar_ memoryLogs (pure . (pushFront msg <$>))
+          logM name prior (T.unpack msg)
 
 instance CanLog m => CanLog (LoggerNameBox m)
 instance CanLog m => CanLog (ReaderT r m)
