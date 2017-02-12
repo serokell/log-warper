@@ -50,12 +50,14 @@ import qualified Data.DList                as DL (DList)
 import           Data.SafeCopy             (base, deriveSafeCopySimple)
 import           Data.Text                 (Text)
 import qualified Data.Text                 as T
+import           Data.Time                 (getCurrentTime)
 
 import           System.IO.Unsafe          (unsafePerformIO)
 import           System.Log.Logger         (logM)
 
 import           Universum
 
+import           System.Wlog.Formatter     (formatLogMessageColors)
 import           System.Wlog.LoggerName    (LoggerName (..))
 import           System.Wlog.LoggerNameBox (HasLoggerName (..), LoggerNameBox (..))
 import           System.Wlog.MemoryQueue   (MemoryQueue)
@@ -89,7 +91,7 @@ memoryLogs :: MVar (Maybe LogMemoryQueue)
 memoryLogs = unsafePerformIO $ newMVar Nothing
 {-# NOINLINE memoryLogs #-}
 
--- | Retrieves memory logs.
+-- | Retrieves memory logs in reversed order (newest are head).
 readMemoryLogs :: (MonadIO m) => m [Text]
 readMemoryLogs = do
     liftIO (readMVar memoryLogs) <&> maybe (pure []) MQ.toList
@@ -162,6 +164,8 @@ logMessage
 logMessage severity t = do
     name <- getLoggerName
     dispatchMessage name severity t
-    !() <- pure $ unsafePerformIO $
-        modifyMVar_ memoryLogs (pure . (MQ.pushFront t <$>))
+    !() <- pure $ unsafePerformIO $ do
+        curTime <- getCurrentTime
+        let formatted = formatLogMessageColors name severity curTime t
+        modifyMVar_ memoryLogs (pure . (MQ.pushFront formatted <$>))
     pure ()
