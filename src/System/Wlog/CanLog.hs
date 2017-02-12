@@ -1,7 +1,9 @@
+{-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE DefaultSignatures     #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NoImplicitPrelude     #-}
 {-# LANGUAGE OverloadedLists       #-}
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TemplateHaskell       #-}
@@ -16,6 +18,7 @@ module System.Wlog.CanLog
        ( CanLog (..)
        , WithLogger
        , memoryLogs
+       , readMemoryLogs
 
          -- * Pure logging manipulation
        , PureLogger (..)
@@ -43,7 +46,7 @@ import           Control.Monad.Trans       (MonadTrans (lift))
 import           Control.Monad.Writer      (MonadWriter (tell), WriterT (runWriterT))
 
 import           Data.Bifunctor            (second)
-import           Data.DList                (DList, toList)
+import qualified Data.DList                as DL (DList)
 import           Data.SafeCopy             (base, deriveSafeCopySimple)
 import           Data.Text                 (Text)
 import qualified Data.Text                 as T
@@ -51,10 +54,14 @@ import qualified Data.Text                 as T
 import           System.IO.Unsafe          (unsafePerformIO)
 import           System.Log.Logger         (logM)
 
+import           Universum
+
 import           System.Wlog.LoggerName    (LoggerName (..))
 import           System.Wlog.LoggerNameBox (HasLoggerName (..), LoggerNameBox (..))
-import           System.Wlog.MemoryQueue   (MemoryQueue, pushFront)
+import           System.Wlog.MemoryQueue   (MemoryQueue)
+import qualified System.Wlog.MemoryQueue   as MQ
 import           System.Wlog.Severity      (Severity (..), convertSeverity)
+
 
 -- | Type alias for constraints 'CanLog' and 'HasLoggerName'.
 -- We need two different type classes to support more flexible interface
@@ -74,20 +81,25 @@ class Monad m => CanLog m where
                             -> t n ()
     dispatchMessage name sev t = lift $ dispatchMessage name sev t
 
--- TODO: dirty hack to have in-memory logs. Maybe will be refactored later.
--- Maybe not.
-memoryLogs :: MVar (Maybe MemoryQueue)
+type LogMemoryQueue = MemoryQueue Text
+
+-- TODO: dirty hack to have in-memory logs. Maybe will be refactored
+-- later.  Maybe not.
+memoryLogs :: MVar (Maybe LogMemoryQueue)
 memoryLogs = unsafePerformIO $ newMVar Nothing
 {-# NOINLINE memoryLogs #-}
+
+-- | Retrieves memory logs.
+readMemoryLogs :: (MonadIO m) => m [Text]
+readMemoryLogs = do
+    liftIO (readMVar memoryLogs) <&> maybe (pure []) MQ.toList
 
 instance CanLog IO where
     dispatchMessage
         (loggerName      -> name)
         (convertSeverity -> prior)
         msg
-      = do
-          modifyMVar_ memoryLogs (pure . (pushFront msg <$>))
-          logM name prior (T.unpack msg)
+      = logM name prior (T.unpack msg)
 
 instance CanLog m => CanLog (LoggerNameBox m)
 instance CanLog m => CanLog (ReaderT r m)
@@ -113,8 +125,8 @@ deriveSafeCopySimple 0 'base ''LogEvent
 -- TODO: Should we use some @Data.Tree@-like structure to observe message only
 -- by chosen logger names?
 newtype PureLogger m a = PureLogger
-    { runPureLogger :: WriterT (DList LogEvent) m a
-    } deriving (Functor, Applicative, Monad, MonadTrans, MonadWriter (DList LogEvent),
+    { runPureLogger :: WriterT (DL.DList LogEvent) m a
+    } deriving (Functor, Applicative, Monad, MonadTrans, MonadWriter (DL.DList LogEvent),
                 MonadBase b, MonadState s, MonadReader r, MonadError e, HasLoggerName)
 
 instance Monad m => CanLog (PureLogger m) where
@@ -134,8 +146,7 @@ dispatchEvents = mapM_ dispatchLogEvent
 -- | Shortcut for 'logMessage' to use according severity.
 logDebug, logInfo, logNotice, logWarning, logError
     :: WithLogger m
-    => Text
-    -> m ()
+    => Text -> m ()
 logDebug   = logMessage Debug
 logInfo    = logMessage Info
 logNotice  = logMessage Notice
@@ -151,3 +162,6 @@ logMessage
 logMessage severity t = do
     name <- getLoggerName
     dispatchMessage name severity t
+    !() <- pure $ unsafePerformIO $
+        modifyMVar_ memoryLogs (pure . (MQ.pushFront t <$>))
+    pure ()

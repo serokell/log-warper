@@ -257,5 +257,6 @@ mapperB loggerNameMapper = mempty { _lcMapper = Endo loggerNameMapper }
 prefixB :: FilePath -> LoggerConfig
 prefixB filePrefix = mempty { _lcFilePrefix = Just filePrefix }
 
+-- | Setup memory logger with certain limit
 memoryB :: Word64 -> LoggerConfig
 memoryB limit = mempty { _lcMemModeLimit = Just limit }
