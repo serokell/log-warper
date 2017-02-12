@@ -31,6 +31,7 @@ module System.Wlog.LoggerConfig
        , lcConsoleOutput
        , lcFilePrefix
        , lcMapper
+       , lcMemModeLimit
        , lcRotation
        , lcShowTime
        , lcTermSeverity
@@ -40,6 +41,7 @@ module System.Wlog.LoggerConfig
          -- ** Builders for 'LoggerConfig'
        , consoleOutB
        , mapperB
+       , memoryB
        , prefixB
        , productionB
        , showTimeB
@@ -172,6 +174,9 @@ data LoggerConfig = LoggerConfig
       -- | Path prefix to add for each logger file
     , _lcFilePrefix    :: Maybe FilePath
 
+      -- | Limit for queue in memory mode.
+    , _lcMemModeLimit  :: Maybe Word64
+
       -- | Hierarchical tree of loggers.
     , _lcTree          :: LoggerTree
     }
@@ -187,6 +192,7 @@ instance Monoid LoggerConfig where
         , _lcConsoleOutput = mempty
         , _lcMapper        = mempty
         , _lcFilePrefix    = mempty
+        , _lcMemModeLimit  = Nothing
         , _lcTree          = mempty
         }
 
@@ -197,11 +203,12 @@ instance Monoid LoggerConfig where
         , _lcConsoleOutput = _lcConsoleOutput lc1  <> _lcConsoleOutput lc2
         , _lcMapper        = _lcMapper        lc1  <> _lcMapper        lc2
         , _lcFilePrefix    = _lcFilePrefix    lc1 <|> _lcFilePrefix    lc2
+        , _lcMemModeLimit  = _lcMemModeLimit  lc1 <|> _lcMemModeLimit  lc2
         , _lcTree          = _lcTree          lc1  <> _lcTree          lc2
         }
 
 topLevelParams :: [Text]
-topLevelParams = ["rotation", "showTime", "printOutput", "filePrefix"]
+topLevelParams = ["rotation", "showTime", "printOutput", "filePrefix", "memModeLimit"]
 
 instance FromJSON LoggerConfig where
     parseJSON = withObject "rotation params" $ \o -> do
@@ -210,6 +217,7 @@ instance FromJSON LoggerConfig where
         _lcShowTime      <- Any <$> o .:? "showTime"    .!= False
         _lcConsoleOutput <- Any <$> o .:? "printOutput" .!= False
         _lcFilePrefix    <-         o .:? "filePrefix"
+        _lcMemModeLimit  <-         o .:? "memModeLimit"
         _lcTree          <- parseJSON $ Object $ filterObject topLevelParams o
         let _lcMapper     = mempty
         return LoggerConfig{..}
@@ -223,6 +231,7 @@ instance ToJSON LoggerConfig where
             , "showTime"     .= getAny _lcShowTime
             , "printOutput"  .= getAny _lcConsoleOutput
             , "filePrefix"   .= _lcFilePrefix
+            , "memModeLimit" .= _lcMemModeLimit
             , ("logTree", toJSON _lcTree)
             ]
 
@@ -247,3 +256,7 @@ mapperB loggerNameMapper = mempty { _lcMapper = Endo loggerNameMapper }
 -- | Setup 'lcFilePrefix' inside 'LoggerConfig'.
 prefixB :: FilePath -> LoggerConfig
 prefixB filePrefix = mempty { _lcFilePrefix = Just filePrefix }
+
+-- | Setup memory logger with certain limit
+memoryB :: Word64 -> LoggerConfig
+memoryB limit = mempty { _lcMemModeLimit = Just limit }

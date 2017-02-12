@@ -1,3 +1,5 @@
+{-# LANGUAGE NoImplicitPrelude #-}
+
 -- |
 -- Module      : System.Wlog.Formatter
 -- Copyright   : (c) Serokell, 2016
@@ -10,13 +12,14 @@
 
 module System.Wlog.Formatter
        ( formatLogMessage
+       , formatLogMessageColors
        , setStderrFormatter
        , setStdoutFormatter
        ) where
 
 import           Data.Monoid            (mconcat)
 import           Data.String            (IsString)
-import           Data.Text              (Text)
+import           Data.Text              (Text, pack, unpack)
 import           Data.Time.Clock        (UTCTime)
 import           Formatting             (Format, sformat, shown, stext, (%))
 
@@ -26,7 +29,9 @@ import           System.Log.Logger      (Priority (ERROR))
 
 import           System.Wlog.Color      (colorizer)
 import           System.Wlog.LoggerName (LoggerName, loggerNameF)
-import           System.Wlog.Severity   (Severity)
+import           System.Wlog.Severity   (Severity, convertSeverity)
+
+import           Universum
 
 timeFmt :: IsString s => s
 timeFmt = "[$time] "
@@ -59,5 +64,15 @@ setStderrFormatter = (`setFormatter` stderrFormatter)
 formatLogMessage :: LoggerName -> Severity -> UTCTime -> Text -> Text
 formatLogMessage = sformat ("["%loggerNameF%":"%shown%"] ["%utcTimeF%"] "%stext)
   where
+    utcTimeF :: Format r (UTCTime -> r)
+    utcTimeF = shown
+
+-- | Same as 'formatLogMessage', but with colorful output
+formatLogMessageColors :: LoggerName -> Severity -> UTCTime -> Text -> Text
+formatLogMessageColors lname severity time msg =
+    pack (colorizer pr $ unpack prefix) <> " " <> msg
+  where
+    pr = convertSeverity severity
+    prefix = sformat ("["%loggerNameF%":"%shown%"] ["%utcTimeF%"]") lname severity time
     utcTimeF :: Format r (UTCTime -> r)
     utcTimeF = shown
