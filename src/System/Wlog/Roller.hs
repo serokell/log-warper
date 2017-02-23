@@ -36,9 +36,11 @@ data RollerHandler = RollerHandler
     , rhFileHandle  :: MVar Handle
     , rhWriteAction :: Handle -> String -> IO ()
     , rhCloseAction :: Handle -> IO ()
+    , rhFileName    :: FilePath
     }
 
 instance LogHandler RollerHandler where
+    getTag rh         = "rollerHandler:" <> rhFileName rh
     setLevel     rh p = rh { rhPriority  = p }
     setFormatter rh f = rh { rhFormatter = f }
     getLevel          = rhPriority
@@ -71,6 +73,7 @@ rotationFileHandler RotationParameters{..} handlerPath rhPriority = liftIO $ do
     let rhWriteAction   = rollerWriting writeFunc rhFileHandle
     return RollerHandler{ rhFormatter   = nullFormatter
                         , rhCloseAction = closeFunc
+                        , rhFileName = handlerPath
                         , ..
                         }
   where

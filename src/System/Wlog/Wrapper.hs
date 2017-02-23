@@ -46,6 +46,7 @@ streamHandlerWithLock lock h p = do
         , privData  = privData
         , writeFunc = \a s -> withMVar lock $ const $ writeFunc a s
         , closeFunc = closeFunc
+        , ghTag = ghTag
         }
 
 -- | This function initializes global logging system for terminal output.

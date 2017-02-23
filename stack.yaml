@@ -5,6 +5,10 @@ compiler: ghc-8.0.2
 # Local packages, usually specified by relative directory name
 packages:
 - '.'
+- location: 
+    git: https://github.com/serokell/hslogger
+    commit: cf5c742a07ef12e8eb2506775c77f22befa23d8f
+  extra-dep: true
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps:
