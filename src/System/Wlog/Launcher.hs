@@ -98,7 +98,7 @@ setupLogging LoggerConfig{..} = do
         unless (parent == mempty && not consoleOutput) $
             setSeverityMaybe parent _ltSeverity
 
-        whenJust _ltFile $ \fileName -> liftIO $ do
+        forM_ _ltFiles $ \fileName -> liftIO $ do
             let filePriority   = convertSeverity $ _ltSeverity ?: Debug
             let handlerPath    = handlerPrefix </> fileName
             case handlerFabric of

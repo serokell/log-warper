@@ -20,7 +20,7 @@ module System.Wlog.LoggerConfig
 
          -- * Hierarchical tree of loggers (with lenses)
        , LoggerTree (..)
-       , ltFile
+       , ltFiles
        , ltSeverity
        , ltSubloggers
 
@@ -87,7 +87,7 @@ type LoggerMap = HashMap Text LoggerTree
 -- | Stores configuration for hierarchical loggers.
 data LoggerTree = LoggerTree
     { _ltSubloggers :: !LoggerMap
-    , _ltFile       :: !(Maybe FilePath)
+    , _ltFiles      :: ![FilePath]
     , _ltSeverity   :: !(Maybe Severity)
     } deriving (Generic, Show)
 
@@ -96,15 +96,15 @@ makeLenses ''LoggerTree
 -- TODO: QuickCheck tests on monoid laws
 instance Monoid LoggerTree where
     mempty = LoggerTree
-        { _ltFile       = Nothing
+        { _ltFiles       = []
         , _ltSeverity   = Nothing
         , _ltSubloggers = mempty
         }
 
     lt1 `mappend` lt2 = LoggerTree
-        { _ltFile       = _ltFile       lt1 <|> _ltFile       lt2
+        { _ltFiles      = _ltFiles      lt1 <>  _ltFiles      lt2
         , _ltSeverity   = _ltSeverity   lt1 <|> _ltSeverity   lt2
-        , _ltSubloggers = _ltSubloggers lt1  <> _ltSubloggers lt2
+        , _ltSubloggers = _ltSubloggers lt1 <>  _ltSubloggers lt2
         }
 
 nonLoggers :: [Text]
@@ -113,7 +113,9 @@ nonLoggers = ["file", "severity"]
 instance ToJSON LoggerTree
 instance FromJSON LoggerTree where
     parseJSON = withObject "loggers tree" $ \o -> do
-        _ltFile       <- o .:? "file"
+        singleFile    <- o .:? "file"
+        manyFiles     <- o .:? "files"
+        let _ltFiles = fromMaybe [] singleFile <> fromMaybe [] manyFiles
         _ltSeverity   <- o .:? "severity"
         _ltSubloggers <- for (filterObject nonLoggers o) parseJSON
         return LoggerTree{..}

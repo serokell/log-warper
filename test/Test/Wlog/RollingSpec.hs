@@ -7,7 +7,7 @@ module Test.Wlog.RollingSpec
 import           Universum
 
 import           Control.Concurrent.Async (mapConcurrently)
-import           Control.Lens             (zoom, (?=))
+import           Control.Lens             (zoom, (.=), (?=))
 import qualified Prelude                  (read)
 import           System.Directory         (doesFileExist, removeFile)
 import           System.FilePath          (takeExtension)
@@ -22,8 +22,8 @@ import           Test.QuickCheck.Monadic  (PropertyM, monadicIO, run)
 import           System.Wlog              (InvalidRotation (..), LoggerConfig (..),
                                            RotationParameters (..), Severity (..),
                                            fromScratch, isValidRotation, lcFilePrefix,
-                                           lcRotation, lcTree, logDebug, logIndex, ltFile,
-                                           ltSeverity, releaseAllHandlers,
+                                           lcRotation, lcTree, logDebug, logIndex,
+                                           ltFiles, ltSeverity, releaseAllHandlers,
                                            rotationFileHandler, setupLogging,
                                            usingLoggerName, whenExist, zoomLogger)
 
@@ -73,7 +73,7 @@ testLoggerConfig rotParam = fromScratch $ do
     zoom lcTree $ do
         ltSeverity ?= Debug
         zoomLogger "test" $
-            ltFile ?= testLogFile
+            ltFiles .= [testLogFile]
 
 logThreadsNum :: Word
 logThreadsNum = 4
