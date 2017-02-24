@@ -1,6 +1,8 @@
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE NoImplicitPrelude   #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell     #-}
 
 -- |
 -- Module      : System.Wlog.LoggerConfig
@@ -108,14 +110,14 @@ instance Monoid LoggerTree where
         }
 
 nonLoggers :: [Text]
-nonLoggers = ["file", "severity"]
+nonLoggers = ["file", "files", "severity"]
 
 instance ToJSON LoggerTree
 instance FromJSON LoggerTree where
     parseJSON = withObject "loggers tree" $ \o -> do
-        singleFile    <- o .:? "file"
-        manyFiles     <- o .:? "files"
-        let _ltFiles = fromMaybe [] singleFile <> fromMaybe [] manyFiles
+        (singleFile :: Maybe FilePath) <- o .:? "file"
+        (manyFiles :: [FilePath]) <- o .:? "files" .!= []
+        let _ltFiles = maybe [] (:[]) singleFile ++ manyFiles
         _ltSeverity   <- o .:? "severity"
         _ltSubloggers <- for (filterObject nonLoggers o) parseJSON
         return LoggerTree{..}
