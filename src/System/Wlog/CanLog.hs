@@ -57,7 +57,7 @@ import           System.Log.Logger         (logM)
 
 import           Universum
 
-import           System.Wlog.Formatter     (formatLogMessageColors)
+import           System.Wlog.Formatter     (formatLogMessageColors, getRoundedTime)
 import           System.Wlog.LoggerName    (LoggerName (..))
 import           System.Wlog.LoggerNameBox (HasLoggerName (..), LoggerNameBox (..))
 import           System.Wlog.MemoryQueue   (MemoryQueue)
@@ -87,14 +87,14 @@ type LogMemoryQueue = MemoryQueue Text
 
 -- TODO: dirty hack to have in-memory logs. Maybe will be refactored
 -- later.  Maybe not.
-memoryLogs :: MVar (Maybe LogMemoryQueue)
+memoryLogs :: MVar (Maybe (LogMemoryQueue,Maybe Int))
 memoryLogs = unsafePerformIO $ newMVar Nothing
 {-# NOINLINE memoryLogs #-}
 
 -- | Retrieves memory logs in reversed order (newest are head).
 readMemoryLogs :: (MonadIO m) => m [Text]
 readMemoryLogs = do
-    liftIO (readMVar memoryLogs) <&> maybe (pure []) MQ.toList
+    liftIO (readMVar memoryLogs) <&> maybe (pure []) (MQ.toList . fst)
 
 instance CanLog IO where
     dispatchMessage
@@ -165,7 +165,12 @@ logMessage severity t = do
     name <- getLoggerName
     dispatchMessage name severity t
     !() <- pure $ unsafePerformIO $ do
-        curTime <- getCurrentTime
-        let formatted = formatLogMessageColors name severity curTime t
-        modifyMVar_ memoryLogs (pure . (MQ.pushFront formatted <$>))
+        let formatted r = do
+                curTime <- maybe getCurrentTime getRoundedTime r
+                pure $ formatLogMessageColors name severity curTime t
+        let modif _ Nothing  = pure Nothing
+            modif x (Just s) = Just <$> x s
+        modifyMVar_ memoryLogs $ modif $ \(q,rv) -> do
+            f <- formatted rv
+            pure $ (MQ.pushFront f q, rv)
     pure ()

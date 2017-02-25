@@ -38,6 +38,7 @@ module System.Wlog.LoggerConfig
        , lcShowTime
        , lcTermSeverity
        , lcTree
+       , lcRoundVal
        , zoomLogger
 
          -- ** Builders for 'LoggerConfig'
@@ -183,6 +184,9 @@ data LoggerConfig = LoggerConfig
 
       -- | Hierarchical tree of loggers.
     , _lcTree          :: LoggerTree
+
+      -- | If rounding is enabled, to how many secs to round.
+    , _lcRoundVal      :: Maybe Int
     }
 
 makeLenses ''LoggerConfig
@@ -198,6 +202,7 @@ instance Monoid LoggerConfig where
         , _lcFilePrefix    = mempty
         , _lcMemModeLimit  = Nothing
         , _lcTree          = mempty
+        , _lcRoundVal      = Nothing
         }
 
     lc1 `mappend` lc2 = LoggerConfig
@@ -209,10 +214,12 @@ instance Monoid LoggerConfig where
         , _lcFilePrefix    = _lcFilePrefix    lc1 <|> _lcFilePrefix    lc2
         , _lcMemModeLimit  = _lcMemModeLimit  lc1 <|> _lcMemModeLimit  lc2
         , _lcTree          = _lcTree          lc1  <> _lcTree          lc2
+        , _lcRoundVal      = _lcRoundVal      lc1 `max` _lcRoundVal    lc2
         }
 
 topLevelParams :: [Text]
-topLevelParams = ["rotation", "showTime", "printOutput", "filePrefix", "memModeLimit"]
+topLevelParams =
+    ["rotation", "showTime", "printOutput", "filePrefix", "memModeLimit"]
 
 instance FromJSON LoggerConfig where
     parseJSON = withObject "rotation params" $ \o -> do
@@ -223,6 +230,7 @@ instance FromJSON LoggerConfig where
         _lcFilePrefix    <-         o .:? "filePrefix"
         _lcMemModeLimit  <-         o .:? "memModeLimit"
         _lcTree          <- parseJSON $ Object $ filterObject topLevelParams o
+        _lcRoundVal      <-         o .:? "roundTime"
         let _lcMapper     = mempty
         return LoggerConfig{..}
 

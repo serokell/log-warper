@@ -15,12 +15,15 @@ module System.Wlog.Formatter
        , formatLogMessageColors
        , setStderrFormatter
        , setStdoutFormatter
+       , stdoutFormatterTimeRounded
+       , getRoundedTime
        ) where
 
 import           Data.Monoid            (mconcat)
 import           Data.String            (IsString)
 import           Data.Text              (Text, pack, unpack)
-import           Data.Time.Clock        (UTCTime)
+import           Data.Time.Clock        (UTCTime (..), getCurrentTime)
+import           Data.Time.Format       (defaultTimeLocale, formatTime)
 import           Formatting             (Format, sformat, shown, stext, (%))
 
 import           System.Log.Formatter   (LogFormatter, simpleLogFormatter)
@@ -37,9 +40,16 @@ timeFmt :: IsString s => s
 timeFmt = "[$time] "
 
 timeFmtStdout :: IsString s => Bool -> s
-timeFmtStdout isShowTime = if isShowTime
-                           then timeFmt
-                           else ""
+timeFmtStdout = bool "" timeFmt
+
+getRoundedTime :: Int -> IO UTCTime
+getRoundedTime roundN = do
+    UTCTime{..} <- liftIO $ getCurrentTime
+    let newSec = fromIntegral $ roundBy (round $ toRational utctDayTime :: Int)
+    pure $ UTCTime { utctDayTime = newSec, .. }
+  where
+    roundBy :: (Num a, Integral a) => a -> a
+    roundBy x = let y = x `div` fromIntegral roundN in y * fromIntegral roundN
 
 stderrFormatter :: LogFormatter a
 stderrFormatter =
@@ -53,6 +63,16 @@ stdoutFmt pr isShowTime = mconcat
 stdoutFormatter :: Bool -> LogFormatter a
 stdoutFormatter isShowTime handle r@(pr, _) =
     simpleLogFormatter (stdoutFmt pr isShowTime) handle r
+
+stdoutFormatterTimeRounded :: Int -> LogFormatter a
+stdoutFormatterTimeRounded roundN a r@(pr,_) s = do
+    t <- getRoundedTime roundN
+    simpleLogFormatter (fmt t) a r s
+  where
+    fmt time = mconcat $
+        [ colorizer pr "[$loggername:$prio:$tid] "
+        , formatTime defaultTimeLocale "%M %X" time
+        , "$msg"]
 
 setStdoutFormatter :: LogHandler h => Bool -> h -> h
 setStdoutFormatter isShowTime = (`setFormatter` stdoutFormatter isShowTime)

@@ -45,6 +45,7 @@ import           Control.Monad             (join, when)
 import           Control.Monad.IO.Class    (MonadIO (liftIO))
 
 import qualified Data.HashMap.Strict       as HM hiding (HashMap)
+import           Data.List                 (isSuffixOf)
 import           Data.Monoid               ((<>))
 import           Data.Text                 (unpack)
 import           Data.Yaml                 (decodeFileEither)
@@ -52,12 +53,13 @@ import           Data.Yaml                 (decodeFileEither)
 import           System.Directory          (createDirectoryIfMissing)
 import           System.FilePath           ((</>))
 import           System.Log                (Priority)
-import           System.Log.Handler        (LogHandler)
+import           System.Log.Handler        (LogHandler (setFormatter))
 import           System.Log.Handler.Simple (fileHandler)
 import           System.Log.Logger         (addHandler, updateGlobalLogger)
 
 import           System.Wlog.CanLog        (memoryLogs)
-import           System.Wlog.Formatter     (setStdoutFormatter)
+import           System.Wlog.Formatter     (setStdoutFormatter,
+                                            stdoutFormatterTimeRounded)
 import           System.Wlog.LoggerConfig  (LoggerConfig (..), LoggerTree (..))
 import           System.Wlog.LoggerName    (LoggerName (..))
 import           System.Wlog.MemoryQueue   (newMemoryQueue)
@@ -79,7 +81,7 @@ setupLogging LoggerConfig{..} = do
     whenJust _lcMemModeLimit $ \limit -> do
         putText "Initializing logs"
         let cpj = const . pure . Just -- just for lulz
-        liftIO $ modifyMVar_ memoryLogs $ cpj $ newMemoryQueue limit
+        liftIO $ modifyMVar_ memoryLogs $ cpj $ (newMemoryQueue limit, _lcRoundVal)
     processLoggers mempty _lcTree
   where
     handlerPrefix = _lcFilePrefix ?: "."
@@ -104,7 +106,12 @@ setupLogging LoggerConfig{..} = do
             case handlerFabric of
                 HandlerFabric fabric -> do
                     let handlerCreator = fabric handlerPath filePriority
-                    thisLoggerHandler <- setStdoutFormatter isShowTime <$> handlerCreator
+                    let defFmt = setStdoutFormatter isShowTime
+                    let roundFmt r = (`setFormatter` stdoutFormatterTimeRounded r)
+                    let fmt = maybe defFmt (\r -> if ".pub" `isSuffixOf` fileName
+                                                  then roundFmt r
+                                                  else defFmt) _lcRoundVal
+                    thisLoggerHandler <- fmt <$> handlerCreator
                     updateGlobalLogger (loggerName parent) $ addHandler thisLoggerHandler
 
         for_ (HM.toList _ltSubloggers) $ \(name, loggerConfig) -> do
