@@ -70,9 +70,9 @@ stdoutFormatterTimeRounded roundN a r@(pr,_) s = do
     simpleLogFormatter (fmt t) a r s
   where
     fmt time = mconcat $
-        [ colorizer pr "[$loggername:$prio:$tid] "
-        , formatTime defaultTimeLocale "%M %X" time
-        , "$msg"]
+        [ colorizer pr "[$loggername:$prio:$tid] ["
+        , formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S %Z" time
+        , "] $msg"]
 
 setStdoutFormatter :: LogHandler h => Bool -> h -> h
 setStdoutFormatter isShowTime = (`setFormatter` stdoutFormatter isShowTime)
