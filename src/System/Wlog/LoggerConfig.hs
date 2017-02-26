@@ -219,7 +219,7 @@ instance Monoid LoggerConfig where
 
 topLevelParams :: [Text]
 topLevelParams =
-    ["rotation", "showTime", "printOutput", "filePrefix", "memModeLimit"]
+    ["rotation", "showTime", "printOutput", "filePrefix", "memModeLimit", "roundTime"]
 
 instance FromJSON LoggerConfig where
     parseJSON = withObject "rotation params" $ \o -> do
