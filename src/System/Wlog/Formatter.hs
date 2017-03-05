@@ -71,7 +71,6 @@ type LogFormatter a
 nullFormatter :: LogFormatter a
 nullFormatter _ (_,msg) _ = pure msg
 
--- TODO test it
 -- | Replace some '$' variables in a string with supplied values
 replaceVarM
     :: [(String, IO Text)] -- ^ A list of (variableName, action to
@@ -81,8 +80,10 @@ replaceVarM
 replaceVarM _ [] = pure ""
 replaceVarM keyVals (span (/= '$') -> (before,after)) = do
     (f, rest) <- replaceStart keyVals $ drop 1 after
-    repRest <- replaceVarM keyVals rest
-    pure $ T.pack before <> f <> repRest
+    if null rest then pure $ T.pack before
+    else do
+        repRest <- replaceVarM keyVals rest
+        pure $ T.pack before <> f <> repRest
   where
     replaceStart [] str = return ("$", str)
     replaceStart ((k, v):kvs) str
