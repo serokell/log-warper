@@ -12,38 +12,37 @@ module System.Wlog.Roller
 
 import           Universum
 
-import           Control.Concurrent        (MVar, modifyMVar_, newMVar)
-import           Formatting                (sformat, shown, (%))
-import qualified Prelude                   (show)
+import           Control.Concurrent         (MVar, modifyMVar_, newMVar)
+import           Formatting                 (sformat, shown, (%))
+import qualified Prelude                    (show)
 
-import           System.Directory          (removeFile, renameFile)
-import           System.FilePath           ((<.>))
-import           System.IO                 (Handle, IOMode (AppendMode), hClose,
-                                            hFileSize)
-import           System.Log                (Priority)
-import           System.Log.Formatter      (LogFormatter, nullFormatter)
-import           System.Log.Handler        (LogHandler (..))
-import           System.Log.Handler.Simple (GenericHandler (..), fileHandler)
-
-import           System.Wlog.FileUtils     (whenExist)
-import           System.Wlog.LoggerConfig  (RotationParameters (..), isValidRotation)
+import           System.Directory           (removeFile, renameFile)
+import           System.FilePath            ((<.>))
+import           System.IO                  (Handle, IOMode (AppendMode), hClose,
+                                             hFileSize)
+import           System.Wlog.FileUtils      (whenExist)
+import           System.Wlog.Formatter      (LogFormatter, nullFormatter)
+import           System.Wlog.Handler        (LogHandler (..))
+import           System.Wlog.Handler.Simple (GenericHandler (..), fileHandler)
+import           System.Wlog.LoggerConfig   (RotationParameters (..), isValidRotation)
+import           System.Wlog.Severity       (Severity (..))
 
 -- | Similar to 'GenericHandler'. But holds file 'Handle' inside
 -- mutable variable ('MVar') to be able to rotate loggers.
 data RollerHandler = RollerHandler
-    { rhPriority    :: Priority
+    { rhSeverity    :: Severity
     , rhFormatter   :: LogFormatter RollerHandler
     , rhFileHandle  :: MVar Handle
-    , rhWriteAction :: Handle -> String -> IO ()
+    , rhWriteAction :: Handle -> Text -> IO ()
     , rhCloseAction :: Handle -> IO ()
     , rhFileName    :: FilePath
     }
 
 instance LogHandler RollerHandler where
     getTag rh         = "rollerHandler:" <> rhFileName rh
-    setLevel     rh p = rh { rhPriority  = p }
+    setLevel     rh p = rh { rhSeverity  = p }
     setFormatter rh f = rh { rhFormatter = f }
-    getLevel          = rhPriority
+    getLevel          = rhSeverity
     getFormatter      = rhFormatter
 
     emit rh (_, msg) _      = rhWriteAction rh (panic "Handler is used internally") msg
@@ -57,50 +56,51 @@ instance Exception InvalidRotation
 logIndex :: FilePath -> Int -> FilePath
 logIndex handlerPath i = handlerPath <.> Prelude.show i
 
+-- TODO: correct exceptions handling here is too smart for me
+rollerWriting
+    :: RotationParameters
+    -> FilePath
+    -> (Handle -> Text -> IO ())
+    -> MVar Handle
+    -> Handle
+    -> Text
+    -> IO ()
+rollerWriting RotationParameters{..} handlerPath loggingAction varHandle _ msg =
+    modifyMVar_ varHandle $ \landle -> do
+        loggingAction landle msg
+        logFileSize <- fromIntegral <$> hFileSize landle
+        if logFileSize < rpLogLimit
+        then return landle
+         -- otherwise should rename all files and create new handle putting in MVar
+        else do
+            hClose landle
+            let lastIndex = fromIntegral $ rpKeepFiles - 1
+            for_ [lastIndex - 1,lastIndex - 2 .. 0] $ \i -> do
+                let oldLogFile = logIndex handlerPath i
+                let newLogFile = logIndex handlerPath (i + 1)
+                whenExist oldLogFile $ (`renameFile` newLogFile)
+            let zeroIndex = logIndex handlerPath 0
+            renameFile handlerPath zeroIndex
+            let lastLogFile = logIndex handlerPath lastIndex
+            whenExist lastLogFile removeFile
+            openFile handlerPath AppendMode
+
 -- | Create rotation logging handler.
 rotationFileHandler
     :: MonadIO m
     => RotationParameters
     -> FilePath
-    -> Priority
+    -> Severity
     -> m RollerHandler
 rotationFileHandler rp@RotationParameters{..} _ _
     | not $ isValidRotation rp = liftIO $ throwM $ InvalidRotation $
       sformat ("Rotation parameters must be positive: "%shown) rp
-rotationFileHandler RotationParameters{..} handlerPath rhPriority = liftIO $ do
-    GenericHandler{..} <- fileHandler handlerPath rhPriority
+rotationFileHandler rp@RotationParameters{..} handlerPath rhSeverity = liftIO $ do
+    GenericHandler{..} <- fileHandler handlerPath rhSeverity
     rhFileHandle       <- newMVar privData
-    let rhWriteAction   = rollerWriting writeFunc rhFileHandle
-    return RollerHandler{ rhFormatter   = nullFormatter
-                        , rhCloseAction = closeFunc
-                        , rhFileName = handlerPath
-                        , ..
-                        }
-  where
-    -- TODO: correct exceptions handling here is too smart for me
-    rollerWriting
-        :: (Handle -> String -> IO ())
-        -> MVar Handle
-        -> Handle
-        -> String
-        -> IO ()
-    rollerWriting loggingAction varHandle _ msg = modifyMVar_ varHandle $ \landle -> do
-        loggingAction landle msg
-        logFileSize <- fromIntegral <$> hFileSize landle
-        if logFileSize < rpLogLimit then
-            return landle
-        else do  -- otherwise should rename all files and create new handle putting in MVar
-           hClose landle
-           let lastIndex = fromIntegral $ rpKeepFiles - 1
-
-           for_ [lastIndex - 1, lastIndex - 2 .. 0] $ \i -> do
-               let oldLogFile = logIndex handlerPath i
-               let newLogFile = logIndex handlerPath (i + 1)
-               whenExist oldLogFile $ (`renameFile` newLogFile)
-
-           let zeroIndex = logIndex handlerPath 0
-           renameFile handlerPath zeroIndex
-
-           let lastLogFile = logIndex handlerPath lastIndex
-           whenExist lastLogFile removeFile
-           openFile handlerPath AppendMode
+    let rhWriteAction   = rollerWriting rp handlerPath writeFunc rhFileHandle
+    pure RollerHandler { rhFormatter   = nullFormatter
+                       , rhCloseAction = closeFunc
+                       , rhFileName = handlerPath
+                       , ..
+                       }

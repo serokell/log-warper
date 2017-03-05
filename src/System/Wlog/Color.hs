@@ -11,29 +11,35 @@
 
 module System.Wlog.Color
        ( colorizer
+       , colorizerT
        ) where
 
-import           System.Console.ANSI (Color (Blue, Green, Magenta, Red, Yellow),
-                                      ColorIntensity (Vivid), ConsoleLayer (Foreground),
-                                      SGR (Reset, SetColor), setSGRCode)
+import qualified Data.Text            as T
+import           System.Console.ANSI  (Color (Blue, Green, Magenta, Red, Yellow),
+                                       ColorIntensity (Vivid), ConsoleLayer (Foreground),
+                                       SGR (Reset, SetColor), setSGRCode)
+import           Universum
 
-import           System.Log.Logger   (Priority (DEBUG, ERROR, INFO, NOTICE, WARNING))
+import           System.Wlog.Severity (Severity (..))
 
 -- | Defines pre- and post-printed characters for printing colorized text.
-table :: Priority -> (String, String)
-table priority = case priority of
-    ERROR   -> (setColor Red     , reset)
-    DEBUG   -> (setColor Green   , reset)
-    NOTICE  -> (setColor Magenta , reset)
-    WARNING -> (setColor Yellow  , reset)
-    INFO    -> (setColor Blue    , reset)
-    _       -> ("", "")
+table :: Severity -> (String, String)
+table severity = case severity of
+    Error   -> (setColor Red     , reset)
+    Debug   -> (setColor Green   , reset)
+    Notice  -> (setColor Magenta , reset)
+    Warning -> (setColor Yellow  , reset)
+    Info    -> (setColor Blue    , reset)
   where
     setColor color = setSGRCode [SetColor Foreground Vivid color]
     reset = setSGRCode [Reset]
 
--- | Colorizes text.
-colorizer :: Priority -> String -> String
-colorizer pr s = before ++ s ++ after
-  where
-    (before, after) = table pr
+-- | Colorizes string text.
+colorizer :: Severity -> String -> String
+colorizer pr s =
+    let (before, after) = table pr in before <> s <> after
+
+-- | Colorizes "Text".
+colorizerT :: Severity -> Text -> Text
+colorizerT pr s =
+    let (before, after) = table pr in T.pack before <> s <> T.pack after

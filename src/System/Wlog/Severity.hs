@@ -4,33 +4,29 @@
 
 module System.Wlog.Severity
        ( Severity (..)
-       , convertSeverity
+       , LogRecord
        ) where
 
-import           Data.SafeCopy     (base, deriveSafeCopySimple)
-import           Data.Typeable     (Typeable)
-import           Data.Yaml         (FromJSON, ToJSON)
-import           GHC.Generics      (Generic)
-import           System.Log.Logger (Priority (DEBUG, ERROR, INFO, NOTICE, WARNING))
+import           Data.SafeCopy (base, deriveSafeCopySimple)
+import           Data.Typeable (Typeable)
+import           Data.Yaml     (FromJSON, ToJSON)
+import           GHC.Generics  (Generic)
+import           Universum
 
--- | This type specifies which messages to print.
+-- | Severity is level of log message importance. It uniquely
+-- determines which messages to print.
 data Severity
-    = Debug
-    | Info
-    | Notice
-    | Warning
-    | Error
-    deriving (Generic, Typeable, Show, Read, Eq)
+    = Debug        -- ^ Debug messages
+    | Info         -- ^ Information
+    | Notice       -- ^ Important (more than average) information
+    | Warning      -- ^ General warnings
+    | Error        -- ^ General errors/severe errors
+    deriving (Eq, Ord, Enum, Bounded, Show, Read, Generic, Typeable)
 
 instance FromJSON Severity
 instance ToJSON   Severity
 
 deriveSafeCopySimple 0 'base ''Severity
 
--- | Maps 'Severity' into 'Priority'.
-convertSeverity :: Severity -> Priority
-convertSeverity Debug   = DEBUG
-convertSeverity Info    = INFO
-convertSeverity Notice  = NOTICE
-convertSeverity Warning = WARNING
-convertSeverity Error   = ERROR
+-- | Internal type of log records.
+type LogRecord = (Severity, Text)

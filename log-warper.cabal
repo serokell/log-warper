@@ -22,7 +22,12 @@ library
   exposed-modules:     System.Wlog
                        System.Wlog.CanLog
                        System.Wlog.FileUtils
+                       System.Wlog.Formatter
+                       System.Wlog.Handler
+                       System.Wlog.Handler.Simple
+                       System.Wlog.Handler.Syslog
                        System.Wlog.Launcher
+                       System.Wlog.Logger
                        System.Wlog.LoggerConfig
                        System.Wlog.LoggerName
                        System.Wlog.LoggerNameBox
@@ -30,23 +35,14 @@ library
                        System.Wlog.Severity
                        System.Wlog.Wrapper
 
-                       -- This part is taken from hslogger library directly
-                       System.Log
-                       System.Log.Handler
-                       System.Log.Formatter
-                       System.Log.Handler.Simple
-                       System.Log.Handler.Syslog
-                       System.Log.Logger
-
   other-modules:       System.Wlog.Color
-                       System.Wlog.Formatter
                        System.Wlog.MemoryQueue
 
   build-depends:       aeson                >= 0.11.2.1
                      , ansi-terminal        >= 0.6.2.3
                      , base                 >= 4.7 && < 5
                      , bytestring           >= 0.10.8.1
-                     , containers
+                     , containers           >= 0.5.7.0
                      , directory            >= 1.2.6.2
                      , dlist                >= 0.8.0.2
                      , errors               >= 2.1.2
@@ -57,7 +53,7 @@ library
                      , hashable             >= 1.2.4.0
                      , lens                 >= 4.14
                      , monad-control        >= 1.0.1.0
-                     , monad-loops
+                     , monad-loops          >= 0.4.3
                      , mtl                  >= 2.2.1
                      , network              >= 2.6.3.1
                      , safecopy             >= 0.9.1
@@ -66,7 +62,7 @@ library
                      , time                 >= 1.6.0.1
                      , transformers         >= 0.5.2
                      , transformers-base    >= 0.4.4
-                     , universum
+                     , universum            >= 0.2
                      , unordered-containers >= 0.2.7.1
                      , yaml                 >= 0.8.20
   if !os(windows)
