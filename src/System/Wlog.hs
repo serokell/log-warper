@@ -15,6 +15,7 @@ module System.Wlog
        ( module System.Wlog.CanLog
        , module System.Wlog.FileUtils
        , module System.Wlog.Launcher
+       , module System.Wlog.Logger
        , module System.Wlog.LoggerConfig
        , module System.Wlog.LoggerName
        , module System.Wlog.LoggerNameBox
@@ -26,6 +27,7 @@ module System.Wlog
 import           System.Wlog.CanLog
 import           System.Wlog.FileUtils
 import           System.Wlog.Launcher
+import           System.Wlog.Logger
 import           System.Wlog.LoggerConfig
 import           System.Wlog.LoggerName
 import           System.Wlog.LoggerNameBox

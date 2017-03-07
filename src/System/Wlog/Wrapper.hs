@@ -15,33 +15,32 @@
 
 module System.Wlog.Wrapper
        ( Severity (..)
-       , convertSeverity
        , initTerminalLogging
        , releaseAllHandlers
        , setSeverity
        , setSeverityMaybe
        ) where
 
+import           Control.Concurrent.MVar    (MVar, newMVar, withMVar)
+import           System.IO                  (Handle, stderr, stdout)
 import           Universum
 
-import           Control.Concurrent.MVar   (MVar, newMVar, withMVar)
-import           System.IO                 (Handle, stderr, stdout)
-import           System.Log.Handler.Simple (GenericHandler (..), streamHandler)
-import           System.Log.Logger         (Priority (DEBUG, ERROR), clearLevel,
-                                            removeAllHandlers, rootLoggerName,
-                                            setHandlers, setLevel, updateGlobalLogger)
-
-import           System.Wlog.Formatter     (setStderrFormatter, setStdoutFormatter)
-import           System.Wlog.LoggerName    (LoggerName (..))
-import           System.Wlog.Severity      (Severity (..), convertSeverity)
+import           System.Wlog.Formatter      (stderrFormatter, stdoutFormatter)
+import           System.Wlog.Handler        (LogHandler (setFormatter))
+import           System.Wlog.Handler.Simple (GenericHandler (..), streamHandler)
+import           System.Wlog.Logger         (clearLevel, removeAllHandlers,
+                                             rootLoggerName, setHandlers, setLevel,
+                                             updateGlobalLogger)
+import           System.Wlog.LoggerName     (LoggerName (..))
+import           System.Wlog.Severity       (Severity (..))
 
 -- | Like `streamHandler`, but syncronized using given `MVar` as lock
 -- (it should be filled before this function call).
-streamHandlerWithLock :: MVar () -> Handle -> Priority -> IO (GenericHandler Handle)
-streamHandlerWithLock lock h p = do
-    GenericHandler{..} <- streamHandler h p
+streamHandlerWithLock :: MVar () -> Handle -> Severity -> IO (GenericHandler Handle)
+streamHandlerWithLock lock h sev = do
+    GenericHandler{..} <- streamHandler h sev
     return GenericHandler
-        { priority  = priority
+        { severity  = severity
         , formatter = formatter
         , privData  = privData
         , writeFunc = \a s -> withMVar lock $ const $ writeFunc a s
@@ -68,21 +67,24 @@ streamHandlerWithLock lock h p = do
 initTerminalLogging :: MonadIO m => Bool -> Maybe Severity -> m ()
 initTerminalLogging isShowTime (fromMaybe Warning -> defaultSeverity) = liftIO $ do
     lock <- liftIO $ newMVar ()
-    -- We set DEBUG here, to allow all messages by stdout handler.
+    -- We set Debug here, to allow all messages by stdout handler.
     -- They will be filtered by loggers.
-    stdoutHandler <- setStdoutFormatter isShowTime <$>
-        streamHandlerWithLock lock stdout DEBUG
+    stdoutHandler <- setStdoutFormatter <$>
+        streamHandlerWithLock lock stdout Debug
     stderrHandler <- setStderrFormatter <$>
-        streamHandlerWithLock lock stderr ERROR
+        streamHandlerWithLock lock stderr Error
     updateGlobalLogger rootLoggerName $
         setHandlers [stderrHandler, stdoutHandler]
     updateGlobalLogger rootLoggerName $
-        setLevel (convertSeverity defaultSeverity)
+        setLevel defaultSeverity
+  where
+    setStdoutFormatter = (`setFormatter` stdoutFormatter isShowTime)
+    setStderrFormatter = (`setFormatter` stderrFormatter)
 
 -- | Set severity for given logger. By default parent's severity is used.
 setSeverity :: MonadIO m => LoggerName -> Severity -> m ()
 setSeverity (LoggerName name) =
-    liftIO . updateGlobalLogger name . setLevel . convertSeverity
+    liftIO . updateGlobalLogger name . setLevel
 
 -- | Set or clear severity.
 setSeverityMaybe

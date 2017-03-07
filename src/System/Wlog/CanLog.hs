@@ -13,7 +13,6 @@
 
 -- | Type class that add ability to log messages.
 -- Supports pure and IO logging.
-
 module System.Wlog.CanLog
        ( CanLog (..)
        , WithLogger
@@ -35,34 +34,25 @@ module System.Wlog.CanLog
        , logMessage
        ) where
 
-import           Control.Concurrent        (MVar, modifyMVar_, newMVar)
 import           Control.Monad.Base        (MonadBase)
 import           Control.Monad.Except      (ExceptT, MonadError)
-import           Control.Monad.Reader      (MonadReader, ReaderT)
 import qualified Control.Monad.RWS         as RWSLazy
 import qualified Control.Monad.RWS.Strict  as RWSStrict
-import           Control.Monad.State       (MonadState, StateT)
 import           Control.Monad.Trans       (MonadTrans (lift))
 import           Control.Monad.Writer      (MonadWriter (tell), WriterT (runWriterT))
-
-import           Data.Bifunctor            (second)
 import qualified Data.DList                as DL (DList)
 import           Data.SafeCopy             (base, deriveSafeCopySimple)
-import           Data.Text                 (Text)
-import qualified Data.Text                 as T
 import           Data.Time                 (getCurrentTime)
-
 import           System.IO.Unsafe          (unsafePerformIO)
-import           System.Log.Logger         (logM)
-
 import           Universum
 
 import           System.Wlog.Formatter     (formatLogMessageColors, getRoundedTime)
+import           System.Wlog.Logger        (logM)
 import           System.Wlog.LoggerName    (LoggerName (..))
 import           System.Wlog.LoggerNameBox (HasLoggerName (..), LoggerNameBox (..))
 import           System.Wlog.MemoryQueue   (MemoryQueue)
 import qualified System.Wlog.MemoryQueue   as MQ
-import           System.Wlog.Severity      (Severity (..), convertSeverity)
+import           System.Wlog.Severity      (Severity (..))
 
 
 -- | Type alias for constraints 'CanLog' and 'HasLoggerName'.
@@ -97,11 +87,7 @@ readMemoryLogs = do
     liftIO (readMVar memoryLogs) <&> maybe (pure []) (MQ.toList . fst)
 
 instance CanLog IO where
-    dispatchMessage
-        (loggerName      -> name)
-        (convertSeverity -> prior)
-        msg
-      = logM name prior (T.unpack msg)
+    dispatchMessage (loggerName -> name) prior msg = logM name prior msg
 
 instance CanLog m => CanLog (LoggerNameBox m)
 instance CanLog m => CanLog (ReaderT r m)

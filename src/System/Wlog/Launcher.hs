@@ -32,43 +32,34 @@ module System.Wlog.Launcher
        , setupLogging
        ) where
 
+#if PatakDebugSkovorodaBARDAQ
+import qualified Data.ByteString.Char8      as BS (putStrLn)
+import           Data.Yaml.Pretty           (defConfig, encodePretty)
+#endif
+import           Control.Error.Util         ((?:))
+import           Control.Exception          (throwIO)
+import qualified Data.HashMap.Strict        as HM hiding (HashMap)
+import           Data.List                  (isSuffixOf)
+import qualified Data.Text                  as T
+import           Data.Yaml                  (decodeFileEither)
+import           System.Directory           (createDirectoryIfMissing)
+import           System.FilePath            ((</>))
 import           Universum
 
-#if PatakDebugSkovorodaBARDAQ
-import qualified Data.ByteString.Char8     as BS (putStrLn)
-import           Data.Yaml.Pretty          (defConfig, encodePretty)
-#endif
-
-import           Control.Error.Util        ((?:))
-import           Control.Exception         (throwIO)
-import           Control.Monad             (join, when)
-import           Control.Monad.IO.Class    (MonadIO (liftIO))
-
-import qualified Data.HashMap.Strict       as HM hiding (HashMap)
-import           Data.List                 (isSuffixOf)
-import           Data.Monoid               ((<>))
-import           Data.Text                 (unpack)
-import           Data.Yaml                 (decodeFileEither)
-
-import           System.Directory          (createDirectoryIfMissing)
-import           System.FilePath           ((</>))
-import           System.Log                (Priority)
-import           System.Log.Handler        (LogHandler (setFormatter))
-import           System.Log.Handler.Simple (fileHandler)
-import           System.Log.Logger         (addHandler, updateGlobalLogger)
-
-import           System.Wlog.CanLog        (memoryLogs)
-import           System.Wlog.Formatter     (setStdoutFormatter,
-                                            stdoutFormatterTimeRounded)
-import           System.Wlog.LoggerConfig  (LoggerConfig (..), LoggerTree (..))
-import           System.Wlog.LoggerName    (LoggerName (..))
-import           System.Wlog.MemoryQueue   (newMemoryQueue)
-import           System.Wlog.Roller        (rotationFileHandler)
-import           System.Wlog.Wrapper       (Severity (Debug), convertSeverity,
-                                            initTerminalLogging, setSeverityMaybe)
+import           System.Wlog.CanLog         (memoryLogs)
+import           System.Wlog.Formatter      (stdoutFormatter, stdoutFormatterTimeRounded)
+import           System.Wlog.Handler        (LogHandler (setFormatter))
+import           System.Wlog.Handler.Simple (fileHandler)
+import           System.Wlog.Logger         (addHandler, updateGlobalLogger)
+import           System.Wlog.LoggerConfig   (LoggerConfig (..), LoggerTree (..))
+import           System.Wlog.LoggerName     (LoggerName (..))
+import           System.Wlog.MemoryQueue    (newMemoryQueue)
+import           System.Wlog.Roller         (rotationFileHandler)
+import           System.Wlog.Wrapper        (Severity (Debug), initTerminalLogging,
+                                             setSeverityMaybe)
 
 data HandlerFabric
-    = forall h . LogHandler h => HandlerFabric (FilePath -> Priority -> IO h)
+    = forall h . LogHandler h => HandlerFabric (FilePath -> Severity -> IO h)
 
 -- | This function traverses 'LoggerConfig' initializing all subloggers
 -- with 'Severity' and redirecting output in file handlers.
@@ -101,12 +92,12 @@ setupLogging LoggerConfig{..} = do
             setSeverityMaybe parent _ltSeverity
 
         forM_ _ltFiles $ \fileName -> liftIO $ do
-            let filePriority   = convertSeverity $ _ltSeverity ?: Debug
+            let fileSeverity   = _ltSeverity ?: Debug
             let handlerPath    = handlerPrefix </> fileName
             case handlerFabric of
                 HandlerFabric fabric -> do
-                    let handlerCreator = fabric handlerPath filePriority
-                    let defFmt = setStdoutFormatter isShowTime
+                    let handlerCreator = fabric handlerPath fileSeverity
+                    let defFmt = (`setFormatter` stdoutFormatter isShowTime)
                     let roundFmt r = (`setFormatter` stdoutFormatterTimeRounded r)
                     let fmt = maybe defFmt (\r -> if ".pub" `isSuffixOf` fileName
                                                   then roundFmt r
@@ -115,7 +106,7 @@ setupLogging LoggerConfig{..} = do
                     updateGlobalLogger (loggerName parent) $ addHandler thisLoggerHandler
 
         for_ (HM.toList _ltSubloggers) $ \(name, loggerConfig) -> do
-            let thisLoggerName = LoggerName $ unpack name
+            let thisLoggerName = LoggerName $ T.unpack name
             let thisLogger     = parent <> logMapper thisLoggerName
             processLoggers thisLogger loggerConfig
 
