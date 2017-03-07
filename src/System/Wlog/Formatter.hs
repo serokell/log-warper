@@ -79,9 +79,9 @@ replaceVarM
     -> IO Text             -- ^ Resulting string
 replaceVarM _ [] = pure ""
 replaceVarM keyVals (span (/= '$') -> (before,after)) = do
-    (f, rest) <- replaceStart keyVals $ drop 1 after
-    if null rest then pure $ T.pack before
+    if null after then pure $ T.pack before
     else do
+        (f, rest) <- replaceStart keyVals $ drop 1 after
         repRest <- replaceVarM keyVals rest
         pure $ T.pack before <> f <> repRest
   where
