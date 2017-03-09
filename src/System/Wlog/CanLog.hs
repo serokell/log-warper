@@ -25,6 +25,8 @@ module System.Wlog.CanLog
        , dispatchEvents
        , runPureLog
        , launchPureLog
+       , runNamedPureLog
+       , launchNamedPureLog
 
          -- * Logging functions
        , logDebug
@@ -51,7 +53,8 @@ import           Universum
 import           System.Wlog.Formatter      (formatLogMessageColors, getRoundedTime)
 import           System.Wlog.Logger         (logM)
 import           System.Wlog.LoggerName     (LoggerName (..))
-import           System.Wlog.LoggerNameBox  (HasLoggerName (..), LoggerNameBox (..))
+import           System.Wlog.LoggerNameBox  (HasLoggerName (..), LoggerNameBox (..),
+                                             usingLoggerName)
 import           System.Wlog.MemoryQueue    (MemoryQueue)
 import qualified System.Wlog.MemoryQueue    as MQ
 import           System.Wlog.Severity       (Severity (..))
@@ -127,6 +130,14 @@ instance Monad m => CanLog (PureLogger m) where
 runPureLog :: Monad m => PureLogger m a -> m (a, [LogEvent])
 runPureLog = fmap (second toList) . runWriterT . runPureLogger
 
+-- | Return log of pure logging action as list of 'LogEvent',
+-- using logger name provided by context.
+runNamedPureLog
+    :: (Monad m, HasLoggerName m)
+    => PureLogger (LoggerNameBox m) a -> m (a, [LogEvent])
+runNamedPureLog action =
+    getLoggerName >>= (`usingLoggerName` runPureLog action)
+
 -- | Logs all 'LogEvent'`s from given list. This function supposed to
 -- be used after 'runPureLog'.
 dispatchEvents :: CanLog m => [LogEvent] -> m ()
@@ -140,6 +151,11 @@ launchPureLog action = do
     (res, logs) <- runPureLog action
     dispatchEvents logs
     return res
+
+-- | Similar as `launchPureLog`, but provides logger name from current context.
+launchNamedPureLog :: WithLogger m => PureLogger (LoggerNameBox m) a -> m a
+launchNamedPureLog action =
+    getLoggerName >>= (`usingLoggerName` launchPureLog action)
 
 -- | Shortcut for 'logMessage' to use according severity.
 logDebug, logInfo, logNotice, logWarning, logError
