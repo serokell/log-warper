@@ -24,6 +24,7 @@ module System.Wlog.CanLog
        , LogEvent   (..)
        , dispatchEvents
        , runPureLog
+       , launchPureLog
 
          -- * Logging functions
        , logDebug
@@ -34,25 +35,26 @@ module System.Wlog.CanLog
        , logMessage
        ) where
 
-import           Control.Monad.Base        (MonadBase)
-import           Control.Monad.Except      (ExceptT, MonadError)
-import qualified Control.Monad.RWS         as RWSLazy
-import qualified Control.Monad.RWS.Strict  as RWSStrict
-import           Control.Monad.Trans       (MonadTrans (lift))
-import           Control.Monad.Writer      (MonadWriter (tell), WriterT (runWriterT))
-import qualified Data.DList                as DL (DList)
-import           Data.SafeCopy             (base, deriveSafeCopySimple)
-import           Data.Time                 (getCurrentTime)
-import           System.IO.Unsafe          (unsafePerformIO)
+import           Control.Monad.Base         (MonadBase)
+import           Control.Monad.Except       (ExceptT, MonadError)
+import qualified Control.Monad.RWS          as RWSLazy
+import qualified Control.Monad.RWS.Strict   as RWSStrict
+import qualified Control.Monad.State.Strict as StateStrict
+import           Control.Monad.Trans        (MonadTrans (lift))
+import           Control.Monad.Writer       (MonadWriter (tell), WriterT (runWriterT))
+import qualified Data.DList                 as DL (DList)
+import           Data.SafeCopy              (base, deriveSafeCopySimple)
+import           Data.Time                  (getCurrentTime)
+import           System.IO.Unsafe           (unsafePerformIO)
 import           Universum
 
-import           System.Wlog.Formatter     (formatLogMessageColors, getRoundedTime)
-import           System.Wlog.Logger        (logM)
-import           System.Wlog.LoggerName    (LoggerName (..))
-import           System.Wlog.LoggerNameBox (HasLoggerName (..), LoggerNameBox (..))
-import           System.Wlog.MemoryQueue   (MemoryQueue)
-import qualified System.Wlog.MemoryQueue   as MQ
-import           System.Wlog.Severity      (Severity (..))
+import           System.Wlog.Formatter      (formatLogMessageColors, getRoundedTime)
+import           System.Wlog.Logger         (logM)
+import           System.Wlog.LoggerName     (LoggerName (..))
+import           System.Wlog.LoggerNameBox  (HasLoggerName (..), LoggerNameBox (..))
+import           System.Wlog.MemoryQueue    (MemoryQueue)
+import qualified System.Wlog.MemoryQueue    as MQ
+import           System.Wlog.Severity       (Severity (..))
 
 
 -- | Type alias for constraints 'CanLog' and 'HasLoggerName'.
@@ -92,6 +94,7 @@ instance CanLog IO where
 instance CanLog m => CanLog (LoggerNameBox m)
 instance CanLog m => CanLog (ReaderT r m)
 instance CanLog m => CanLog (StateT s m)
+instance CanLog m => CanLog (StateStrict.StateT s m)
 instance CanLog m => CanLog (ExceptT s m)
 instance (CanLog m, Monoid w) => CanLog (RWSLazy.RWST r w s m)
 instance (CanLog m, Monoid w) => CanLog (RWSStrict.RWST r w s m)
@@ -126,10 +129,17 @@ runPureLog = fmap (second toList) . runWriterT . runPureLogger
 
 -- | Logs all 'LogEvent'`s from given list. This function supposed to
 -- be used after 'runPureLog'.
-dispatchEvents :: WithLogger m => [LogEvent] -> m ()
+dispatchEvents :: CanLog m => [LogEvent] -> m ()
 dispatchEvents = mapM_ dispatchLogEvent
   where
     dispatchLogEvent (LogEvent name sev t) = dispatchMessage name sev t
+
+-- | Performs actual logging once given action completes.
+launchPureLog :: CanLog m => PureLogger m a -> m a
+launchPureLog action = do
+    (res, logs) <- runPureLog action
+    dispatchEvents logs
+    return res
 
 -- | Shortcut for 'logMessage' to use according severity.
 logDebug, logInfo, logNotice, logWarning, logError
