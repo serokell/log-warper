@@ -23,6 +23,7 @@ module System.Wlog.Handler.Simple
        , verboseStreamHandler
        ) where
 
+import           Control.Concurrent    (withMVar)
 import           Control.Exception     (SomeException)
 import           Data.Maybe            (fromMaybe)
 import qualified Data.Text.IO          as TIO

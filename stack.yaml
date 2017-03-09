@@ -1,5 +1,4 @@
-resolver: lts-7.16
-compiler: ghc-8.0.2
+resolver: lts-8.2
 packages:
 - '.'
 extra-deps:
@@ -7,7 +6,7 @@ extra-deps:
 - data-msgpack-0.0.8
 - recursion-schemes-5
 - time-units-1.0.0
-- universum-0.2.1
+- universum-0.3
 nix:
   packages: [git, openssh]
 flags: {}

@@ -12,7 +12,7 @@ module System.Wlog.Roller
 
 import           Universum
 
-import           Control.Concurrent         (MVar, modifyMVar_, newMVar)
+import           Control.Concurrent         (modifyMVar_, withMVar)
 import           Formatting                 (sformat, shown, (%))
 import qualified Prelude                    (show)
 
@@ -45,7 +45,7 @@ instance LogHandler RollerHandler where
     getLevel          = rhSeverity
     getFormatter      = rhFormatter
 
-    emit rh (_, msg) _      = rhWriteAction rh (panic "Handler is used internally") msg
+    emit rh (_, msg) _      = rhWriteAction rh (error "Handler is used internally") msg
     close RollerHandler{..} = withMVar rhFileHandle rhCloseAction
 
 data InvalidRotation = InvalidRotation !Text

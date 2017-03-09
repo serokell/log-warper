@@ -30,6 +30,7 @@ module System.Wlog.Formatter
        , varFormatter
        ) where
 
+import           Control.Concurrent     (myThreadId)
 import           Data.List              (span)
 import           Data.Monoid            (mconcat)
 import           Data.String            (IsString)
