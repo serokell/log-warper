@@ -47,7 +47,7 @@ module System.Wlog.Handler.Syslog
 
 import qualified Control.Exception         as E
 import           Control.Monad             (void, when)
-import           Data.Bits                 ()
+import           Data.Bits                 (shiftL, (.|.))
 import qualified Data.Text                 as T
 import qualified Data.Text.Encoding        as TE
 import           Network.BSD               (getHostByName, hostAddresses)
@@ -231,7 +231,7 @@ openlog_remote fam hostname port ident options fac pri =
     do
     he <- getHostByName hostname
     s <- socket fam Datagram 0
-    let addr = SockAddrInet port (fromMaybe (panic "head in openlog_remote") $
+    let addr = SockAddrInet port (fromMaybe (error "head in openlog_remote") $
                                              head (hostAddresses he))
     openlog_generic s addr Datagram ident options fac pri
 
@@ -281,7 +281,7 @@ instance LogHandler SyslogHandler where
                     Datagram -> NBS.sendTo (logsocket sh) omsg' (address sh)
                     Stream   -> NBS.send   (logsocket sh) omsg'
                     sck        ->
-                        panic $ "sysloghandler: unsupported socket type " <> show sck <>
+                        error $ "sysloghandler: unsupported socket type " <> show sck <>
                                 " only datagram/stream sockets are supported"
           sendstr $ T.drop (fromIntegral sent) omsg
         toSyslogFormat m pidPart =

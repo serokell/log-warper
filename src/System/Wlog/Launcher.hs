@@ -36,6 +36,7 @@ module System.Wlog.Launcher
 import qualified Data.ByteString.Char8      as BS (putStrLn)
 import           Data.Yaml.Pretty           (defConfig, encodePretty)
 #endif
+import           Control.Concurrent         (modifyMVar_)
 import           Control.Error.Util         ((?:))
 import           Control.Exception          (throwIO)
 import qualified Data.HashMap.Strict        as HM hiding (HashMap)

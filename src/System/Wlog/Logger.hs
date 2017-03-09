@@ -49,6 +49,7 @@ module System.Wlog.Logger
        , updateGlobalLogger
        ) where
 
+import           Control.Concurrent.MVar    (modifyMVar, modifyMVar_)
 import           Data.List                  (isPrefixOf)
 import qualified Data.Map                   as Map
 import           Data.Maybe                 (fromJust)
@@ -217,7 +218,7 @@ handle l lrecord@(sev, _) handlerFilter = do
     parentLoggers [] = return []
     parentLoggers name =
         let pname0 = (head . drop 1 . reverse . componentsOfName) name
-            pname = fromMaybe (panic "Logger.handle.parentLoggers: pname head failed") pname0
+            pname = fromMaybe (error "Logger.handle.parentLoggers: pname head failed") pname0
         in do parent <- getLogger pname
               next <- parentLoggers pname
               return (parent : next)
