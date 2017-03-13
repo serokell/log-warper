@@ -103,7 +103,7 @@ varFormatter vars format _h (prio,msg) loggername = do
     replaceVarM (vars ++ predefinedVars) format
   where
     predefinedVars = [ ("msg", pure msg)
-                     , ("prio", pure $ show prio)
+                     , ("prio", pure $ T.toUpper $ show prio)
                      , ("loggername", pure $ T.pack loggername)
                      , ("tid", show <$> myThreadId)
 #ifndef mingw32_HOST_OS
