@@ -38,7 +38,7 @@ spec = do
               let expectedRollException rp =
                     (== InvalidRotation ("Rotation parameters must be positive: " <> pretty rp))
               let rollExceptionChecker rp
-                    = rotationFileHandler rp "" (panic "Test roll!")
+                    = rotationFileHandler rp "" (error "Test roll!")
                         `shouldThrow`
                       expectedRollException rp
 
