@@ -21,9 +21,10 @@ module System.Wlog.Wrapper
        , setSeverityMaybe
        ) where
 
-import           Control.Concurrent.MVar    (MVar, newMVar, withMVar)
-import           System.IO                  (Handle, stderr, stdout)
 import           Universum
+
+import           Control.Concurrent.MVar    (withMVar)
+import           System.IO                  (Handle, stderr, stdout)
 
 import           System.Wlog.Formatter      (stderrFormatter, stdoutFormatter)
 import           System.Wlog.Handler        (LogHandler (setFormatter))

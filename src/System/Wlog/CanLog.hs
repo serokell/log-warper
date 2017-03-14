@@ -39,6 +39,7 @@ module System.Wlog.CanLog
        , logMessage
        ) where
 
+import           Control.Concurrent         (modifyMVar_)
 import           Control.Monad.Base         (MonadBase)
 import           Control.Monad.Except       (ExceptT, MonadError)
 import           Control.Monad.Morph        (MFunctor (..))
@@ -47,6 +48,7 @@ import qualified Control.Monad.RWS.Strict   as RWSStrict
 import qualified Control.Monad.State.Strict as StateStrict
 import           Control.Monad.Trans        (MonadTrans (lift))
 import           Control.Monad.Writer       (MonadWriter (tell), WriterT (runWriterT))
+
 import qualified Data.DList                 as DL (DList)
 import           Data.SafeCopy              (base, deriveSafeCopySimple)
 import           Data.Time                  (getCurrentTime)

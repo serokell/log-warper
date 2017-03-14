@@ -49,6 +49,7 @@ module System.Wlog.Logger
        , updateGlobalLogger
        ) where
 
+import           Control.Concurrent.MVar    (modifyMVar, modifyMVar_)
 import           Data.List                  (isPrefixOf)
 import qualified Data.Map                   as Map
 import           Data.Maybe                 (fromJust)
@@ -137,32 +138,32 @@ logMCond logname sev msg cond = do
 -- Utility functions
 ---------------------------------------------------------------------------
 
-{- | Log a message at 'DEBUG' priority -}
-debugM :: String                         -- ^ Logger name
+{- | Log a message at 'Debug' priority -}
+debugM :: String                       -- ^ Logger name
        -> Text                         -- ^ Log message
        -> IO ()
 debugM s = logM s Debug
 
-{- | Log a message at 'INFO' priority -}
-infoM :: String                         -- ^ Logger name
-      -> Text                         -- ^ Log message
+{- | Log a message at 'Info' priority -}
+infoM :: String                        -- ^ Logger name
+      -> Text                          -- ^ Log message
       -> IO ()
 infoM s = logM s Info
 
-{- | Log a message at 'NOTICE' priority -}
-noticeM :: String                         -- ^ Logger name
-        -> Text                         -- ^ Log message
+{- | Log a message at 'Notice' priority -}
+noticeM :: String                      -- ^ Logger name
+        -> Text                        -- ^ Log message
         -> IO ()
 noticeM s = logM s Notice
 
-{- | Log a message at 'WARNING' priority -}
-warningM :: String                         -- ^ Logger name
-         -> Text                         -- ^ Log message
+{- | Log a message at 'Warning' priority -}
+warningM :: String                     -- ^ Logger name
+         -> Text                       -- ^ Log message
          -> IO ()
 warningM s = logM s Warning
 
 {- | Log a message at 'ERROR' priority -}
-errorM :: String                         -- ^ Logger name
+errorM :: String                       -- ^ Logger name
        -> Text                         -- ^ Log message
        -> IO ()
 errorM s = logM s Error
@@ -207,23 +208,15 @@ logLCond l pri msg = handle l (pri, msg)
 -- | Handle a log request.
 handle :: Logger -> LogRecord -> (String -> Bool) -> IO ()
 handle l lrecord@(sev, _) handlerFilter = do
-    lp <- getLoggerSeverity (name l)
+    lp <- getLoggerSeverity nm
     if sev >= lp then do
-        ph <- parentHandlers (name l)
-        forM_ ph $ callHandler lrecord (name l)
+        ph <- concatMap handlers <$> parentLoggers nm
+        forM_ ph $ callHandler lrecord nm
     else return ()
   where
+    nm = name l
     parentLoggers :: String -> IO [Logger]
-    parentLoggers [] = return []
-    parentLoggers name =
-        let pname0 = (head . drop 1 . reverse . componentsOfName) name
-            pname = fromMaybe (panic "Logger.handle.parentLoggers: pname head failed") pname0
-        in do parent <- getLogger pname
-              next <- parentLoggers pname
-              return (parent : next)
-    parentHandlers :: String -> IO [HandlerT]
-    parentHandlers name = do
-        parentLoggers name >>= (return . concatMap handlers)
+    parentLoggers = mapM getLogger . componentsOfName
     -- Get the severity we should use. Find the first logger in the
     -- tree, starting here, with a set severity. If even root doesn't
     -- have one, assume "Debug".
