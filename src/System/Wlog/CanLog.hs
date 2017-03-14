@@ -25,6 +25,8 @@ module System.Wlog.CanLog
        , dispatchEvents
        , runPureLog
        , launchPureLog
+
+       , NamedPureLogger (..)
        , runNamedPureLog
        , launchNamedPureLog
 
@@ -134,14 +136,6 @@ instance MFunctor PureLogger where
 runPureLog :: Monad m => PureLogger m a -> m (a, [LogEvent])
 runPureLog = fmap (second toList) . runWriterT . runPureLogger
 
--- | Return log of pure logging action as list of 'LogEvent',
--- using logger name provided by context.
-runNamedPureLog
-    :: (Monad m, HasLoggerName m)
-    => PureLogger (LoggerNameBox m) a -> m (a, [LogEvent])
-runNamedPureLog action =
-    getLoggerName >>= (`usingLoggerName` runPureLog action)
-
 -- | Logs all 'LogEvent'`s from given list. This function supposed to
 -- be used after 'runPureLog'.
 dispatchEvents :: CanLog m => [LogEvent] -> m ()
@@ -156,9 +150,32 @@ launchPureLog action = do
     dispatchEvents logs
     return res
 
+newtype NamedPureLogger m a = NamedPureLogger
+    { runNamedPureLogger :: PureLogger (LoggerNameBox m) a
+    } deriving (Functor, Applicative, Monad, MonadWriter (DL.DList LogEvent),
+                MonadBase b, MonadState s, MonadReader r, MonadError e, HasLoggerName)
+
+instance MonadTrans NamedPureLogger where
+    lift = NamedPureLogger . lift . lift
+
+instance Monad m => CanLog (NamedPureLogger m) where
+    dispatchMessage name sev msg =
+        NamedPureLogger $ dispatchMessage name sev msg
+
+instance MFunctor NamedPureLogger where
+    hoist f = NamedPureLogger . hoist (hoist f) . runNamedPureLogger
+
+-- | Return log of pure logging action as list of 'LogEvent',
+-- using logger name provided by context.
+runNamedPureLog
+    :: (Monad m, HasLoggerName m)
+    => NamedPureLogger m a -> m (a, [LogEvent])
+runNamedPureLog (NamedPureLogger action) =
+    getLoggerName >>= (`usingLoggerName` runPureLog action)
+
 -- | Similar as `launchPureLog`, but provides logger name from current context.
-launchNamedPureLog :: WithLogger m => PureLogger (LoggerNameBox m) a -> m a
-launchNamedPureLog action =
+launchNamedPureLog :: WithLogger m => NamedPureLogger m a -> m a
+launchNamedPureLog (NamedPureLogger action) =
     getLoggerName >>= (`usingLoggerName` launchPureLog action)
 
 -- | Shortcut for 'logMessage' to use according severity.

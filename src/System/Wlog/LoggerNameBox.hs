@@ -16,6 +16,7 @@ module System.Wlog.LoggerNameBox
 import           Control.Monad.Base          (MonadBase)
 import           Control.Monad.Catch         (MonadCatch, MonadMask, MonadThrow)
 import           Control.Monad.Except        (ExceptT (..), mapExceptT)
+import           Control.Monad.Except        (MonadError)
 import           Control.Monad.Fix           (MonadFix)
 import           Control.Monad.Morph         (MFunctor (..))
 import           Control.Monad.Reader        (MonadReader (..), ReaderT, mapReaderT,
@@ -84,7 +85,8 @@ setLoggerName = modifyLoggerName . const
 newtype LoggerNameBox m a = LoggerNameBox
     { loggerNameBoxEntry :: ReaderT LoggerName m a
     } deriving (Functor, Applicative, Monad, MonadIO, MonadTrans, MonadBase b,
-                MonadThrow, MonadCatch, MonadMask, MonadState s, MonadFix)
+                MonadThrow, MonadCatch, MonadMask, MonadError e, MonadState s,
+                MonadFix)
 
 instance MonadReader r m => MonadReader r (LoggerNameBox m) where
     ask = lift ask
