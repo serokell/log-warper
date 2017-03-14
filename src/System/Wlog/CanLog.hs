@@ -124,7 +124,8 @@ deriveSafeCopySimple 0 'base ''LogEvent
 newtype PureLogger m a = PureLogger
     { runPureLogger :: WriterT (DL.DList LogEvent) m a
     } deriving (Functor, Applicative, Monad, MonadTrans, MonadWriter (DL.DList LogEvent),
-                MonadBase b, MonadState s, MonadReader r, MonadError e, HasLoggerName)
+                MonadBase b, MonadState s, MonadReader r, MonadError e, MonadThrow,
+                HasLoggerName)
 
 instance Monad m => CanLog (PureLogger m) where
     dispatchMessage leLoggerName leSeverity leMessage = tell [LogEvent{..}]
@@ -153,7 +154,8 @@ launchPureLog action = do
 newtype NamedPureLogger m a = NamedPureLogger
     { runNamedPureLogger :: PureLogger (LoggerNameBox m) a
     } deriving (Functor, Applicative, Monad, MonadWriter (DL.DList LogEvent),
-                MonadBase b, MonadState s, MonadReader r, MonadError e, HasLoggerName)
+                MonadBase b, MonadState s, MonadReader r, MonadError e,
+                MonadThrow, HasLoggerName)
 
 instance MonadTrans NamedPureLogger where
     lift = NamedPureLogger . lift . lift
