@@ -39,6 +39,7 @@ module System.Wlog.CanLog
 
 import           Control.Monad.Base         (MonadBase)
 import           Control.Monad.Except       (ExceptT, MonadError)
+import           Control.Monad.Morph        (MFunctor (..))
 import qualified Control.Monad.RWS          as RWSLazy
 import qualified Control.Monad.RWS.Strict   as RWSStrict
 import qualified Control.Monad.State.Strict as StateStrict
@@ -125,6 +126,9 @@ newtype PureLogger m a = PureLogger
 
 instance Monad m => CanLog (PureLogger m) where
     dispatchMessage leLoggerName leSeverity leMessage = tell [LogEvent{..}]
+
+instance MFunctor PureLogger where
+    hoist f = PureLogger . hoist f . runPureLogger
 
 -- | Return log of pure logging action as list of 'LogEvent'.
 runPureLog :: Monad m => PureLogger m a -> m (a, [LogEvent])

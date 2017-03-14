@@ -17,6 +17,7 @@ import           Control.Monad.Base          (MonadBase)
 import           Control.Monad.Catch         (MonadCatch, MonadMask, MonadThrow)
 import           Control.Monad.Except        (ExceptT (..), mapExceptT)
 import           Control.Monad.Fix           (MonadFix)
+import           Control.Monad.Morph         (MFunctor (..))
 import           Control.Monad.Reader        (MonadReader (..), ReaderT, mapReaderT,
                                               runReaderT)
 import qualified Control.Monad.RWS           as RWSLazy
@@ -95,6 +96,9 @@ instance MonadBaseControl b m => MonadBaseControl b (LoggerNameBox m) where
     liftBaseWith io =
         LoggerNameBox $ liftBaseWith $ \runInBase -> io $ runInBase . loggerNameBoxEntry
     restoreM = LoggerNameBox . restoreM
+
+instance MFunctor LoggerNameBox where
+    hoist f = LoggerNameBox . hoist f . loggerNameBoxEntry
 
 -- | Runs a `LoggerNameBox` with specified initial `LoggerName`.
 usingLoggerName :: LoggerName -> LoggerNameBox m a -> m a
