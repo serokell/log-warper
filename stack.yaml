@@ -2,10 +2,6 @@ resolver: lts-8.2
 packages:
 - '.'
 extra-deps:
-- aeson-extra-0.4.0.0
-- data-msgpack-0.0.8
-- recursion-schemes-5
-- time-units-1.0.0
 - universum-0.3
 nix:
   packages: [git, openssh]
