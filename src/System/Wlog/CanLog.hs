@@ -5,6 +5,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoImplicitPrelude     #-}
 {-# LANGUAGE OverloadedLists       #-}
+{-# LANGUAGE Rank2Types            #-}
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -25,6 +26,8 @@ module System.Wlog.CanLog
        , dispatchEvents
        , runPureLog
        , launchPureLog
+
+       , NamedPureLogger (..)
        , runNamedPureLog
        , launchNamedPureLog
 
@@ -40,6 +43,7 @@ module System.Wlog.CanLog
 import           Control.Concurrent         (modifyMVar_)
 import           Control.Monad.Base         (MonadBase)
 import           Control.Monad.Except       (ExceptT, MonadError)
+import           Control.Monad.Morph        (MFunctor (..))
 import qualified Control.Monad.RWS          as RWSLazy
 import qualified Control.Monad.RWS.Strict   as RWSStrict
 import qualified Control.Monad.State.Strict as StateStrict
@@ -123,22 +127,18 @@ deriveSafeCopySimple 0 'base ''LogEvent
 newtype PureLogger m a = PureLogger
     { runPureLogger :: WriterT (DL.DList LogEvent) m a
     } deriving (Functor, Applicative, Monad, MonadTrans, MonadWriter (DL.DList LogEvent),
-                MonadBase b, MonadState s, MonadReader r, MonadError e, HasLoggerName)
+                MonadBase b, MonadState s, MonadReader r, MonadError e, MonadThrow,
+                HasLoggerName)
 
 instance Monad m => CanLog (PureLogger m) where
     dispatchMessage leLoggerName leSeverity leMessage = tell [LogEvent{..}]
 
+instance MFunctor PureLogger where
+    hoist f = PureLogger . hoist f . runPureLogger
+
 -- | Return log of pure logging action as list of 'LogEvent'.
 runPureLog :: Monad m => PureLogger m a -> m (a, [LogEvent])
 runPureLog = fmap (second toList) . runWriterT . runPureLogger
-
--- | Return log of pure logging action as list of 'LogEvent',
--- using logger name provided by context.
-runNamedPureLog
-    :: (Monad m, HasLoggerName m)
-    => PureLogger (LoggerNameBox m) a -> m (a, [LogEvent])
-runNamedPureLog action =
-    getLoggerName >>= (`usingLoggerName` runPureLog action)
 
 -- | Logs all 'LogEvent'`s from given list. This function supposed to
 -- be used after 'runPureLog'.
@@ -148,16 +148,49 @@ dispatchEvents = mapM_ dispatchLogEvent
     dispatchLogEvent (LogEvent name sev t) = dispatchMessage name sev t
 
 -- | Performs actual logging once given action completes.
-launchPureLog :: CanLog m => PureLogger m a -> m a
-launchPureLog action = do
-    (res, logs) <- runPureLog action
-    dispatchEvents logs
-    return res
+launchPureLog
+    :: (CanLog n, Monad m)
+    => (forall f. Functor f => m (f a) -> n (f b))
+    -> PureLogger m a
+    -> n b
+launchPureLog hoist' action = do
+    (logs, res) <- hoist' $ swap <$> runPureLog action
+    res <$ dispatchEvents logs
+
+newtype NamedPureLogger m a = NamedPureLogger
+    { runNamedPureLogger :: PureLogger (LoggerNameBox m) a
+    } deriving (Functor, Applicative, Monad, MonadWriter (DL.DList LogEvent),
+                MonadBase b, MonadState s, MonadReader r, MonadError e,
+                MonadThrow, HasLoggerName)
+
+instance MonadTrans NamedPureLogger where
+    lift = NamedPureLogger . lift . lift
+
+instance Monad m => CanLog (NamedPureLogger m) where
+    dispatchMessage name sev msg =
+        NamedPureLogger $ dispatchMessage name sev msg
+
+instance MFunctor NamedPureLogger where
+    hoist f = NamedPureLogger . hoist (hoist f) . runNamedPureLogger
+
+-- | Return log of pure logging action as list of 'LogEvent',
+-- using logger name provided by context.
+runNamedPureLog
+    :: (Monad m, HasLoggerName m)
+    => NamedPureLogger m a -> m (a, [LogEvent])
+runNamedPureLog (NamedPureLogger action) =
+    getLoggerName >>= (`usingLoggerName` runPureLog action)
 
 -- | Similar as `launchPureLog`, but provides logger name from current context.
-launchNamedPureLog :: WithLogger m => PureLogger (LoggerNameBox m) a -> m a
-launchNamedPureLog action =
-    getLoggerName >>= (`usingLoggerName` launchPureLog action)
+launchNamedPureLog
+    :: (WithLogger n, Monad m)
+    => (forall f. Functor f => m (f a) -> n (f b))
+    -> NamedPureLogger m a
+    -> n b
+launchNamedPureLog hoist' (NamedPureLogger action) = do
+    name <- getLoggerName
+    (logs, res) <- hoist' $ swap <$> usingLoggerName name (runPureLog action)
+    res <$ dispatchEvents logs
 
 -- | Shortcut for 'logMessage' to use according severity.
 logDebug, logInfo, logNotice, logWarning, logError

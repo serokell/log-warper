@@ -16,7 +16,9 @@ module System.Wlog.LoggerNameBox
 import           Control.Monad.Base          (MonadBase)
 import           Control.Monad.Catch         (MonadCatch, MonadMask, MonadThrow)
 import           Control.Monad.Except        (ExceptT (..), mapExceptT)
+import           Control.Monad.Except        (MonadError)
 import           Control.Monad.Fix           (MonadFix)
+import           Control.Monad.Morph         (MFunctor (..))
 import           Control.Monad.Reader        (MonadReader (..), ReaderT, mapReaderT,
                                               runReaderT)
 import qualified Control.Monad.RWS           as RWSLazy
@@ -83,7 +85,8 @@ setLoggerName = modifyLoggerName . const
 newtype LoggerNameBox m a = LoggerNameBox
     { loggerNameBoxEntry :: ReaderT LoggerName m a
     } deriving (Functor, Applicative, Monad, MonadIO, MonadTrans, MonadBase b,
-                MonadThrow, MonadCatch, MonadMask, MonadState s, MonadFix)
+                MonadThrow, MonadCatch, MonadMask, MonadError e, MonadState s,
+                MonadFix)
 
 instance MonadReader r m => MonadReader r (LoggerNameBox m) where
     ask = lift ask
@@ -95,6 +98,9 @@ instance MonadBaseControl b m => MonadBaseControl b (LoggerNameBox m) where
     liftBaseWith io =
         LoggerNameBox $ liftBaseWith $ \runInBase -> io $ runInBase . loggerNameBoxEntry
     restoreM = LoggerNameBox . restoreM
+
+instance MFunctor LoggerNameBox where
+    hoist f = LoggerNameBox . hoist f . loggerNameBoxEntry
 
 -- | Runs a `LoggerNameBox` with specified initial `LoggerName`.
 usingLoggerName :: LoggerName -> LoggerNameBox m a -> m a
