@@ -191,7 +191,7 @@ getLogger lname = modifyMVar logTree $ \lt -> case Map.lookup lname lt of
            then createLoggers xs lt
            else createLoggers xs
                     (Map.insert x (defaultLogger {name=x}) lt)
-    defaultLogger = Logger Nothing [] undefined -- ???!??!
+    defaultLogger = Logger Nothing [] (error "log-warper has some strange code") -- ???!??!
 
 -- | Returns the root logger.
 getRootLogger :: IO Logger

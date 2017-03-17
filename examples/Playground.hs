@@ -2,15 +2,25 @@
 
 module Main where
 
-import           Control.Exception (bracket_)
+import           Universum
 
-import           Data.Monoid       ((<>))
-import qualified Data.Text         as T (pack)
+import           Data.Monoid      ((<>))
+import           Data.Yaml.Pretty (defConfig, encodePretty)
 
-import           System.Wlog       (CanLog, buildAndSetupYamlLogging, dispatchEvents,
-                                    logDebug, logError, logInfo, logNotice, logWarning,
-                                    modifyLoggerName, prefixB, productionB,
-                                    releaseAllHandlers, runPureLog, usingLoggerName)
+import           System.Wlog      (CanLog, buildAndSetupYamlLogging, dispatchEvents,
+                                   logDebug, logError, logInfo, logNotice, logWarning,
+                                   modifyLoggerName, parseLoggerConfig, prefixB,
+                                   productionB, releaseAllHandlers, runPureLog,
+                                   usingLoggerName)
+
+testLoggerConfigPath :: FilePath
+testLoggerConfigPath = "logger-config-example.yaml"
+
+testToJsonConfigOutput :: MonadIO m => m ()
+testToJsonConfigOutput = do
+    cfg             <- parseLoggerConfig testLoggerConfigPath
+    let builtConfig  = cfg <> productionB <> prefixB "logs"
+    putStrLn $ encodePretty defConfig builtConfig
 
 testLogging :: (CanLog m) => m ()
 testLogging = usingLoggerName "node" $ do
@@ -28,13 +38,15 @@ testLogging = usingLoggerName "node" $ do
 showPureLog :: IO ()
 showPureLog = do
     (res, pureLog) <- runPureLog testLogging
-    putStrLn "Pure log:"
+    putText "Pure log:"
     usingLoggerName "naked" $ do
-        logWarning $ "Pure log for result = " <> (T.pack $ show res) <> ":"
+        logWarning $ "Pure log for result = " <> show res <> ":"
         dispatchEvents pureLog
 
 main :: IO ()
-main = bracket_
-           (buildAndSetupYamlLogging (productionB <> prefixB "logs") "logger-config-example.yaml")
-           releaseAllHandlers
-           (testLogging >> showPureLog)
+main = do
+    testToJsonConfigOutput
+    bracket_
+        (buildAndSetupYamlLogging (productionB <> prefixB "logs") testLoggerConfigPath)
+        releaseAllHandlers
+        (testLogging >> showPureLog)

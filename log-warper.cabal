@@ -1,22 +1,18 @@
 name:                log-warper
-version:             1.0.4
+version:             1.0.5
 synopsis:            Flexible, configurable, monadic and pretty logging
 homepage:            https://github.com/serokell/log-warper
 license:             MIT
 license-file:        LICENSE
 author:              Serokell
 maintainer:          Serokell <hi@serokell.io>
-copyright:           2016-2016 Serokell
+copyright:           2016-2017 Serokell
 category:            Interfaces
 stability:           experimental
 build-type:          Simple
 cabal-version:       >=1.18
 description:
-    This package contains nice wrapper around hslogger library.
-
-Flag PatakDebugSkovorodaBARDAQ
-    default:     False
-    description: Enable debug support
+    This package implements nice and featureful wrapper around hslogger library.
 
 library
   exposed-modules:     System.Wlog
@@ -41,7 +37,6 @@ library
   build-depends:       aeson                >= 0.11.2.1
                      , ansi-terminal        >= 0.6.2.3
                      , base                 >= 4.7 && < 5
-                     , bytestring           >= 0.10.8.1
                      , containers           >= 0.5.7.0
                      , directory            >= 1.2.6.2
                      , dlist                >= 0.8.0.2
@@ -80,9 +75,6 @@ library
                        TypeApplications
                        RecordWildCards
 
-  if flag(PatakDebugSkovorodaBARDAQ)
-      cpp-options:     -DPatakDebugSkovorodaBARDAQ
-
 executable play-log
   main-is:             Playground.hs
 
@@ -90,6 +82,8 @@ executable play-log
                      , exceptions >= 0.8.2.1
                      , log-warper
                      , text       >= 1.2.2.1
+                     , universum  >= 0.3
+                     , yaml       >= 0.8.20
 
   hs-source-dirs:      examples
   default-language:    Haskell2010
@@ -98,6 +92,7 @@ executable play-log
   default-extensions:  GeneralizedNewtypeDeriving
                        DeriveDataTypeable
                        DeriveGeneric
+                       NoImplicitPrelude
                        OverloadedStrings
                        TypeApplications
                        RecordWildCards
