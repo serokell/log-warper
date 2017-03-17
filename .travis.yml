@@ -1,0 +1,21 @@
+language: c
+
+cache:
+  directories:
+  - "$HOME/.stack"
+  - "$HOME/build/serokell/log-warper/.stack-work"
+
+before_install:
+  # Download and unpack the stack executable
+  - mkdir -p ~/.local/bin
+  - export PATH=$HOME/.local/bin:$PATH
+  - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+
+install:
+  - stack --version
+  - stack -j 2 setup --no-terminal
+  - stack ghc -- --version
+  - stack -j 2 build --only-snapshot --no-terminal
+
+script:
+  - stack -j 2 test --no-terminal --ghc-options="-Werror"
