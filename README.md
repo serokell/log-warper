@@ -2,6 +2,7 @@ log-warper
 ==========
 
 [![Hackage](https://img.shields.io/hackage/v/log-warper.svg)](https://hackage.haskell.org/package/log-warper)
+[![Build Status](https://travis-ci.org/serokell/log-warper.svg)](https://travis-ci.org/serokell/log-warper)
 
 Auxilary logging library, which is wrapper over
 [hslogger](http://hackage.haskell.org/package/hslogger) but allows
