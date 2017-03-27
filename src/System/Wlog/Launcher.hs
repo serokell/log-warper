@@ -32,10 +32,6 @@ module System.Wlog.Launcher
        , setupLogging
        ) where
 
-#if PatakDebugSkovorodaBARDAQ
-import qualified Data.ByteString.Char8      as BS (putStrLn)
-import           Data.Yaml.Pretty           (defConfig, encodePretty)
-#endif
 import           Control.Concurrent         (modifyMVar_)
 import           Control.Error.Util         ((?:))
 import           Control.Exception          (throwIO)
@@ -121,11 +117,6 @@ buildAndSetupYamlLogging :: MonadIO m => LoggerConfig -> FilePath -> m ()
 buildAndSetupYamlLogging configBuilder loggerConfigPath = do
     cfg@LoggerConfig{..} <- parseLoggerConfig loggerConfigPath
     let builtConfig       = cfg <> configBuilder
-
-#if PatakDebugSkovorodaBARDAQ
-    liftIO $ BS.putStrLn $ encodePretty defConfig builtConfig
-#endif
-
     setupLogging builtConfig
 
 -- | Initialize logger hierarchy from configuration file.
