@@ -23,8 +23,7 @@ install:
   - stack -j 2 build --test --bench --only-snapshot --no-terminal --ghc-options="-Werror"
 
 script:
-  - stack -j 2 build --test --bench --no-terminal --ghc-options="-Werror"
-  - stack -j 2 test --no-terminal --ghc-options="-Werror"
+  - stack --jobs=4 build --test --bench --no-run-benchmarks --no-terminal --ghc-options="-Werror"
 
 notifications:
   email: false
