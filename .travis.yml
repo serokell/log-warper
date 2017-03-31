@@ -5,6 +5,11 @@ cache:
   - "$HOME/.stack"
   - "$HOME/build/serokell/log-warper/.stack-work"
 
+addons:
+  apt:
+    packages:
+    - libgmp-dev
+
 before_install:
   # Download and unpack the stack executable
   - mkdir -p ~/.local/bin
@@ -15,9 +20,10 @@ install:
   - stack --version
   - stack -j 2 setup --no-terminal
   - stack ghc -- --version
-  - stack -j 2 build --only-snapshot --no-terminal
+  - stack -j 2 build --test --bench --only-snapshot --no-terminal --ghc-options="-Werror"
 
 script:
+  - stack -j 2 build --test --bench --no-terminal --ghc-options="-Werror"
   - stack -j 2 test --no-terminal --ghc-options="-Werror"
 
 notifications:
