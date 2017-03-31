@@ -19,3 +19,11 @@ install:
 
 script:
   - stack -j 2 test --no-terminal --ghc-options="-Werror"
+
+notifications:
+  email: false
+  slack:
+    rooms:
+      - serokell:bZAMNe9sfjpyLFGIfYnlEmcy
+    on_success: change
+    on_failure: always
