@@ -15,6 +15,7 @@ import           Data.String         (IsString)
 import           Data.Text.Buildable (Buildable)
 import qualified Data.Text.Buildable as Buildable
 import           Formatting          (Format, bprint, build, string)
+import           Universum
 
 -- | Logger name to keep in context.
 

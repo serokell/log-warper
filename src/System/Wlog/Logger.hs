@@ -89,8 +89,7 @@ rootLoggerName = ""
 -- Logger Tree Storage
 ---------------------------------------------------------------------------
 
--- | The log tree.  Initialize it with a default root logger
--- and (FIXME) a logger for MissingH itself.
+-- | The log tree. Initialize it with a default root logger.
 {-# NOINLINE logTree #-}
 logTree :: MVar LogTree
 -- note: only kick up tree if handled locally
@@ -109,12 +108,13 @@ Example return value:
 -}
 componentsOfName :: String -> [String]
 componentsOfName name =
-    let joinComp [] _ = []
-        joinComp (x:xs) [] = x : joinComp xs x
-        joinComp (x:xs) accum =
-            let newlevel = accum ++ "." ++ x
-            in newlevel : joinComp xs newlevel
-    in rootLoggerName : joinComp (split "." name) []
+    rootLoggerName : joinComp (split "." name) []
+  where
+    joinComp [] _ = []
+    joinComp (x:xs) [] = x : joinComp xs x
+    joinComp (x:xs) accum =
+        let newlevel = accum ++ "." ++ x
+        in newlevel : joinComp xs newlevel
 
 ---------------------------------------------------------------------------
 -- Logging With Location
@@ -123,7 +123,7 @@ componentsOfName name =
 -- | Log a message using the given logger at a given priority.
 logM :: String     -- ^ Name of the logger to use
      -> Severity   -- ^ Severity of this message
-     -> Text     -- ^ The log text itself
+     -> Text       -- ^ The log text itself
      -> IO ()
 logM logname pri msg = do
     l <- getLogger logname

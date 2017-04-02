@@ -71,6 +71,7 @@ library
   default-extensions:  GeneralizedNewtypeDeriving
                        DeriveDataTypeable
                        DeriveGeneric
+                       NoImplicitPrelude
                        OverloadedStrings
                        TypeApplications
                        RecordWildCards

@@ -27,6 +27,7 @@ module System.Wlog.Handler
 
 import           System.Wlog.Formatter (LogFormatter, nullFormatter)
 import           System.Wlog.Severity  (LogRecord, Severity)
+import           Universum
 
 -- | This is the base class for the various log handlers.  They should
 -- all adhere to this class.

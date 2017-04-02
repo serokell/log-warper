@@ -43,12 +43,12 @@ import           System.Directory           (createDirectoryIfMissing)
 import           System.FilePath            ((</>))
 import           Universum
 
-import           System.Wlog.CanLog         (memoryLogs)
 import           System.Wlog.Formatter      (stdoutFormatter, stdoutFormatterTimeRounded)
 import           System.Wlog.Handler        (LogHandler (setFormatter))
 import           System.Wlog.Handler.Simple (fileHandler)
 import           System.Wlog.Logger         (addHandler, updateGlobalLogger)
-import           System.Wlog.LoggerConfig   (LoggerConfig (..), LoggerTree (..))
+import           System.Wlog.LoggerConfig   (HandlerWrap (..), LoggerConfig (..),
+                                             LoggerTree (..))
 import           System.Wlog.LoggerName     (LoggerName (..))
 import           System.Wlog.MemoryQueue    (newMemoryQueue)
 import           System.Wlog.Roller         (rotationFileHandler)
@@ -66,10 +66,10 @@ setupLogging LoggerConfig{..} = do
     liftIO $ createDirectoryIfMissing True handlerPrefix
     when consoleOutput $ initTerminalLogging isShowTime _lcTermSeverity
     -- TODO: use lifted version here
-    whenJust _lcMemModeLimit $ \limit -> do
-        putText "Initializing logs"
-        let cpj = const . pure . Just -- just for lulz
-        liftIO $ modifyMVar_ memoryLogs $ cpj $ (newMemoryQueue limit, _lcRoundVal)
+--    whenJust _lcMemModeLimit $ \limit -> do
+--        putText "Initializing logs"
+--        let cpj = const . pure . Just -- just for lulz
+--        liftIO $ modifyMVar_ memoryLogs $ cpj $ (newMemoryQueue limit, _lcRoundVal)
     processLoggers mempty _lcTree
   where
     handlerPrefix = _lcFilePrefix ?: "."
@@ -88,17 +88,15 @@ setupLogging LoggerConfig{..} = do
         unless (parent == mempty && not consoleOutput) $
             setSeverityMaybe parent _ltSeverity
 
-        forM_ _ltFiles $ \fileName -> liftIO $ do
+        forM_ _ltFiles $ \HandlerWrap{..} -> liftIO $ do
             let fileSeverity   = _ltSeverity ?: Debug
-            let handlerPath    = handlerPrefix </> fileName
+            let handlerPath    = handlerPrefix </> _hwFilePath
             case handlerFabric of
                 HandlerFabric fabric -> do
                     let handlerCreator = fabric handlerPath fileSeverity
                     let defFmt = (`setFormatter` stdoutFormatter isShowTime)
                     let roundFmt r = (`setFormatter` stdoutFormatterTimeRounded r)
-                    let fmt = maybe defFmt (\r -> if ".pub" `isSuffixOf` fileName
-                                                  then roundFmt r
-                                                  else defFmt) _lcRoundVal
+                    let fmt = maybe defFmt roundFmt _hwRounding
                     thisLoggerHandler <- fmt <$> handlerCreator
                     updateGlobalLogger (loggerName parent) $ addHandler thisLoggerHandler
 

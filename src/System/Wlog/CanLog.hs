@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE DefaultSignatures     #-}
 {-# LANGUAGE FlexibleInstances     #-}
@@ -17,8 +16,8 @@
 module System.Wlog.CanLog
        ( CanLog (..)
        , WithLogger
-       , memoryLogs
-       , readMemoryLogs
+--       , memoryLogs
+--       , readMemoryLogs
 
          -- * Pure logging manipulation
        , PureLogger (..)
@@ -84,6 +83,7 @@ class Monad m => CanLog m where
                             -> t n ()
     dispatchMessage name sev t = lift $ dispatchMessage name sev t
 
+{-
 type LogMemoryQueue = MemoryQueue Text
 
 -- TODO: dirty hack to have in-memory logs. Maybe will be refactored
@@ -96,6 +96,8 @@ memoryLogs = unsafePerformIO $ newMVar Nothing
 readMemoryLogs :: (MonadIO m) => m [Text]
 readMemoryLogs = do
     liftIO (readMVar memoryLogs) <&> maybe (pure []) (MQ.toList . fst)
+-}
+
 
 instance CanLog IO where
     dispatchMessage (loggerName -> name) prior msg = logM name prior msg
@@ -211,13 +213,13 @@ logMessage
 logMessage severity t = do
     name <- getLoggerName
     dispatchMessage name severity t
-    !() <- pure $ unsafePerformIO $ do
-        let formatted r = do
-                curTime <- maybe getCurrentTime getRoundedTime r
-                pure $ formatLogMessageColors name severity curTime t
-        let modif _ Nothing  = pure Nothing
-            modif x (Just s) = Just <$> x s
-        modifyMVar_ memoryLogs $ modif $ \(q,rv) -> do
-            f <- formatted rv
-            pure $ (MQ.pushFront f q, rv)
+--    !() <- pure $ unsafePerformIO $ do
+--        let formatted r = do
+--                curTime <- maybe getCurrentTime getRoundedTime r
+--                pure $ formatLogMessageColors name severity curTime t
+--        let modif _ Nothing  = pure Nothing
+--            modif x (Just s) = Just <$> x s
+--        modifyMVar_ memoryLogs $ modif $ \(q,rv) -> do
+--            f <- formatted rv
+--            pure $ (MQ.pushFront f q, rv)
     pure ()
