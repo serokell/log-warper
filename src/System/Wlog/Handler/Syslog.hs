@@ -65,7 +65,7 @@ import           System.IO                 ()
 import           Universum                 hiding (Option, identity)
 
 import           System.Wlog.Formatter     (LogFormatter, varFormatter)
-import           System.Wlog.Handler       (LogHandler (..))
+import           System.Wlog.Handler       (LogHandler (..), LogHandlerTag (HandlerOther))
 import           System.Wlog.Severity      (Severity (..))
 
 
@@ -263,11 +263,12 @@ syslogFormatter sh (p,msg) logname =
 
 
 instance LogHandler SyslogHandler where
-    getTag = const "SyslogHandlerTag"
+    getTag = const $ HandlerOther "SyslogHandlerTag"
     setLevel sh p = sh{priority = p}
     getLevel sh = priority sh
     setFormatter sh f = sh{formatter = f}
     getFormatter sh = formatter sh
+    readBack _ _ = pure []
     emit sh (prio, msg) _ = do
       when (elem PERROR (options sh)) (TIO.hPutStrLn stderr msg)
       pidPart <- getPidPart

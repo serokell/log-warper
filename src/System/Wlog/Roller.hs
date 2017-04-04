@@ -1,6 +1,3 @@
-{-# LANGUAGE DeriveAnyClass    #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-
 -- | Custom implementation of 'LogHandler' with log rotation support.
 
 module System.Wlog.Roller
@@ -10,11 +7,11 @@ module System.Wlog.Roller
        , rotationFileHandler
        ) where
 
-import           Universum
-
 import           Control.Concurrent         (modifyMVar_, withMVar)
+import qualified Data.Text                  as T
+import qualified Data.Text.IO               as TIO
 import           Formatting                 (sformat, shown, (%))
-import qualified Prelude                    (show)
+import           Universum
 
 import           System.Directory           (removeFile, renameFile)
 import           System.FilePath            ((<.>))
@@ -22,7 +19,8 @@ import           System.IO                  (Handle, IOMode (AppendMode), hClose
                                              hFileSize)
 import           System.Wlog.FileUtils      (whenExist)
 import           System.Wlog.Formatter      (LogFormatter, nullFormatter)
-import           System.Wlog.Handler        (LogHandler (..))
+import           System.Wlog.Handler        (LogHandler (..),
+                                             LogHandlerTag (HandlerFilelike))
 import           System.Wlog.Handler.Simple (GenericHandler (..), fileHandler)
 import           System.Wlog.LoggerConfig   (RotationParameters (..), isValidRotation)
 import           System.Wlog.Severity       (Severity (..))
@@ -30,20 +28,22 @@ import           System.Wlog.Severity       (Severity (..))
 -- | Similar to 'GenericHandler'. But holds file 'Handle' inside
 -- mutable variable ('MVar') to be able to rotate loggers.
 data RollerHandler = RollerHandler
-    { rhSeverity    :: Severity
-    , rhFormatter   :: LogFormatter RollerHandler
-    , rhFileHandle  :: MVar Handle
-    , rhWriteAction :: Handle -> Text -> IO ()
-    , rhCloseAction :: Handle -> IO ()
-    , rhFileName    :: FilePath
+    { rhSeverity    :: !Severity
+    , rhFormatter   :: !(LogFormatter RollerHandler)
+    , rhFileHandle  :: !(MVar Handle)
+    , rhWriteAction :: !(Handle -> Text -> IO ())
+    , rhCloseAction :: !(Handle -> IO ())
+    , rhReadBack    :: !(Handle -> IO [Text])
+    , rhFileName    :: !FilePath
     }
 
 instance LogHandler RollerHandler where
-    getTag rh         = "rollerHandler:" <> rhFileName rh
+    getTag rh         = HandlerFilelike $ rhFileName rh
     setLevel     rh p = rh { rhSeverity  = p }
     setFormatter rh f = rh { rhFormatter = f }
     getLevel          = rhSeverity
     getFormatter      = rhFormatter
+    readBack     rh i = take i . reverse <$> withMVar (rhFileHandle rh) (rhReadBack rh)
 
     emit rh (_, msg) _      = rhWriteAction rh (error "Handler is used internally") msg
     close RollerHandler{..} = withMVar rhFileHandle rhCloseAction
@@ -54,7 +54,7 @@ data InvalidRotation = InvalidRotation !Text
 instance Exception InvalidRotation
 
 logIndex :: FilePath -> Int -> FilePath
-logIndex handlerPath i = handlerPath <.> Prelude.show i
+logIndex handlerPath i = handlerPath <.> show i
 
 -- TODO: correct exceptions handling here is too smart for me
 rollerWriting
@@ -99,6 +99,7 @@ rotationFileHandler rp@RotationParameters{..} handlerPath rhSeverity = liftIO $ 
     GenericHandler{..} <- fileHandler handlerPath rhSeverity
     rhFileHandle       <- newMVar privData
     let rhWriteAction   = rollerWriting rp handlerPath writeFunc rhFileHandle
+    let rhReadBack      = fmap T.lines . TIO.hGetContents
     pure RollerHandler { rhFormatter   = nullFormatter
                        , rhCloseAction = closeFunc
                        , rhFileName = handlerPath

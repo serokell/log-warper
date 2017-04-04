@@ -25,33 +25,35 @@ module System.Wlog.Handler.Simple
 
 import           Control.Concurrent    (withMVar)
 import           Control.Exception     (SomeException)
-import           Data.Maybe            (fromMaybe)
+import qualified Data.Text             as T
 import qualified Data.Text.IO          as TIO
 import           Data.Typeable         (Typeable)
 import           System.IO             (hClose, hFlush)
 import           Universum
 
 import           System.Wlog.Formatter (LogFormatter, nullFormatter, simpleLogFormatter)
-import           System.Wlog.Handler   (LogHandler (..))
+import           System.Wlog.Handler   (LogHandler (..), LogHandlerTag (..))
 import           System.Wlog.Severity  (Severity (..))
 
 
 -- | A helper data type.
 data GenericHandler a = GenericHandler
-    { severity  :: Severity
-    , formatter :: LogFormatter (GenericHandler a)
-    , privData  :: a
-    , writeFunc :: a -> Text -> IO ()
-    , closeFunc :: a -> IO ()
-    , ghTag     :: Maybe String
+    { severity    :: !Severity
+    , formatter   :: !(LogFormatter (GenericHandler a))
+    , privData    :: !a
+    , writeFunc   :: !(a -> Text -> IO ())
+    , closeFunc   :: !(a -> IO ())
+    , readBackFoo :: !(a -> IO [Text])
+    , ghTag       :: !LogHandlerTag
     } deriving Typeable
 
 instance Typeable a => LogHandler (GenericHandler a) where
-    getTag = fromMaybe "GenericHandler" . ghTag
+    getTag = ghTag
     setLevel sh s = sh {severity = s}
     getLevel sh = severity sh
     setFormatter sh f = sh{formatter = f}
     getFormatter sh = formatter sh
+    readBack sh i = take i . reverse <$> (readBackFoo sh) (privData sh)
     emit sh (_,msg) _ = (writeFunc sh) (privData sh) msg
     close sh = (closeFunc sh) (privData sh)
 
@@ -71,7 +73,8 @@ streamHandler h sev = do
         , privData = h
         , writeFunc = mywritefunc
         , closeFunc = const $ pure ()
-        , ghTag = Just "streamHandler"
+        , readBackFoo = const $ pure []
+        , ghTag = HandlerOther "GenericHandler/StreamHandler"
         }
   where
     writeToHandle hdl msg =
@@ -88,9 +91,12 @@ streamHandler h sev = do
 -- Append mode.  Calling 'close' on the handler will close the file.
 fileHandler :: FilePath -> Severity -> IO (GenericHandler Handle)
 fileHandler fp sev = do
-    h <- openFile fp AppendMode
+    h <- openFile fp ReadWriteMode
     sh <- streamHandler h sev
-    return (sh {closeFunc = hClose, ghTag = Just ("fileHandler:" ++ fp)})
+    pure $ sh { closeFunc = hClose
+              , ghTag = HandlerFilelike fp
+              , readBackFoo = fmap T.lines . TIO.hGetContents
+              }
 
 -- | Like 'streamHandler', but note the priority and logger name along
 -- with each message.
