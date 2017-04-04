@@ -16,8 +16,6 @@
 module System.Wlog.CanLog
        ( CanLog (..)
        , WithLogger
---       , memoryLogs
---       , readMemoryLogs
 
          -- * Pure logging manipulation
        , PureLogger (..)
@@ -39,7 +37,6 @@ module System.Wlog.CanLog
        , logMessage
        ) where
 
-import           Control.Concurrent         (modifyMVar_)
 import           Control.Monad.Base         (MonadBase)
 import           Control.Monad.Except       (ExceptT, MonadError)
 import           Control.Monad.Morph        (MFunctor (..))
@@ -48,20 +45,14 @@ import qualified Control.Monad.RWS.Strict   as RWSStrict
 import qualified Control.Monad.State.Strict as StateStrict
 import           Control.Monad.Trans        (MonadTrans (lift))
 import           Control.Monad.Writer       (MonadWriter (tell), WriterT (runWriterT))
-
 import qualified Data.DList                 as DL (DList)
 import           Data.SafeCopy              (base, deriveSafeCopySimple)
-import           Data.Time                  (getCurrentTime)
-import           System.IO.Unsafe           (unsafePerformIO)
 import           Universum
 
-import           System.Wlog.Formatter      (formatLogMessageColors, getRoundedTime)
 import           System.Wlog.Logger         (logM)
 import           System.Wlog.LoggerName     (LoggerName (..))
 import           System.Wlog.LoggerNameBox  (HasLoggerName (..), LoggerNameBox (..),
                                              usingLoggerName)
-import           System.Wlog.MemoryQueue    (MemoryQueue)
-import qualified System.Wlog.MemoryQueue    as MQ
 import           System.Wlog.Severity       (Severity (..))
 
 
@@ -82,22 +73,6 @@ class Monad m => CanLog m where
                             -> Text
                             -> t n ()
     dispatchMessage name sev t = lift $ dispatchMessage name sev t
-
-{-
-type LogMemoryQueue = MemoryQueue Text
-
--- TODO: dirty hack to have in-memory logs. Maybe will be refactored
--- later.  Maybe not.
-memoryLogs :: MVar (Maybe (LogMemoryQueue,Maybe Int))
-memoryLogs = unsafePerformIO $ newMVar Nothing
-{-# NOINLINE memoryLogs #-}
-
--- | Retrieves memory logs in reversed order (newest are head).
-readMemoryLogs :: (MonadIO m) => m [Text]
-readMemoryLogs = do
-    liftIO (readMVar memoryLogs) <&> maybe (pure []) (MQ.toList . fst)
--}
-
 
 instance CanLog IO where
     dispatchMessage (loggerName -> name) prior msg = logM name prior msg
@@ -213,13 +188,3 @@ logMessage
 logMessage severity t = do
     name <- getLoggerName
     dispatchMessage name severity t
---    !() <- pure $ unsafePerformIO $ do
---        let formatted r = do
---                curTime <- maybe getCurrentTime getRoundedTime r
---                pure $ formatLogMessageColors name severity curTime t
---        let modif _ Nothing  = pure Nothing
---            modif x (Just s) = Just <$> x s
---        modifyMVar_ memoryLogs $ modif $ \(q,rv) -> do
---            f <- formatted rv
---            pure $ (MQ.pushFront f q, rv)
-    pure ()

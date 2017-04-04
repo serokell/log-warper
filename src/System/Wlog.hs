@@ -12,25 +12,18 @@
 -- Messages are colored depending on used serverity.
 
 module System.Wlog
-       ( module System.Wlog.CanLog
-       , module System.Wlog.FileUtils
-       , module System.Wlog.Launcher
-       , module System.Wlog.Logger
-       , module System.Wlog.LoggerConfig
-       , module System.Wlog.LoggerName
-       , module System.Wlog.LoggerNameBox
-       , module System.Wlog.Roller
-       , module System.Wlog.Severity
-       , module System.Wlog.Wrapper
+       ( module Export
        ) where
 
-import           System.Wlog.CanLog
-import           System.Wlog.FileUtils
-import           System.Wlog.Launcher
-import           System.Wlog.Logger
-import           System.Wlog.LoggerConfig
-import           System.Wlog.LoggerName
-import           System.Wlog.LoggerNameBox
-import           System.Wlog.Roller
-import           System.Wlog.Severity
-import           System.Wlog.Wrapper
+import           System.Wlog.CanLog         as Export
+import           System.Wlog.FileUtils      as Export
+import           System.Wlog.Handler.Roller as Export
+import           System.Wlog.Handler.Simple as Export
+import           System.Wlog.Handler.Syslog as Export
+import           System.Wlog.Launcher       as Export
+import           System.Wlog.Logger         as Export
+import           System.Wlog.LoggerConfig   as Export
+import           System.Wlog.LoggerName     as Export
+import           System.Wlog.LoggerNameBox  as Export
+import           System.Wlog.Severity       as Export
+import           System.Wlog.Wrapper        as Export

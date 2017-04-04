@@ -357,17 +357,17 @@ retrieveLogContent filePath =
     liftIO $ withMVar logInternalState $ \LogInternalState{..} -> do
         dirContents <- map (dir </>) <$> listDirectory dir
         dirFiles <- filterM doesFileExist dirContents
-        let fileMatches = fileName `elem` map takeFileName dirFiles
+        let _fileMatches = fileName `elem` map takeFileName dirFiles
         let samePrefix = filter (isPrefixOf fileName . takeFileName) dirFiles
-        let rotationLogs :: [(FilePath, Int)]
-            rotationLogs = flip mapMaybe samePrefix $ \candidate -> do
+        let _rotationLogs :: [(FilePath, Int)]
+            _rotationLogs = flip mapMaybe samePrefix $ \candidate -> do
                 let fname = takeFileName candidate
                 let basename = dropExtension fname
                 let ext = drop 1 $ takeExtension fname
                 guard $ basename == fileName
                 guard $ fname == basename <.> ext
                 (candidate,) <$> readMaybe ext
-        pure []
+        pure [] -- TODO FIXME not ready yet
 --        pure $ if | not (null rotationLogs) ->
 --                    take 2 $ map fst $ reverse $ sortOn snd rotationLogs
 --                  | fileMatches -> [filePath]

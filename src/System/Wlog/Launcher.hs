@@ -32,11 +32,9 @@ module System.Wlog.Launcher
        , setupLogging
        ) where
 
-import           Control.Concurrent         (modifyMVar_)
 import           Control.Error.Util         ((?:))
 import           Control.Exception          (throwIO)
 import qualified Data.HashMap.Strict        as HM hiding (HashMap)
-import           Data.List                  (isSuffixOf)
 import qualified Data.Text                  as T
 import           Data.Yaml                  (decodeFileEither)
 import           System.Directory           (createDirectoryIfMissing)
@@ -45,13 +43,12 @@ import           Universum
 
 import           System.Wlog.Formatter      (stdoutFormatter, stdoutFormatterTimeRounded)
 import           System.Wlog.Handler        (LogHandler (setFormatter))
+import           System.Wlog.Handler.Roller (rotationFileHandler)
 import           System.Wlog.Handler.Simple (fileHandler)
 import           System.Wlog.Logger         (addHandler, updateGlobalLogger)
 import           System.Wlog.LoggerConfig   (HandlerWrap (..), LoggerConfig (..),
                                              LoggerTree (..))
 import           System.Wlog.LoggerName     (LoggerName (..))
-import           System.Wlog.MemoryQueue    (newMemoryQueue)
-import           System.Wlog.Roller         (rotationFileHandler)
 import           System.Wlog.Wrapper        (Severity (Debug), initTerminalLogging,
                                              setSeverityMaybe)
 
@@ -65,11 +62,6 @@ setupLogging :: MonadIO m => LoggerConfig -> m ()
 setupLogging LoggerConfig{..} = do
     liftIO $ createDirectoryIfMissing True handlerPrefix
     when consoleOutput $ initTerminalLogging isShowTime _lcTermSeverity
-    -- TODO: use lifted version here
---    whenJust _lcMemModeLimit $ \limit -> do
---        putText "Initializing logs"
---        let cpj = const . pure . Just -- just for lulz
---        liftIO $ modifyMVar_ memoryLogs $ cpj $ (newMemoryQueue limit, _lcRoundVal)
     processLoggers mempty _lcTree
   where
     handlerPrefix = _lcFilePrefix ?: "."

@@ -1,6 +1,6 @@
 -- | Custom implementation of 'LogHandler' with log rotation support.
 
-module System.Wlog.Roller
+module System.Wlog.Handler.Roller
        ( InvalidRotation (..)
        , RollerHandler   (..)
        , logIndex
