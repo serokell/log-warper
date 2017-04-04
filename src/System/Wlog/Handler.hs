@@ -31,7 +31,10 @@ import           System.Wlog.Severity  (LogRecord, Severity)
 import           Universum
 
 -- | Tag identifying handlers.
-data LogHandlerTag = HandlerFilelike FilePath | HandlerOther String
+data LogHandlerTag
+    = HandlerFilelike FilePath
+    | HandlerOther String
+    deriving (Show, Eq)
 
 -- | This is the base class for the various log handlers.  They should
 -- all adhere to this class.

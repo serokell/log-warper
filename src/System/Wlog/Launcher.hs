@@ -45,7 +45,7 @@ import           System.Wlog.Formatter      (stdoutFormatter, stdoutFormatterTim
 import           System.Wlog.Handler        (LogHandler (setFormatter))
 import           System.Wlog.Handler.Roller (rotationFileHandler)
 import           System.Wlog.Handler.Simple (fileHandler)
-import           System.Wlog.Logger         (addHandler, updateGlobalLogger)
+import           System.Wlog.Logger         (addHandler, setPrefix, updateGlobalLogger)
 import           System.Wlog.LoggerConfig   (HandlerWrap (..), LoggerConfig (..),
                                              LoggerTree (..))
 import           System.Wlog.LoggerName     (LoggerName (..))
@@ -62,6 +62,7 @@ setupLogging :: MonadIO m => LoggerConfig -> m ()
 setupLogging LoggerConfig{..} = do
     liftIO $ createDirectoryIfMissing True handlerPrefix
     when consoleOutput $ initTerminalLogging isShowTime _lcTermSeverity
+    liftIO $ setPrefix _lcFilePrefix
     processLoggers mempty _lcTree
   where
     handlerPrefix = _lcFilePrefix ?: "."

@@ -50,6 +50,7 @@ module System.Wlog.Logger
          -- ** Saving Your Changes
        , saveGlobalLogger
        , updateGlobalLogger
+       , setPrefix
        , retrieveLogContent
        ) where
 
@@ -58,13 +59,15 @@ import           Control.Lens               (makeLenses)
 import           Data.List                  (isPrefixOf)
 import qualified Data.Map                   as M
 import           Data.Maybe                 (fromJust)
-import           System.Directory           (doesFileExist, listDirectory)
-import           System.FilePath            (dropExtension, takeDirectory, takeExtension,
-                                             takeFileName, (<.>), (</>))
+import qualified Data.Text                  as T
+import qualified Data.Text.IO               as TIO
+import           System.FilePath            ((</>))
 import           System.IO.Unsafe           (unsafePerformIO)
 import           Universum
 
-import           System.Wlog.Handler        (LogHandler (getTag), LogHandlerTag, close)
+import           System.Wlog.Handler        (LogHandler (getTag),
+                                             LogHandlerTag (HandlerFilelike), close,
+                                             readBack)
 import qualified System.Wlog.Handler        (handle)
 import           System.Wlog.Handler.Simple (streamHandler)
 import           System.Wlog.Severity       (LogRecord, Severity (..))
@@ -249,6 +252,9 @@ handle l lrecord@(sev, _) handlerFilter = do
         when (handlerFilter $ getTag x) $
         System.Wlog.Handler.handle x lr loggername
 
+-- | Sets file prefix to 'LogInternalState'.
+setPrefix :: Maybe FilePath -> IO ()
+setPrefix p = modifyMVar_ logInternalState $ \li -> pure $ li { liPrefix = p }
 
 -- | Add handler to 'Logger'.  Returns a new 'Logger'.
 addHandler :: LogHandler a => a -> Logger -> Logger
@@ -347,34 +353,26 @@ traplogging logger priority desc action = action `catch` handler
 -- | Retrieves content of log file(s) given path (w/o '_lcFilePrefix',
 -- as specified in your config). Example: there's @component.log@ in
 -- config, but this function will return @[component.log.122,
--- component.log.123]@ if you want to.
+-- component.log.123]@ if you want to. Content is file lines newest
+-- first.
 --
 -- FYI: this function is implemented to avoid the following problem:
 -- log-warper holds open handles to files, so trying to open log file
 -- for read would result in 'IOException'.
-retrieveLogContent :: (MonadIO m) => FilePath -> m [Text]
-retrieveLogContent filePath =
+retrieveLogContent :: (MonadIO m) => FilePath -> Maybe Int -> m [Text]
+retrieveLogContent filePath linesNum =
     liftIO $ withMVar logInternalState $ \LogInternalState{..} -> do
-        dirContents <- map (dir </>) <$> listDirectory dir
-        dirFiles <- filterM doesFileExist dirContents
-        let _fileMatches = fileName `elem` map takeFileName dirFiles
-        let samePrefix = filter (isPrefixOf fileName . takeFileName) dirFiles
-        let _rotationLogs :: [(FilePath, Int)]
-            _rotationLogs = flip mapMaybe samePrefix $ \candidate -> do
-                let fname = takeFileName candidate
-                let basename = dropExtension fname
-                let ext = drop 1 $ takeExtension fname
-                guard $ basename == fileName
-                guard $ fname == basename <.> ext
-                (candidate,) <$> readMaybe ext
-        pure [] -- TODO FIXME not ready yet
---        pure $ if | not (null rotationLogs) ->
---                    take 2 $ map fst $ reverse $ sortOn snd rotationLogs
---                  | fileMatches -> [filePath]
---                  | otherwise -> [] -- haven't found any logs
-  where
-    fileName = takeFileName filePath
-    dir = takeDirectory filePath
+        let filePathFull = fromMaybe "" liPrefix </> filePath
+        let appropriateHandlers =
+                filter (\(HandlerT h) -> getTag h == HandlerFilelike filePathFull) $
+                concatMap _lHandlers $
+                M.elems liTree
+        let takeMaybe = maybe identity take linesNum
+        case appropriateHandlers of
+            [HandlerT h] -> liftIO $ readBack h 12345 -- all of them
+            []  -> takeMaybe . reverse . T.lines <$> TIO.readFile filePathFull
+            xs  -> error $ "Found more than one (" <> show (length xs) <>
+                           "handle with the same filePath tag, impossible."
 
 ----------------------------------------------------------------------------
 -- List util functions
