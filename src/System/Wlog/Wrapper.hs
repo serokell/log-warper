@@ -39,15 +39,10 @@ import           System.Wlog.Severity       (Severity (..))
 -- (it should be filled before this function call).
 streamHandlerWithLock :: MVar () -> Handle -> Severity -> IO (GenericHandler Handle)
 streamHandlerWithLock lock h sev = do
-    GenericHandler{..} <- streamHandler h sev
-    return GenericHandler
-        { severity  = severity
-        , formatter = formatter
-        , privData  = privData
-        , writeFunc = \a s -> withMVar lock $ const $ writeFunc a s
-        , closeFunc = closeFunc
-        , ghTag = ghTag
-        }
+    GenericHandler {..} <- streamHandler h sev
+    pure
+        GenericHandler
+        {writeFunc = \a s -> withMVar lock $ const $ writeFunc a s, ..}
 
 -- | This function initializes global logging system for terminal output.
 -- At high level, it sets severity which will be used by all loggers by default,

@@ -19,13 +19,14 @@ import           Test.HUnit.Base          (assert)
 import           Test.QuickCheck          (Arbitrary (..), Property, choose, (==>))
 import           Test.QuickCheck.Monadic  (PropertyM, monadicIO, run)
 
-import           System.Wlog              (InvalidRotation (..), LoggerConfig (..),
-                                           RotationParameters (..), Severity (..),
-                                           fromScratch, isValidRotation, lcFilePrefix,
-                                           lcRotation, lcTree, logDebug, logIndex,
-                                           ltFiles, ltSeverity, releaseAllHandlers,
-                                           rotationFileHandler, setupLogging,
-                                           usingLoggerName, whenExist, zoomLogger)
+import           System.Wlog              (HandlerWrap (..), InvalidRotation (..),
+                                           LoggerConfig (..), RotationParameters (..),
+                                           Severity (..), fromScratch, isValidRotation,
+                                           lcFilePrefix, lcRotation, lcTree, logDebug,
+                                           logIndex, ltFiles, ltSeverity,
+                                           releaseAllHandlers, rotationFileHandler,
+                                           setupLogging, usingLoggerName, whenExist,
+                                           zoomLogger)
 
 spec :: Spec
 spec = do
@@ -73,7 +74,7 @@ testLoggerConfig rotParam = fromScratch $ do
     zoom lcTree $ do
         ltSeverity ?= Debug
         zoomLogger "test" $
-            ltFiles .= [testLogFile]
+            ltFiles .= [HandlerWrap testLogFile Nothing]
 
 logThreadsNum :: Word
 logThreadsNum = 4

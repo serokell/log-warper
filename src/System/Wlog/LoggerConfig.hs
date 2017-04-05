@@ -21,6 +21,9 @@ module System.Wlog.LoggerConfig
        , isValidRotation
 
          -- * Hierarchical tree of loggers (with lenses)
+       , HandlerWrap (..)
+       , hwFilePath
+       , hwRounding
        , LoggerTree (..)
        , ltFiles
        , ltSeverity
@@ -33,18 +36,15 @@ module System.Wlog.LoggerConfig
        , lcConsoleOutput
        , lcFilePrefix
        , lcMapper
-       , lcMemModeLimit
        , lcRotation
        , lcShowTime
        , lcTermSeverity
        , lcTree
-       , lcRoundVal
        , zoomLogger
 
          -- ** Builders for 'LoggerConfig'
        , consoleOutB
        , mapperB
-       , memoryB
        , prefixB
        , productionB
        , showTimeB
@@ -85,21 +85,32 @@ fromScratch = executingState mempty
 -- LoggerTree
 ----------------------------------------------------------------------------
 
+-- | Wrapper over file handler with additional rounding option.
+data HandlerWrap = HandlerWrap
+    { _hwFilePath :: !FilePath
+      -- ^ Path to the file to be handled.
+    , _hwRounding :: !(Maybe Int)
+      -- ^ Amount of seconds to round time on (if set).
+    } deriving (Generic,Show)
+
+makeLenses ''HandlerWrap
+
 type LoggerMap = HashMap Text LoggerTree
 
 -- | Stores configuration for hierarchical loggers.
 data LoggerTree = LoggerTree
     { _ltSubloggers :: !LoggerMap
-    , _ltFiles      :: ![FilePath]
+    , _ltFiles      :: ![HandlerWrap]
     , _ltSeverity   :: !(Maybe Severity)
     } deriving (Generic, Show)
 
 makeLenses ''LoggerTree
 
+
 -- TODO: QuickCheck tests on monoid laws
 instance Monoid LoggerTree where
     mempty = LoggerTree
-        { _ltFiles       = []
+        { _ltFiles      = []
         , _ltSeverity   = Nothing
         , _ltSubloggers = mempty
         }
@@ -110,15 +121,26 @@ instance Monoid LoggerTree where
         , _ltSubloggers = _ltSubloggers lt1 <>  _ltSubloggers lt2
         }
 
+instance ToJSON HandlerWrap
+instance FromJSON HandlerWrap where
+    parseJSON = withObject "handler wrap" $ \o -> do
+        (_hwFilePath :: FilePath) <- o .: "file"
+        (_hwRounding :: Maybe Int) <- o .:? "round"
+        pure HandlerWrap{..}
+
 nonLoggers :: [Text]
-nonLoggers = ["file", "files", "severity"]
+nonLoggers = ["file", "files", "severity", "rounding", "handlers"]
 
 instance ToJSON LoggerTree
 instance FromJSON LoggerTree where
     parseJSON = withObject "loggers tree" $ \o -> do
         (singleFile :: Maybe FilePath) <- o .:? "file"
         (manyFiles :: [FilePath]) <- o .:? "files" .!= []
-        let _ltFiles = maybe [] (:[]) singleFile ++ manyFiles
+        handlers <- o .:? "handlers" .!= []
+        let fileHandlers =
+                map (\fp -> HandlerWrap fp Nothing) $
+                maybe [] (:[]) singleFile ++ manyFiles
+        let _ltFiles = fileHandlers <> handlers
         _ltSeverity   <- o .:? "severity"
         _ltSubloggers <- for (filterObject nonLoggers o) parseJSON
         return LoggerTree{..}
@@ -179,14 +201,8 @@ data LoggerConfig = LoggerConfig
       -- | Path prefix to add for each logger file
     , _lcFilePrefix    :: Maybe FilePath
 
-      -- | Limit for queue in memory mode.
-    , _lcMemModeLimit  :: Maybe Word64
-
       -- | Hierarchical tree of loggers.
     , _lcTree          :: LoggerTree
-
-      -- | If rounding is enabled, to how many secs to round.
-    , _lcRoundVal      :: Maybe Int
     }
 
 makeLenses ''LoggerConfig
@@ -200,9 +216,7 @@ instance Monoid LoggerConfig where
         , _lcConsoleOutput = mempty
         , _lcMapper        = mempty
         , _lcFilePrefix    = mempty
-        , _lcMemModeLimit  = Nothing
         , _lcTree          = mempty
-        , _lcRoundVal      = Nothing
         }
 
     lc1 `mappend` lc2 = LoggerConfig
@@ -212,14 +226,12 @@ instance Monoid LoggerConfig where
         , _lcConsoleOutput = _lcConsoleOutput lc1  <> _lcConsoleOutput lc2
         , _lcMapper        = _lcMapper        lc1  <> _lcMapper        lc2
         , _lcFilePrefix    = _lcFilePrefix    lc1 <|> _lcFilePrefix    lc2
-        , _lcMemModeLimit  = _lcMemModeLimit  lc1 <|> _lcMemModeLimit  lc2
         , _lcTree          = _lcTree          lc1  <> _lcTree          lc2
-        , _lcRoundVal      = _lcRoundVal      lc1 `max` _lcRoundVal    lc2
         }
 
 topLevelParams :: [Text]
 topLevelParams =
-    ["rotation", "showTime", "printOutput", "filePrefix", "memModeLimit", "roundTime"]
+    ["rotation", "showTime", "printOutput", "filePrefix" ]
 
 instance FromJSON LoggerConfig where
     parseJSON = withObject "rotation params" $ \o -> do
@@ -228,9 +240,7 @@ instance FromJSON LoggerConfig where
         _lcShowTime      <- Any <$> o .:? "showTime"    .!= False
         _lcConsoleOutput <- Any <$> o .:? "printOutput" .!= False
         _lcFilePrefix    <-         o .:? "filePrefix"
-        _lcMemModeLimit  <-         o .:? "memModeLimit"
         _lcTree          <- parseJSON $ Object $ filterObject topLevelParams o
-        _lcRoundVal      <-         o .:? "roundTime"
         let _lcMapper     = mempty
         return LoggerConfig{..}
 
@@ -243,7 +253,6 @@ instance ToJSON LoggerConfig where
             , "showTime"     .= getAny _lcShowTime
             , "printOutput"  .= getAny _lcConsoleOutput
             , "filePrefix"   .= _lcFilePrefix
-            , "memModeLimit" .= _lcMemModeLimit
             , ("logTree", toJSON _lcTree)
             ]
 
@@ -268,7 +277,3 @@ mapperB loggerNameMapper = mempty { _lcMapper = Endo loggerNameMapper }
 -- | Setup 'lcFilePrefix' inside 'LoggerConfig'.
 prefixB :: FilePath -> LoggerConfig
 prefixB filePrefix = mempty { _lcFilePrefix = Just filePrefix }
-
--- | Setup memory logger with certain limit
-memoryB :: Word64 -> LoggerConfig
-memoryB limit = mempty { _lcMemModeLimit = Just limit }

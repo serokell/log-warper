@@ -28,6 +28,7 @@ import           Control.Monad.Trans         (MonadIO, MonadTrans, lift)
 import           Control.Monad.Trans.Cont    (ContT, mapContT)
 import           Control.Monad.Trans.Control (MonadBaseControl (..))
 import           Control.Monad.Writer        (WriterT (..), mapWriterT)
+import           Universum
 
 import           System.Wlog.LoggerName      (LoggerName)
 

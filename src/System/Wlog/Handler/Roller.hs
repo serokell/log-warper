@@ -1,28 +1,27 @@
-{-# LANGUAGE DeriveAnyClass    #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-
 -- | Custom implementation of 'LogHandler' with log rotation support.
 
-module System.Wlog.Roller
+module System.Wlog.Handler.Roller
        ( InvalidRotation (..)
        , RollerHandler   (..)
        , logIndex
        , rotationFileHandler
        ) where
 
-import           Universum
-
-import           Control.Concurrent         (modifyMVar_, withMVar)
+import           Control.Concurrent         (modifyMVar, modifyMVar_, withMVar)
+import qualified Data.Text                  as T
+import qualified Data.Text.IO               as TIO
 import           Formatting                 (sformat, shown, (%))
-import qualified Prelude                    (show)
+import           Universum
 
 import           System.Directory           (removeFile, renameFile)
 import           System.FilePath            ((<.>))
-import           System.IO                  (Handle, IOMode (AppendMode), hClose,
-                                             hFileSize)
+import           System.IO                  (Handle, IOMode (ReadWriteMode),
+                                             SeekMode (AbsoluteSeek, SeekFromEnd), hClose,
+                                             hFileSize, hFlush, hSeek)
 import           System.Wlog.FileUtils      (whenExist)
 import           System.Wlog.Formatter      (LogFormatter, nullFormatter)
-import           System.Wlog.Handler        (LogHandler (..))
+import           System.Wlog.Handler        (LogHandler (..),
+                                             LogHandlerTag (HandlerFilelike))
 import           System.Wlog.Handler.Simple (GenericHandler (..), fileHandler)
 import           System.Wlog.LoggerConfig   (RotationParameters (..), isValidRotation)
 import           System.Wlog.Severity       (Severity (..))
@@ -30,20 +29,21 @@ import           System.Wlog.Severity       (Severity (..))
 -- | Similar to 'GenericHandler'. But holds file 'Handle' inside
 -- mutable variable ('MVar') to be able to rotate loggers.
 data RollerHandler = RollerHandler
-    { rhSeverity    :: Severity
-    , rhFormatter   :: LogFormatter RollerHandler
-    , rhFileHandle  :: MVar Handle
-    , rhWriteAction :: Handle -> Text -> IO ()
-    , rhCloseAction :: Handle -> IO ()
-    , rhFileName    :: FilePath
+    { rhSeverity    :: !Severity
+    , rhFormatter   :: !(LogFormatter RollerHandler)
+    , rhFileHandle  :: !(MVar Handle)
+    , rhWriteAction :: !(Handle -> Text -> IO ())
+    , rhCloseAction :: !(Handle -> IO ())
+    , rhFileName    :: !FilePath
     }
 
 instance LogHandler RollerHandler where
-    getTag rh         = "rollerHandler:" <> rhFileName rh
+    getTag rh         = HandlerFilelike $ rhFileName rh
     setLevel     rh p = rh { rhSeverity  = p }
     setFormatter rh f = rh { rhFormatter = f }
     getLevel          = rhSeverity
     getFormatter      = rhFormatter
+    readBack          = rollerReadback
 
     emit rh (_, msg) _      = rhWriteAction rh (error "Handler is used internally") msg
     close RollerHandler{..} = withMVar rhFileHandle rhCloseAction
@@ -54,7 +54,18 @@ data InvalidRotation = InvalidRotation !Text
 instance Exception InvalidRotation
 
 logIndex :: FilePath -> Int -> FilePath
-logIndex handlerPath i = handlerPath <.> Prelude.show i
+logIndex handlerPath i = handlerPath <.> show i
+
+rollerReadback :: RollerHandler -> Int -> IO [Text]
+rollerReadback RollerHandler{..} logsNum = do
+    modifyMVar rhFileHandle $ \h -> do
+        hFlush h
+        hSeek h AbsoluteSeek 0
+        contents <- T.lines <$> TIO.hGetContents h
+        hClose h
+        h' <- openFile rhFileName ReadWriteMode
+        hSeek h' SeekFromEnd 0
+        pure (h', take logsNum $ reverse contents)
 
 -- TODO: correct exceptions handling here is too smart for me
 rollerWriting
@@ -83,7 +94,9 @@ rollerWriting RotationParameters{..} handlerPath loggingAction varHandle _ msg =
             renameFile handlerPath zeroIndex
             let lastLogFile = logIndex handlerPath lastIndex
             whenExist lastLogFile removeFile
-            openFile handlerPath AppendMode
+            h <- openFile handlerPath ReadWriteMode
+            hSeek h SeekFromEnd 0
+            pure h
 
 -- | Create rotation logging handler.
 rotationFileHandler

@@ -23,35 +23,39 @@ module System.Wlog.Handler.Simple
        , verboseStreamHandler
        ) where
 
-import           Control.Concurrent    (withMVar)
-import           Control.Exception     (SomeException)
-import           Data.Maybe            (fromMaybe)
-import qualified Data.Text.IO          as TIO
-import           Data.Typeable         (Typeable)
-import           System.IO             (hClose, hFlush)
+import           Control.Concurrent      (withMVar)
+import           Control.Exception       (SomeException)
+import qualified Data.Text.IO            as TIO
+import           Data.Typeable           (Typeable)
+import           System.IO               (Handle, IOMode (ReadWriteMode),
+                                          SeekMode (SeekFromEnd), hClose, hFlush, hSeek)
 import           Universum
 
-import           System.Wlog.Formatter (LogFormatter, nullFormatter, simpleLogFormatter)
-import           System.Wlog.Handler   (LogHandler (..))
-import           System.Wlog.Severity  (Severity (..))
+import           System.Wlog.Formatter   (LogFormatter, nullFormatter, simpleLogFormatter)
+import           System.Wlog.Handler     (LogHandler (..), LogHandlerTag (..))
+import           System.Wlog.MemoryQueue (MemoryQueue)
+import           System.Wlog.MemoryQueue as MQ
+import           System.Wlog.Severity    (Severity (..))
 
 
 -- | A helper data type.
 data GenericHandler a = GenericHandler
-    { severity  :: Severity
-    , formatter :: LogFormatter (GenericHandler a)
-    , privData  :: a
-    , writeFunc :: a -> Text -> IO ()
-    , closeFunc :: a -> IO ()
-    , ghTag     :: Maybe String
+    { severity       :: !Severity
+    , formatter      :: !(LogFormatter (GenericHandler a))
+    , privData       :: !a
+    , writeFunc      :: !(a -> Text -> IO ())
+    , closeFunc      :: !(a -> IO ())
+    , readBackBuffer :: !(MemoryQueue Text)
+    , ghTag          :: !LogHandlerTag
     } deriving Typeable
 
 instance Typeable a => LogHandler (GenericHandler a) where
-    getTag = fromMaybe "GenericHandler" . ghTag
+    getTag = ghTag
     setLevel sh s = sh {severity = s}
     getLevel sh = severity sh
     setFormatter sh f = sh{formatter = f}
     getFormatter sh = formatter sh
+    readBack sh i = pure $ take i . reverse $ MQ.toList $ readBackBuffer sh
     emit sh (_,msg) _ = (writeFunc sh) (privData sh) msg
     close sh = (closeFunc sh) (privData sh)
 
@@ -71,7 +75,8 @@ streamHandler h sev = do
         , privData = h
         , writeFunc = mywritefunc
         , closeFunc = const $ pure ()
-        , ghTag = Just "streamHandler"
+        , readBackBuffer = MQ.newMemoryQueue $ 2 * 1024 * 1024 -- 2 MB
+        , ghTag = HandlerOther "GenericHandler/StreamHandler"
         }
   where
     writeToHandle hdl msg =
@@ -88,9 +93,12 @@ streamHandler h sev = do
 -- Append mode.  Calling 'close' on the handler will close the file.
 fileHandler :: FilePath -> Severity -> IO (GenericHandler Handle)
 fileHandler fp sev = do
-    h <- openFile fp AppendMode
+    h <- openFile fp ReadWriteMode
+    hSeek h SeekFromEnd 0
     sh <- streamHandler h sev
-    return (sh {closeFunc = hClose, ghTag = Just ("fileHandler:" ++ fp)})
+    pure $ sh { closeFunc = hClose
+              , ghTag = HandlerFilelike fp
+              }
 
 -- | Like 'streamHandler', but note the priority and logger name along
 -- with each message.

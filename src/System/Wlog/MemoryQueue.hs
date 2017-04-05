@@ -1,5 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 -- | Queue for in-memory logs. Rolls out old logging if size of queue
 -- is bigger than predefined limit.
@@ -32,7 +31,6 @@ class Sized e where
 instance Sized Text where
     getSize = fromIntegral . length
 
-
 -- | Data structure similar to queue but pops out elements after
 -- 'pushFront' if 'mqMemSize' > 'mqLimit'.
 data MemoryQueue a = MemoryQueue
@@ -56,7 +54,7 @@ popLast mq@MemoryQueue{..} = case viewr _mqQueue of
         in (Just popped, MemoryQueue{ _mqMemSize = newMemSize, _mqQueue = rest, .. })
 
 -- | Add new element at the beginning removing elements from the end
--- untill size become not greater than limit.
+-- until size become not greater than limit.
 pushFront :: (Sized a) => a -> MemoryQueue a -> MemoryQueue a
 pushFront msg mq = executingState mq $ do
     mqMemSize += getSize msg

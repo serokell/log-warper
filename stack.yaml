@@ -4,6 +4,6 @@ packages:
 extra-deps:
 - universum-0.3
 nix:
-  packages: [git, openssh]
+  packages: [git, openssh, gmp, binutils]
 flags: {}
 extra-package-dbs: []
