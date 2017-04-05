@@ -59,17 +59,11 @@ logIndex handlerPath i = handlerPath <.> show i
 rollerReadback :: RollerHandler -> Int -> IO [Text]
 rollerReadback RollerHandler{..} logsNum = do
     modifyMVar rhFileHandle $ \h -> do
-        putText "Flush"
         hFlush h
-        putText "Seek"
         hSeek h AbsoluteSeek 0
-        putText "GetContents"
         contents <- T.lines <$> TIO.hGetContents h
-        putText "Close"
         hClose h
-        putText "Repoen"
         h' <- openFile rhFileName ReadWriteMode
-        putText "Seek 2"
         hSeek h' SeekFromEnd 0
         pure (h', take logsNum $ reverse contents)
 
