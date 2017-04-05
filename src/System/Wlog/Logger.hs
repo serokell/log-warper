@@ -369,8 +369,12 @@ retrieveLogContent filePath linesNum =
                 M.elems liTree
         let takeMaybe = maybe identity take linesNum
         case appropriateHandlers of
-            [HandlerT h] -> liftIO $ readBack h 12345 -- all of them
-            []  -> takeMaybe . reverse . T.lines <$> TIO.readFile filePathFull
+            [HandlerT h] -> do
+                putText "Readback triggered"
+                liftIO $ readBack h 12345 -- all of them
+            []  -> do
+                putText "Plain text read triggered"
+                takeMaybe . reverse . T.lines <$> TIO.readFile filePathFull
             xs  -> error $ "Found more than one (" <> show (length xs) <>
                            "handle with the same filePath tag, impossible."
 
