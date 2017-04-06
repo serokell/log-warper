@@ -23,7 +23,7 @@ module System.Wlog.Handler.Simple
        , verboseStreamHandler
        ) where
 
-import           Control.Concurrent      (withMVar)
+import           Control.Concurrent      (modifyMVar_, withMVar)
 import           Control.Exception       (SomeException)
 import qualified Data.Text.IO            as TIO
 import           Data.Typeable           (Typeable)
@@ -45,7 +45,7 @@ data GenericHandler a = GenericHandler
     , privData       :: !a
     , writeFunc      :: !(a -> Text -> IO ())
     , closeFunc      :: !(a -> IO ())
-    , readBackBuffer :: !(MemoryQueue Text)
+    , readBackBuffer :: !(MVar (MemoryQueue Text))
     , ghTag          :: !LogHandlerTag
     } deriving Typeable
 
@@ -55,7 +55,7 @@ instance Typeable a => LogHandler (GenericHandler a) where
     getLevel sh = severity sh
     setFormatter sh f = sh{formatter = f}
     getFormatter sh = formatter sh
-    readBack sh i = pure $ take i . reverse $ MQ.toList $ readBackBuffer sh
+    readBack sh i = withMVar (readBackBuffer sh) $ pure . take i . MQ.toList
     emit sh (_,msg) _ = (writeFunc sh) (privData sh) msg
     close sh = (closeFunc sh) (privData sh)
 
@@ -66,8 +66,11 @@ instance Typeable a => LogHandler (GenericHandler a) where
 streamHandler :: Handle -> Severity -> IO (GenericHandler Handle)
 streamHandler h sev = do
     lock <- newMVar ()
-    let mywritefunc hdl msg =
-            withMVar lock (const $ writeToHandle hdl msg >> hFlush hdl)
+    mq <- newMVar $ MQ.newMemoryQueue $ 2 * 1024 * 1024 -- 2 MB
+    let mywritefunc hdl msg = withMVar lock $ const $ do
+            writeToHandle hdl msg
+            modifyMVar_ mq $ pure . pushFront msg
+            hFlush hdl
     return
         GenericHandler
         { severity = sev
@@ -75,7 +78,7 @@ streamHandler h sev = do
         , privData = h
         , writeFunc = mywritefunc
         , closeFunc = const $ pure ()
-        , readBackBuffer = MQ.newMemoryQueue $ 2 * 1024 * 1024 -- 2 MB
+        , readBackBuffer = mq
         , ghTag = HandlerOther "GenericHandler/StreamHandler"
         }
   where
