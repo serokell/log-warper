@@ -16,3 +16,9 @@ Key features:
 4. Supports log rotation
 5. Flexibles and easy setting up of loggers (using monoidal builders and lenses)
 6. Ability to acquire last `N` megabytes of logs from in-memory cache
+
+Contributing
+------------
+
+> **This project uses [`universum`](https://github.com/serokell/universum)
+> as default prelude**
