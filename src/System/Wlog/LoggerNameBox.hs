@@ -79,8 +79,7 @@ instance (Monad m, HasLoggerName m, Monoid w) => HasLoggerName (RWSStrict.RWST r
     modifyLoggerName = RWSStrict.mapRWST . modifyLoggerName
 
 instance HasLoggerName Identity where
-    getLoggerName = Identity mempty
-
+    getLoggerName    = Identity "Identity"
     modifyLoggerName = flip const
 
 -- | Set logger name in context.
