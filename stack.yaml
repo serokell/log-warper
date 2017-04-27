@@ -1,8 +1,10 @@
-resolver: lts-8.5
+resolver: lts-8.12
 packages:
 - '.'
+
 extra-deps:
-- universum-0.3
+- universum-0.4.1
+
 nix:
   packages: [git, openssh, gmp, binutils]
 flags: {}
