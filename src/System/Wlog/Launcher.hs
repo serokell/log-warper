@@ -61,13 +61,17 @@ data HandlerFabric
 setupLogging :: MonadIO m => LoggerConfig -> m ()
 setupLogging LoggerConfig{..} = do
     liftIO $ createDirectoryIfMissing True handlerPrefix
-    when consoleOutput $ initTerminalLogging isShowTime _lcTermSeverity
+
+    when consoleOutput $
+        initTerminalLogging isShowTime isShowTid _lcTermSeverity
+
     liftIO $ setPrefix _lcFilePrefix
     processLoggers mempty _lcTree
   where
     handlerPrefix = _lcFilePrefix ?: "."
     logMapper     = appEndo _lcMapper
     isShowTime    = getAny _lcShowTime
+    isShowTid     = getAny _lcShowTid
     consoleOutput = getAny _lcConsoleOutput
 
     handlerFabric :: HandlerFabric
@@ -87,7 +91,7 @@ setupLogging LoggerConfig{..} = do
             case handlerFabric of
                 HandlerFabric fabric -> do
                     let handlerCreator = fabric handlerPath fileSeverity
-                    let defFmt = (`setFormatter` stdoutFormatter isShowTime)
+                    let defFmt = (`setFormatter` stdoutFormatter isShowTime isShowTid)
                     let roundFmt r = (`setFormatter` stdoutFormatterTimeRounded r)
                     let fmt = maybe defFmt roundFmt _hwRounding
                     thisLoggerHandler <- fmt <$> handlerCreator

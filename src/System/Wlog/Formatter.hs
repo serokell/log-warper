@@ -165,18 +165,21 @@ getRoundedTime roundN = do
     roundBy :: (Num a, Integral a) => a -> a
     roundBy x = let y = x `div` fromIntegral roundN in y * fromIntegral roundN
 
-stderrFormatter :: LogFormatter a
-stderrFormatter =
-    simpleLogFormatter $
-        mconcat [colorizer Error "[$loggername:$prio:$tid] ", timeFmt, "$msg"]
+stderrFormatter :: Bool -> LogFormatter a
+stderrFormatter isShowTid = simpleLogFormatter $
+    mconcat [colorizer Error $ "[$loggername:$prio" ++ tid ++ "] ", timeFmt, "$msg"]
+  where
+    tid = if isShowTid then ":$tid" else ""
 
-stdoutFmt :: Severity -> Bool -> String
-stdoutFmt pr isShowTime = mconcat
-    [colorizer pr "[$loggername:$prio:$tid] ", timeFmtStdout isShowTime, "$msg"]
+stdoutFmt :: Severity -> Bool -> Bool -> String
+stdoutFmt pr isShowTime isShowTid = mconcat
+    [colorizer pr $ "[$loggername:$prio" ++ tid ++ "] ", timeFmtStdout isShowTime, "$msg"]
+  where
+    tid = if isShowTid then ":$tid" else ""
 
-stdoutFormatter :: Bool -> LogFormatter a
-stdoutFormatter isShowTime handle r@(pr, _) =
-    simpleLogFormatter (stdoutFmt pr isShowTime) handle r
+stdoutFormatter :: Bool -> Bool -> LogFormatter a
+stdoutFormatter isShowTime isShowTid handle r@(pr, _) =
+    simpleLogFormatter (stdoutFmt pr isShowTime isShowTid) handle r
 
 stdoutFormatterTimeRounded :: Int -> LogFormatter a
 stdoutFormatterTimeRounded roundN a r@(pr,_) s = do
