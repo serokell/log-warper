@@ -37,23 +37,23 @@ module System.Wlog.CanLog
        , logMessage
        ) where
 
-import           Control.Monad.Base         (MonadBase)
-import           Control.Monad.Except       (ExceptT, MonadError)
-import           Control.Monad.Morph        (MFunctor (..))
-import qualified Control.Monad.RWS          as RWSLazy
-import qualified Control.Monad.RWS.Strict   as RWSStrict
-import qualified Control.Monad.State.Strict as StateStrict
-import           Control.Monad.Trans        (MonadTrans (lift))
-import           Control.Monad.Writer       (MonadWriter (tell), WriterT (runWriterT))
-import qualified Data.DList                 as DL (DList)
-import           Data.SafeCopy              (base, deriveSafeCopySimple)
+import           Control.Monad.Base        (MonadBase)
+import           Control.Monad.Except      (ExceptT, MonadError)
+import           Control.Monad.Morph       (MFunctor (..))
+import qualified Control.Monad.RWS         as RWSLazy
+import qualified Control.Monad.RWS.Strict  as RWSStrict
+import qualified Control.Monad.State.Lazy  as StateLazy
+import           Control.Monad.Trans       (MonadTrans (lift))
+import           Control.Monad.Writer      (MonadWriter (tell), WriterT (runWriterT))
+import qualified Data.DList                as DL (DList)
+import           Data.SafeCopy             (base, deriveSafeCopySimple)
 import           Universum
 
-import           System.Wlog.Logger         (logM)
-import           System.Wlog.LoggerName     (LoggerName (..))
-import           System.Wlog.LoggerNameBox  (HasLoggerName (..), LoggerNameBox (..),
-                                             usingLoggerName)
-import           System.Wlog.Severity       (Severity (..))
+import           System.Wlog.Logger        (logM)
+import           System.Wlog.LoggerName    (LoggerName (..))
+import           System.Wlog.LoggerNameBox (HasLoggerName (..), LoggerNameBox (..),
+                                            usingLoggerName)
+import           System.Wlog.Severity      (Severity (..))
 
 
 -- | Type alias for constraints 'CanLog' and 'HasLoggerName'.
@@ -80,7 +80,7 @@ instance CanLog IO where
 instance CanLog m => CanLog (LoggerNameBox m)
 instance CanLog m => CanLog (ReaderT r m)
 instance CanLog m => CanLog (StateT s m)
-instance CanLog m => CanLog (StateStrict.StateT s m)
+instance CanLog m => CanLog (StateLazy.StateT s m)
 instance CanLog m => CanLog (ExceptT s m)
 instance (CanLog m, Monoid w) => CanLog (RWSLazy.RWST r w s m)
 instance (CanLog m, Monoid w) => CanLog (RWSStrict.RWST r w s m)

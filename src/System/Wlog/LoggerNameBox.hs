@@ -23,7 +23,8 @@ import           Control.Monad.Reader        (MonadReader (..), ReaderT, mapRead
                                               runReaderT)
 import qualified Control.Monad.RWS           as RWSLazy
 import qualified Control.Monad.RWS.Strict    as RWSStrict
-import           Control.Monad.State         (MonadState, StateT, mapStateT)
+import qualified Control.Monad.State         as StateLazy (StateT, mapStateT)
+import           Control.Monad.State.Strict  (MonadState, StateT, mapStateT)
 import           Control.Monad.Trans         (MonadIO, MonadTrans, lift)
 import           Control.Monad.Trans.Cont    (ContT, mapContT)
 import           Control.Monad.Trans.Control (MonadBaseControl (..))
@@ -52,6 +53,10 @@ instance (Monad m, HasLoggerName m) => HasLoggerName (StateT a m) where
     getLoggerName = lift getLoggerName
 
     modifyLoggerName = mapStateT . modifyLoggerName
+
+instance (Monad m, HasLoggerName m) => HasLoggerName (StateLazy.StateT a m) where
+    getLoggerName = lift getLoggerName
+    modifyLoggerName = StateLazy.mapStateT . modifyLoggerName
 
 instance (Monoid w, Monad m, HasLoggerName m) => HasLoggerName (WriterT w m) where
     getLoggerName = lift getLoggerName

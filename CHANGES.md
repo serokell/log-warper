@@ -1,3 +1,8 @@
+1.1.4
+=====
+
+* Add `CanLog` and `HasLoggerName` instances for both strict and lazy `State`.
+
 1.1.3
 =====
 
