@@ -38,6 +38,7 @@ module System.Wlog.LoggerConfig
        , lcMapper
        , lcRotation
        , lcShowTime
+       , lcShowTid
        , lcTermSeverity
        , lcTree
        , zoomLogger
@@ -47,6 +48,7 @@ module System.Wlog.LoggerConfig
        , mapperB
        , prefixB
        , productionB
+       , showTidB
        , showTimeB
        ) where
 
@@ -77,9 +79,6 @@ import           System.Wlog.Wrapper    (Severity)
 filterObject :: [Text] -> HashMap Text a -> HashMap Text a
 filterObject excluded = HM.filterWithKey $ \k _ -> k `notElem` excluded
 
--- | Useful lens combinator to be used for logging initialization.
-fromScratch :: Monoid m => State m a -> m
-fromScratch = executingState mempty
 
 ----------------------------------------------------------------------------
 -- LoggerTree
@@ -145,6 +144,11 @@ instance FromJSON LoggerTree where
         _ltSubloggers <- for (filterObject nonLoggers o) parseJSON
         return LoggerTree{..}
 
+-- | Useful lens combinator to be used for logging initialization.
+-- Usually should be used with 'zoomLogger'.
+fromScratch :: Monoid m => State m a -> m
+fromScratch = executingState mempty
+
 -- | Zooming into logger name with putting specific key.
 zoomLogger :: Text -> State LoggerTree () -> State LoggerTree ()
 zoomLogger loggerName initializer = zoom (ltSubloggers.at loggerName) $ do
@@ -192,6 +196,9 @@ data LoggerConfig = LoggerConfig
       -- Note that error messages always have timestamp.
     , _lcShowTime      :: Any
 
+      -- | Show 'ThreadId' for current logging thread.
+    , _lcShowTid       :: Any
+
       -- | @True@ if we should also print output into console.
     , _lcConsoleOutput :: Any
 
@@ -213,6 +220,7 @@ instance Monoid LoggerConfig where
         { _lcRotation      = Nothing
         , _lcTermSeverity  = Nothing
         , _lcShowTime      = mempty
+        , _lcShowTid       = mempty
         , _lcConsoleOutput = mempty
         , _lcMapper        = mempty
         , _lcFilePrefix    = mempty
@@ -220,14 +228,19 @@ instance Monoid LoggerConfig where
         }
 
     lc1 `mappend` lc2 = LoggerConfig
-        { _lcRotation      = _lcRotation      lc1 <|> _lcRotation      lc2
-        , _lcTermSeverity  = _lcTermSeverity  lc1 <|> _lcTermSeverity  lc2
-        , _lcShowTime      = _lcShowTime      lc1  <> _lcShowTime      lc2
-        , _lcConsoleOutput = _lcConsoleOutput lc1  <> _lcConsoleOutput lc2
-        , _lcMapper        = _lcMapper        lc1  <> _lcMapper        lc2
-        , _lcFilePrefix    = _lcFilePrefix    lc1 <|> _lcFilePrefix    lc2
-        , _lcTree          = _lcTree          lc1  <> _lcTree          lc2
+        { _lcRotation      = orCombiner  _lcRotation
+        , _lcTermSeverity  = orCombiner  _lcTermSeverity
+        , _lcShowTime      = andCombiner _lcShowTime
+        , _lcShowTid       = andCombiner _lcShowTid
+        , _lcConsoleOutput = andCombiner _lcConsoleOutput
+        , _lcMapper        = andCombiner _lcMapper
+        , _lcFilePrefix    = orCombiner  _lcFilePrefix
+        , _lcTree          = andCombiner _lcTree
         }
+      where
+        orCombiner  field = field lc1 <|> field lc2
+        andCombiner field = field lc1  <> field lc2
+
 
 topLevelParams :: [Text]
 topLevelParams =
@@ -238,6 +251,7 @@ instance FromJSON LoggerConfig where
         _lcRotation      <-         o .:? "rotation"
         _lcTermSeverity  <-         o .:? "termSeverity"
         _lcShowTime      <- Any <$> o .:? "showTime"    .!= False
+        _lcShowTid       <- Any <$> o .:? "showTid"     .!= False
         _lcConsoleOutput <- Any <$> o .:? "printOutput" .!= False
         _lcFilePrefix    <-         o .:? "filePrefix"
         _lcTree          <- parseJSON $ Object $ filterObject topLevelParams o
@@ -251,6 +265,7 @@ instance ToJSON LoggerConfig where
             [ "rotation"     .= _lcRotation
             , "termSeverity" .= _lcTermSeverity
             , "showTime"     .= getAny _lcShowTime
+            , "showTid"      .= getAny _lcShowTid
             , "printOutput"  .= getAny _lcConsoleOutput
             , "filePrefix"   .= _lcFilePrefix
             , ("logTree", toJSON _lcTree)
@@ -258,17 +273,21 @@ instance ToJSON LoggerConfig where
 
 -- Builders for 'LoggerConfig'.
 
--- | Setup 'lcShowTime' inside 'LoggerConfig'.
-showTimeB :: Bool -> LoggerConfig
-showTimeB isShowTime = mempty { _lcShowTime = Any isShowTime }
+-- | Setup 'lcShowTime' to 'True' inside 'LoggerConfig'.
+showTimeB :: LoggerConfig
+showTimeB = mempty { _lcShowTime = Any True }
+
+-- | Setup 'lcShowTid' to 'True' inside 'LoggerConfig'.
+showTidB :: LoggerConfig
+showTidB = mempty { _lcShowTid = Any True }
 
 -- | Setup 'lcConsoleOutput' inside 'LoggerConfig'.
-consoleOutB :: Bool -> LoggerConfig
-consoleOutB printToConsole = mempty { _lcConsoleOutput = Any printToConsole }
+consoleOutB :: LoggerConfig
+consoleOutB = mempty { _lcConsoleOutput = Any True }
 
 -- | Adds sensible predefined set of parameters to logger.
 productionB :: LoggerConfig
-productionB = showTimeB True <> consoleOutB True
+productionB = showTimeB <> consoleOutB
 
 -- | Setup 'lcMapper' inside 'LoggerConfig'.
 mapperB :: (LoggerName -> LoggerName) -> LoggerConfig
