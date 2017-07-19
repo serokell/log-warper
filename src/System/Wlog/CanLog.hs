@@ -71,7 +71,7 @@ class Monad m => CanLog m where
                             => LoggerName
                             -> Severity
                             -> Text
-                            -> t n ()
+                            -> m ()
     dispatchMessage name sev t = lift $ dispatchMessage name sev t
 
 instance CanLog IO where
