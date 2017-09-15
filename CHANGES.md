@@ -1,3 +1,8 @@
+1.2.1
+=====
+
+* Supports Unix paths in log configs even on Windows.
+
 1.2.0
 =====
 

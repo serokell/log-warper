@@ -68,6 +68,7 @@ import           Data.Yaml              (FromJSON (..), ToJSON (..), Value (Obje
                                          object, (.!=), (.:), (.:?), (.=))
 import           Formatting             (bprint, shown)
 import           GHC.Generics           (Generic)
+import           System.FilePath        (normalise)
 
 import           System.Wlog.LoggerName (LoggerName)
 import           System.Wlog.Wrapper    (Severity)
@@ -122,8 +123,9 @@ instance Monoid LoggerTree where
 
 instance ToJSON HandlerWrap
 instance FromJSON HandlerWrap where
+    -- we use 'normalise' so that Unix paths would work on Windows
     parseJSON = withObject "handler wrap" $ \o -> do
-        (_hwFilePath :: FilePath) <- o .: "file"
+        (_hwFilePath :: FilePath) <- normalise <$> o .: "file"
         (_hwRounding :: Maybe Int) <- o .:? "round"
         pure HandlerWrap{..}
 
@@ -133,8 +135,8 @@ nonLoggers = ["file", "files", "severity", "rounding", "handlers"]
 instance ToJSON LoggerTree
 instance FromJSON LoggerTree where
     parseJSON = withObject "loggers tree" $ \o -> do
-        (singleFile :: Maybe FilePath) <- o .:? "file"
-        (manyFiles :: [FilePath]) <- o .:? "files" .!= []
+        (singleFile :: Maybe FilePath) <- fmap normalise <$> o .:? "file"
+        (manyFiles :: [FilePath]) <- map normalise <$> (o .:? "files" .!= [])
         handlers <- o .:? "handlers" .!= []
         let fileHandlers =
                 map (\fp -> HandlerWrap fp Nothing) $
