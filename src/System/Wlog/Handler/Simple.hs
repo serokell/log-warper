@@ -55,7 +55,7 @@ instance Typeable a => LogHandler (GenericHandler a) where
     getLevel sh = severity sh
     setFormatter sh f = sh{formatter = f}
     getFormatter sh = formatter sh
-    readBack sh i = withMVar (readBackBuffer sh) $ pure . take i . MQ.toList
+    readBack sh i = withMVar (readBackBuffer sh) $ \mq -> pure $! take i (MQ.toList mq)
     emit sh (_,msg) _ = (writeFunc sh) (privData sh) msg
     close sh = (closeFunc sh) (privData sh)
 
