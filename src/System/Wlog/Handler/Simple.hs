@@ -55,7 +55,7 @@ instance Typeable a => LogHandler (GenericHandler a) where
     getLevel sh = severity sh
     setFormatter sh f = sh{formatter = f}
     getFormatter sh = formatter sh
-    readBack sh i = withMVar (readBackBuffer sh) $ pure . take i . MQ.toList
+    readBack sh i = withMVar (readBackBuffer sh) $ \mq -> pure $! take i (MQ.toList mq)
     emit sh (_,msg) _ = (writeFunc sh) (privData sh) msg
     close sh = (closeFunc sh) (privData sh)
 
@@ -69,7 +69,9 @@ streamHandler h sev = do
     mq <- newMVar $ MQ.newMemoryQueue $ 2 * 1024 * 1024 -- 2 MB
     let mywritefunc hdl msg = withMVar lock $ const $ do
             writeToHandle hdl msg
-            modifyMVar_ mq $ pure . pushFront msg
+            -- Important to force the queue here, else a massive closure will
+            -- be retained until the queue is actually used.
+            modifyMVar_ mq $ \mq' -> pure $! pushFront msg mq'
             hFlush hdl
     return
         GenericHandler
