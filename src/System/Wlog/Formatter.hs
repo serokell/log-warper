@@ -38,6 +38,7 @@ import qualified Data.Text              as T
 import           Data.Time              (formatTime, getCurrentTime, getZonedTime)
 import           Data.Time.Clock        (UTCTime (..))
 import           Data.Time.Format       (FormatTime)
+import           Data.Text.Lazy.Builder as B
 import           Formatting             (Format, sformat, shown, stext, (%))
 import           Universum
 #ifndef mingw32_HOST_OS
@@ -49,9 +50,9 @@ import           Data.Time.Format       (defaultTimeLocale)
 import           System.Locale          (defaultTimeLocale)
 #endif
 
-import           System.Wlog.Color      (colorizer, colorizerT)
+import           System.Wlog.Color      (colorizer)
 import           System.Wlog.LoggerName (LoggerName, loggerNameF)
-import           System.Wlog.Severity   (LogRecord, Severity (..))
+import           System.Wlog.Severity   (LogRecord(..), Severity (..))
 
 
 ----------------------------------------------------------------------------
@@ -63,41 +64,42 @@ import           System.Wlog.Severity   (LogRecord, Severity (..))
 -- information specific to the handler (an example of can be seen in
 -- the formatter used in 'System.Log.Handler.Syslog')
 type LogFormatter a
-    =  a         -- ^ The LogHandler that the passed message came from
-    -> LogRecord -- ^ The log message and priority
-    -> String    -- ^ The logger name
-    -> IO Text   -- ^ The formatted log message
+    =  a          -- ^ The LogHandler that the passed message came from
+    -> LogRecord  -- ^ The log message and priority
+    -> Text       -- ^ The logger name
+    -> IO Builder -- ^ The formatted log message
 
 -- | Returns the passed message as is, ie. no formatting is done.
 nullFormatter :: LogFormatter a
-nullFormatter _ (_,msg) _ = pure msg
+nullFormatter _ (LR _ msg) _ = pure (B.fromText msg)
 
 -- | Replace some '$' variables in a string with supplied values
 replaceVars
-    :: [(String, Text)] -- ^ A list of (variableName, action to
-                        -- get the replacement string) pairs
-    -> String           -- ^ String to perform substitution on
-    -> Text             -- ^ Resulting string
-replaceVars _ [] = mempty
-replaceVars keyVals (span (/= '$') -> (before,after)) =
-    if null after then T.pack before
+    :: [(Text, Text)] -- ^ A list of (variableName, action to
+                      -- get the replacement string) pairs
+    -> Text           -- ^ Text to perform substitution on
+    -> Builder        -- ^ Resulting string
+replaceVars _ (T.null -> True) = mempty
+replaceVars keyVals (T.breakOn "$" -> (before,after)) =
+    if T.null after then B.fromText before
     else
-        let (f, rest) = replaceStart keyVals $ drop 1 after
+        let (f, rest) = replaceStart keyVals $ T.drop 1 after
             repRest   = replaceVars keyVals rest
-        in T.pack before <> f <> repRest
+        in B.fromText before <> f <> repRest
   where
-    replaceStart [] str = ("$", str)
-    replaceStart ((k, v):kvs) str
-        | k `isPrefixOf` str = (v, drop (length k) str)
-        | otherwise = replaceStart kvs str
+    replaceStart :: [(Text, Text)] -> Text -> (Builder, Text)
+    replaceStart [] str = (B.singleton '$', str)
+    replaceStart ((k, v):kvs) txt
+        | k `T.isPrefixOf` txt = (B.fromText v, T.drop (T.length k) txt)
+        | otherwise = replaceStart kvs txt
 
 -- | An extensible formatter that allows new substition /variables/ to
 -- be defined.  Each variable has an associated IO action that is used
 -- to produce the string to substitute for the variable name.  The
 -- predefined variables are the same as for 'simpleLogFormatter'
 -- /excluding/ @$time@ and @$utcTime@.
-varFormatter :: [(String, Text)] -> String -> LogFormatter a
-varFormatter vars format _h (prio,msg) loggername = do
+varFormatter :: [(Text, Text)] -> Text -> LogFormatter a
+varFormatter vars format _h (LR prio msg) loggername = do
     defaultVars  <- predefinedVars
     platformVars <- osSpecificVars
     return $ replaceVars (vars <> defaultVars <> platformVars) format
@@ -106,7 +108,7 @@ varFormatter vars format _h (prio,msg) loggername = do
         tid <- T.pack . show <$> myThreadId
         pure [ ("msg", msg)
              , ("prio", T.toUpper $ show prio)
-             , ("loggername", T.pack loggername)
+             , ("loggername", loggername)
              , ("tid", tid)
              ]
 #ifndef mingw32_HOST_OS
@@ -121,7 +123,7 @@ varFormatter vars format _h (prio,msg) loggername = do
 -- | Like 'simpleLogFormatter' but allow the time format to be
 -- specified in the first parameter (this is passed to
 -- 'Date.Time.Format.formatTime')
-tfLogFormatter :: String -> String -> LogFormatter a
+tfLogFormatter :: Text -> Text -> LogFormatter a
 tfLogFormatter timeFormat format = \h kv loggername -> do
     time    <- ftime <$> getZonedTime
     utcTime <- ftime <$> getCurrentTime
@@ -131,7 +133,7 @@ tfLogFormatter timeFormat format = \h kv loggername -> do
         format h kv loggername
   where
      ftime :: FormatTime t => t -> Text
-     ftime = T.pack . formatTime defaultTimeLocale timeFormat
+     ftime = T.pack . formatTime defaultTimeLocale (T.unpack timeFormat)
 
 -- | Takes a format string, and returns a formatter that may be used
 --   to format log messages.  The format string may contain variables
@@ -151,19 +153,19 @@ tfLogFormatter timeFormat format = \h kv loggername -> do
 --    * @$time@ - The current time
 --
 --    * @$utcTime@ - The current time in UTC Time
-simpleLogFormatter :: String -> LogFormatter a
-simpleLogFormatter format h (prio, msg) loggername =
-    tfLogFormatter "%F %X %Z" format h (prio,msg) loggername
+simpleLogFormatter :: Text -> LogFormatter a
+simpleLogFormatter format h logRecord loggername =
+    tfLogFormatter "%F %X %Z" format h logRecord loggername
 
 ----------------------------------------------------------------------------
 -- Log-warper functionality
 ----------------------------------------------------------------------------
 
-timeFmt :: IsString s => s
+timeFmt :: Text
 timeFmt = "[$time] "
 
-timeFmtStdout :: IsString s => Bool -> s
-timeFmtStdout = bool "" timeFmt
+timeFmtStdout :: Bool -> Text
+timeFmtStdout = bool mempty timeFmt
 
 getRoundedTime :: Int -> IO UTCTime
 getRoundedTime roundN = do
@@ -176,29 +178,29 @@ getRoundedTime roundN = do
 
 stderrFormatter :: Bool -> LogFormatter a
 stderrFormatter isShowTid = simpleLogFormatter $
-    mconcat [colorizer Error $ "[$loggername:$prio" ++ tid ++ "] ", timeFmt, "$msg"]
+    mconcat $! [colorizer Error $ "[$loggername:$prio" <> tid <> "] ", timeFmt, "$msg"]
   where
     tid = if isShowTid then ":$tid" else ""
 
-stdoutFmt :: Severity -> Bool -> Bool -> String
-stdoutFmt pr isShowTime isShowTid = mconcat
-    [colorizer pr $ "[$loggername:$prio" ++ tid ++ "] ", timeFmtStdout isShowTime, "$msg"]
+stdoutFmt :: Severity -> Bool -> Bool -> Text
+stdoutFmt pr isShowTime isShowTid = mconcat $!
+    [colorizer pr $ "[$loggername:$prio" <> tid <> "] ", timeFmtStdout isShowTime, "$msg"]
   where
-    tid = if isShowTid then ":$tid" else ""
+    tid = if isShowTid then ":$tid" else mempty
 
 stdoutFormatter :: Bool -> Bool -> LogFormatter a
-stdoutFormatter isShowTime isShowTid handle r@(pr, _) =
+stdoutFormatter isShowTime isShowTid handle r@(LR pr _) =
     simpleLogFormatter (stdoutFmt pr isShowTime isShowTid) handle r
 
 stdoutFormatterTimeRounded :: Int -> LogFormatter a
-stdoutFormatterTimeRounded roundN a r@(pr,_) s = do
+stdoutFormatterTimeRounded roundN a r@(LR pr _) s = do
     t <- getRoundedTime roundN
     simpleLogFormatter (fmt t) a r s
   where
-    fmt time = mconcat $
+    fmt time = mconcat $!
         [ colorizer pr "[$loggername:$prio:$tid]"
         , " ["
-        , formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S %Z" time
+        , T.pack $ formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S %Z" time
         , "] $msg"]
 
 -- TODO: do we need coloring here?
@@ -211,7 +213,7 @@ formatLogMessage = sformat ("["%loggerNameF%":"%shown%"] ["%utcTimeF%"] "%stext)
 -- | Same as 'formatLogMessage', but with colorful output
 formatLogMessageColors :: LoggerName -> Severity -> UTCTime -> Text -> Text
 formatLogMessageColors lname severity time msg =
-    colorizerT severity prefix <> " " <> msg
+    colorizer severity prefix <> " " <> msg
   where
     prefix = sformat ("["%loggerNameF%":"%shown%"] ["%utcTimeF%"]") lname severity time
     utcTimeF :: Format r (UTCTime -> r)

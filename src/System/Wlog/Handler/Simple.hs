@@ -37,7 +37,7 @@ import           System.Wlog.Formatter   (LogFormatter, nullFormatter,
 import           System.Wlog.Handler     (LogHandler (..), LogHandlerTag (..))
 import           System.Wlog.MemoryQueue (MemoryQueue)
 import           System.Wlog.MemoryQueue as MQ
-import           System.Wlog.Severity    (Severity (..))
+import           System.Wlog.Severity    (LogRecord (..), Severity (..))
 
 
 -- | A helper data type.
@@ -58,7 +58,7 @@ instance Typeable a => LogHandler (GenericHandler a) where
     setFormatter sh f = sh{formatter = f}
     getFormatter sh = formatter sh
     readBack sh i = withMVar (readBackBuffer sh) $ \mq' -> pure $! take i . MQ.toList $ mq'
-    emit sh (_,msg) _ = (writeFunc sh) (privData sh) msg
+    emit sh (LR _ msg) _ = (writeFunc sh) (privData sh) msg
     close sh = (closeFunc sh) (privData sh)
 
 -- | Create a stream log handler. Log messages sent to this handler
@@ -68,7 +68,7 @@ instance Typeable a => LogHandler (GenericHandler a) where
 streamHandler :: Handle -> Severity -> IO (GenericHandler Handle)
 streamHandler h sev = do
     lock <- newMVar ()
-    mq <- newMVar $ MQ.newMemoryQueue $ 1024 * 1024 -- 2 MB
+    mq <- newMVar $ MQ.newMemoryQueue $ 2 * 1024 * 1024 -- 2 MB
     let mywritefunc hdl msg = withMVar lock $ const $ do
             writeToHandle hdl msg
             modifyMVar_ mq $ \mq' -> pure $! pushFront msg mq'

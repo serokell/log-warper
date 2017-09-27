@@ -51,10 +51,10 @@ import           Data.Bits                 (shiftL, (.|.))
 import qualified Data.Text                 as T
 import qualified Data.Text.Encoding        as TE
 import           Network.BSD               (getHostByName, hostAddresses)
-import           Network.Socket            (Family, Family (..), HostName, PortNumber,
-                                            SockAddr (..), Socket,
-                                            SocketType (Datagram, Stream), connect,
-                                            socket)
+import           Network.Socket            (Family, Family (..), HostName,
+                                            PortNumber, SockAddr (..), Socket,
+                                            SocketType (Datagram, Stream),
+                                            connect, socket)
 import qualified Network.Socket            as S
 import qualified Network.Socket.ByteString as NBS
 #ifndef mingw32_HOST_OS
@@ -65,8 +65,9 @@ import           System.IO                 ()
 import           Universum                 hiding (Option, identity)
 
 import           System.Wlog.Formatter     (LogFormatter, varFormatter)
-import           System.Wlog.Handler       (LogHandler (..), LogHandlerTag (HandlerOther))
-import           System.Wlog.Severity      (Severity (..))
+import           System.Wlog.Handler       (LogHandler (..),
+                                            LogHandlerTag (HandlerOther))
+import           System.Wlog.Severity      (LogRecord (..), Severity (..))
 
 
 
@@ -257,9 +258,9 @@ openlog_generic sock addr sock_t ident opt fac pri =
                           })
 
 syslogFormatter :: LogFormatter SyslogHandler
-syslogFormatter sh (p,msg) logname =
+syslogFormatter sh lr logname =
     let format = "[$loggername/$prio] $msg"
-    in varFormatter [] format sh (p,msg) logname
+    in varFormatter [] format sh lr logname
 
 
 instance LogHandler SyslogHandler where
@@ -269,7 +270,7 @@ instance LogHandler SyslogHandler where
     setFormatter sh f = sh{formatter = f}
     getFormatter sh = formatter sh
     readBack _ _ = pure []
-    emit sh (prio, msg) _ = do
+    emit sh (LR prio msg) _ = do
       when (elem PERROR (options sh)) (TIO.hPutStrLn stderr msg)
       pidPart <- getPidPart
       void $ sendstr (toSyslogFormat msg pidPart)

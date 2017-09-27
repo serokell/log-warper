@@ -24,7 +24,7 @@ import           System.Wlog.Handler        (LogHandler (..),
                                              LogHandlerTag (HandlerFilelike))
 import           System.Wlog.Handler.Simple (GenericHandler (..), fileHandler)
 import           System.Wlog.LoggerConfig   (RotationParameters (..), isValidRotation)
-import           System.Wlog.Severity       (Severity (..))
+import           System.Wlog.Severity       (Severity (..), LogRecord(..))
 
 -- | Similar to 'GenericHandler'. But holds file 'Handle' inside
 -- mutable variable ('MVar') to be able to rotate loggers.
@@ -45,7 +45,7 @@ instance LogHandler RollerHandler where
     getFormatter      = rhFormatter
     readBack          = rollerReadback
 
-    emit rh (_, msg) _      = rhWriteAction rh (error "Handler is used internally") msg
+    emit rh (LR _ msg) _    = rhWriteAction rh (error "Handler is used internally") msg
     close RollerHandler{..} = withMVar rhFileHandle rhCloseAction
 
 data InvalidRotation = InvalidRotation !Text

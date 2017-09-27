@@ -70,7 +70,7 @@ import           System.Wlog.Handler        (LogHandler (getTag),
                                              readBack)
 import qualified System.Wlog.Handler        (handle)
 import           System.Wlog.Handler.Simple (streamHandler)
-import           System.Wlog.Severity       (LogRecord, Severity (..))
+import           System.Wlog.Severity       (LogRecord(..), Severity (..))
 
 
 ---------------------------------------------------------------------------
@@ -220,15 +220,15 @@ getRootLogger = getLogger rootLoggerName
 
 -- | Log a message, assuming the current logger's level permits it.
 logL :: Logger -> Severity -> Text -> IO ()
-logL l pri msg = handle l (pri, msg) (const True)
+logL l pri msg = handle l (LR pri msg) (const True)
 
 -- | Logs a message with condition.
 logLCond :: Logger -> Severity -> Text -> (LogHandlerTag -> Bool) -> IO ()
-logLCond l pri msg = handle l (pri, msg)
+logLCond l pri msg = handle l (LR pri msg)
 
 -- | Handle a log request.
 handle :: Logger -> LogRecord -> (LogHandlerTag -> Bool) -> IO ()
-handle l lrecord@(sev, _) handlerFilter = do
+handle l lrecord@(LR sev _) handlerFilter = do
     lp <- getLoggerSeverity nm
     if sev >= lp then do
         ph <- concatMap (view lHandlers) <$> parentLoggers nm
