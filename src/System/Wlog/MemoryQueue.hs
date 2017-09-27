@@ -17,6 +17,7 @@ import           Control.Lens        (to)
 import           Data.Sequence       (Seq, ViewR (..), viewr, (<|))
 import           Universum           hiding (toList)
 import qualified Universum           as U
+import qualified Data.Text           as T
 
 import           Control.Lens        (makeLenses, (%=), (+=))
 import           Control.Monad.State.Strict (modify')
@@ -28,10 +29,11 @@ import           Control.Monad.Loops (whileM_)
 class Sized e where
     getSize :: e -> Word64
 
--- Instance for text size that takes number of chars in text as size
--- (not actual bytes).
+-- Instance for text size that pessimistically multiply the number
+-- of characters by 16, although the char-varying nature of UTF16
+-- means this is greater or equal the true size in bytes.
 instance Sized Text where
-    getSize = fromIntegral . length
+    getSize = fromIntegral . (* 16) . T.length
 
 -- | Data structure similar to queue but pops out elements after
 -- 'pushFront' if 'mqMemSize' > 'mqLimit'.

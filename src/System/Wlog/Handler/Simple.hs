@@ -26,6 +26,7 @@ module System.Wlog.Handler.Simple
 import           Control.Concurrent      (modifyMVar_, withMVar)
 import           Control.Exception       (SomeException)
 import qualified Data.Text.IO            as TIO
+import           Data.Text.Lazy.Builder  as B
 import           Data.Typeable           (Typeable)
 import           System.IO               (Handle, IOMode (ReadWriteMode),
                                           SeekMode (SeekFromEnd), hClose,
@@ -37,7 +38,7 @@ import           System.Wlog.Formatter   (LogFormatter, nullFormatter,
 import           System.Wlog.Handler     (LogHandler (..), LogHandlerTag (..))
 import           System.Wlog.MemoryQueue (MemoryQueue)
 import           System.Wlog.MemoryQueue as MQ
-import           System.Wlog.Severity    (LogRecord (..), Severity (..))
+import           System.Wlog.Severity    (Severity (..))
 
 
 -- | A helper data type.
@@ -58,7 +59,7 @@ instance Typeable a => LogHandler (GenericHandler a) where
     setFormatter sh f = sh{formatter = f}
     getFormatter sh = formatter sh
     readBack sh i = withMVar (readBackBuffer sh) $ \mq' -> pure $! take i . MQ.toList $ mq'
-    emit sh (LR _ msg) _ = (writeFunc sh) (privData sh) msg
+    emit sh bldr _ = (writeFunc sh) (privData sh) (toText . B.toLazyText $ bldr)
     close sh = (closeFunc sh) (privData sh)
 
 -- | Create a stream log handler. Log messages sent to this handler

@@ -26,7 +26,6 @@ module System.Wlog.Handler
        , LogHandler(..)
        ) where
 
-import           Control.DeepSeq        (($!!))
 import           Data.Text.Lazy.Builder as B
 import           System.Wlog.Formatter  (LogFormatter, nullFormatter)
 import           System.Wlog.Severity   (LogRecord (..), Severity)
@@ -63,11 +62,11 @@ class LogHandler a where
     handle h lr@(LR pri _) logname =
         when (pri >= (getLevel h)) $ do
             formattedMsg <- (getFormatter h) h lr (toText logname)
-            emit h (LR pri (toText $!! B.toLazyText $! formattedMsg)) logname
+            emit h formattedMsg logname
 
     -- | Forces an event to be logged regardless of
     -- the configured level.
-    emit :: a -> LogRecord -> String -> IO ()
+    emit :: a -> B.Builder -> String -> IO ()
 
     -- | Read back from logger (e.g. file), newest first. You specify
     -- the number of (newest) logging entries. Logger can return @pure

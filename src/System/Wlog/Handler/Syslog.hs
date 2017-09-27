@@ -50,6 +50,7 @@ import           Control.Monad             (void, when)
 import           Data.Bits                 (shiftL, (.|.))
 import qualified Data.Text                 as T
 import qualified Data.Text.Encoding        as TE
+import           Data.Text.Lazy.Builder    as B
 import           Network.BSD               (getHostByName, hostAddresses)
 import           Network.Socket            (Family, Family (..), HostName,
                                             PortNumber, SockAddr (..), Socket,
@@ -60,7 +61,7 @@ import qualified Network.Socket.ByteString as NBS
 #ifndef mingw32_HOST_OS
 import           System.Posix.Process      (getProcessID)
 #endif
-import qualified Data.Text.IO              as TIO
+import qualified Data.Text.Lazy.IO         as TIO
 import           System.IO                 ()
 import           Universum                 hiding (Option, identity)
 
@@ -270,11 +271,12 @@ instance LogHandler SyslogHandler where
     setFormatter sh f = sh{formatter = f}
     getFormatter sh = formatter sh
     readBack _ _ = pure []
-    emit sh (LR prio msg) _ = do
-      when (elem PERROR (options sh)) (TIO.hPutStrLn stderr msg)
+    emit sh bldr _ = do
+      when (elem PERROR (options sh)) (TIO.hPutStrLn stderr (B.toLazyText bldr))
       pidPart <- getPidPart
-      void $ sendstr (toSyslogFormat msg pidPart)
+      void $ sendstr (toSyslogFormat (toText $ B.toLazyText bldr) pidPart)
       where
+        prio = getLevel sh
         sendstr :: Text -> IO ()
         sendstr t | T.null t = pass
         sendstr omsg = do

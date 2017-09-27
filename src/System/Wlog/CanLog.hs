@@ -8,7 +8,6 @@
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE ViewPatterns          #-}
 
 -- | Type class that add ability to log messages.
@@ -38,14 +37,14 @@ module System.Wlog.CanLog
        ) where
 
 import           Control.Monad.Base        (MonadBase)
-import           Control.Monad.Except      (ExceptT, MonadError)
+import           Control.Monad.Except      (ExceptT)
 import           Control.Monad.Morph       (MFunctor (..))
 import qualified Control.Monad.RWS         as RWSLazy
 import qualified Control.Monad.RWS.Strict  as RWSStrict
 import qualified Control.Monad.State.Lazy  as StateLazy
+import qualified Control.Monad.State.Strict  as StateStrict
 import           Control.Monad.Trans       (MonadTrans (lift))
-import           Control.Monad.Writer      (MonadWriter (tell), WriterT (runWriterT))
-import qualified Data.DList                as DL (DList)
+import qualified Data.DList                as DL (DList, snoc)
 import           Data.SafeCopy             (base, deriveSafeCopySimple)
 import           Universum
 
@@ -95,27 +94,26 @@ data LogEvent = LogEvent
 deriveSafeCopySimple 0 'base ''LogEvent
 
 -- | Pure implementation of 'CanLog' type class. Instead of writing log messages
--- into console it appends log messages into 'WriterT' log. It uses 'DList' for
+-- into console it appends log messages into 'StateT' log. It uses 'DList' for
 -- better performance, because messages can be added only at the end of log.
 -- But it uses 'unsafePerformIO' so use with caution within IO.
 --
 -- TODO: Should we use some @Data.Tree@-like structure to observe message only
 -- by chosen logger names?
 newtype PureLogger m a = PureLogger
-    { runPureLogger :: WriterT (DL.DList LogEvent) m a
-    } deriving (Functor, Applicative, Monad, MonadTrans, MonadWriter (DL.DList LogEvent),
-                MonadBase b, MonadState s, MonadReader r, MonadError e, MonadThrow,
-                HasLoggerName)
+    { runPureLogger :: StateStrict.StateT (DL.DList LogEvent) m a
+    } deriving (Functor, Applicative, Monad, MonadTrans, MonadState (DL.DList LogEvent),
+                MonadThrow, HasLoggerName)
 
 instance Monad m => CanLog (PureLogger m) where
-    dispatchMessage leLoggerName leSeverity leMessage = tell [LogEvent{..}]
+    dispatchMessage leLoggerName leSeverity leMessage = StateStrict.modify' (flip DL.snoc LogEvent{..})
 
 instance MFunctor PureLogger where
     hoist f = PureLogger . hoist f . runPureLogger
 
 -- | Return log of pure logging action as list of 'LogEvent'.
 runPureLog :: Monad m => PureLogger m a -> m (a, [LogEvent])
-runPureLog = fmap (second toList) . runWriterT . runPureLogger
+runPureLog = fmap (second toList) . flip runStateT mempty . runPureLogger
 
 -- | Logs all 'LogEvent'`s from given list. This function supposed to
 -- be used after 'runPureLog'.
@@ -136,8 +134,7 @@ launchPureLog hoist' action = do
 
 newtype NamedPureLogger m a = NamedPureLogger
     { runNamedPureLogger :: PureLogger (LoggerNameBox m) a
-    } deriving (Functor, Applicative, Monad, MonadWriter (DL.DList LogEvent),
-                MonadBase b, MonadState s, MonadReader r, MonadError e,
+    } deriving (Functor, Applicative, Monad, MonadState (DL.DList LogEvent),
                 MonadThrow, HasLoggerName)
 
 instance MonadTrans NamedPureLogger where
