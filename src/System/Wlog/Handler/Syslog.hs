@@ -68,7 +68,7 @@ import           Universum                 hiding (Option, identity)
 import           System.Wlog.Formatter     (LogFormatter, varFormatter)
 import           System.Wlog.Handler       (LogHandler (..),
                                             LogHandlerTag (HandlerOther))
-import           System.Wlog.Severity      (LogRecord (..), Severity (..))
+import           System.Wlog.Severity      (Severity (..))
 
 
 

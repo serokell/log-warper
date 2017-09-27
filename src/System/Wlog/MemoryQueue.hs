@@ -11,6 +11,9 @@ module System.Wlog.MemoryQueue
        , popLast
        , pushFront
        , toList
+       -- * Useful lenses
+       , mqMemSize
+       , mqLimit
        ) where
 
 import           Control.Lens        (to)
@@ -19,9 +22,7 @@ import           Universum           hiding (toList)
 import qualified Universum           as U
 import qualified Data.Text           as T
 
-import           Control.Lens        (makeLenses, (%=), (+=))
-import           Control.Monad.State.Strict (modify')
-import           Control.Monad.Loops (whileM_)
+import           Control.Lens        (makeLenses)
 
 -- | Class for objects that have size. Implementations can take size
 -- as amount of memory items take, as amount of items in container,

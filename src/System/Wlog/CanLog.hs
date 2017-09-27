@@ -36,7 +36,6 @@ module System.Wlog.CanLog
        , logMessage
        ) where
 
-import           Control.Monad.Base        (MonadBase)
 import           Control.Monad.Except      (ExceptT)
 import           Control.Monad.Morph       (MFunctor (..))
 import qualified Control.Monad.RWS         as RWSLazy

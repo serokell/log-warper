@@ -39,7 +39,7 @@ library
                      , ansi-terminal        >= 0.6.2.3
                      , base                 >= 4.7 && < 5
                      , containers           >= 0.5.7.0
-                     , deepseq
+                     , deepseq              >= 1.2.0.0
                      , directory            >= 1.2.6.2
                      , dlist                >= 0.8.0.2
                      , errors               >= 2.1.2
@@ -101,27 +101,6 @@ executable play-log
                        TypeApplications
                        RecordWildCards
 
-executable mem-log
-  main-is:             Memlog.hs
-
-  build-depends:       base       >= 4.7 && < 5
-                     , log-warper
-                     , yaml
-                     , universum
-                     , text
-                     , mtl
-
-  hs-source-dirs:      examples
-  default-language:    Haskell2010
-  ghc-options:         -threaded -Wall -fno-warn-orphans
-
-  default-extensions:  GeneralizedNewtypeDeriving
-                       DeriveDataTypeable
-                       DeriveGeneric
-                       OverloadedStrings
-                       TypeApplications
-                       RecordWildCards
-
 test-suite log-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
@@ -137,8 +116,6 @@ test-suite log-test
                      , hspec
                      , HUnit
                      , lens
-                     , mtl
-                     , text
                      , log-warper
                      , QuickCheck
                      , universum

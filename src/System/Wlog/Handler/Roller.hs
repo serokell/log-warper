@@ -25,7 +25,7 @@ import           System.Wlog.Handler        (LogHandler (..),
                                              LogHandlerTag (HandlerFilelike))
 import           System.Wlog.Handler.Simple (GenericHandler (..), fileHandler)
 import           System.Wlog.LoggerConfig   (RotationParameters (..), isValidRotation)
-import           System.Wlog.Severity       (Severity (..), LogRecord(..))
+import           System.Wlog.Severity       (Severity (..))
 
 -- | Similar to 'GenericHandler'. But holds file 'Handle' inside
 -- mutable variable ('MVar') to be able to rotate loggers.

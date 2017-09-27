@@ -31,9 +31,7 @@ module System.Wlog.Formatter
        ) where
 
 import           Control.Concurrent     (myThreadId)
-import           Data.List              (span)
 import           Data.Monoid            (mconcat)
-import           Data.String            (IsString)
 import qualified Data.Text              as T
 import           Data.Time              (formatTime, getCurrentTime, getZonedTime)
 import           Data.Time.Clock        (UTCTime (..))
