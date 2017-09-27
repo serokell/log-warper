@@ -28,10 +28,12 @@ import           Control.Exception       (SomeException)
 import qualified Data.Text.IO            as TIO
 import           Data.Typeable           (Typeable)
 import           System.IO               (Handle, IOMode (ReadWriteMode),
-                                          SeekMode (SeekFromEnd), hClose, hFlush, hSeek)
+                                          SeekMode (SeekFromEnd), hClose,
+                                          hFlush, hSeek)
 import           Universum
 
-import           System.Wlog.Formatter   (LogFormatter, nullFormatter, simpleLogFormatter)
+import           System.Wlog.Formatter   (LogFormatter, nullFormatter,
+                                          simpleLogFormatter)
 import           System.Wlog.Handler     (LogHandler (..), LogHandlerTag (..))
 import           System.Wlog.MemoryQueue (MemoryQueue)
 import           System.Wlog.MemoryQueue as MQ
@@ -55,7 +57,7 @@ instance Typeable a => LogHandler (GenericHandler a) where
     getLevel sh = severity sh
     setFormatter sh f = sh{formatter = f}
     getFormatter sh = formatter sh
-    readBack sh i = withMVar (readBackBuffer sh) $ pure . take i . MQ.toList
+    readBack sh i = withMVar (readBackBuffer sh) $ \mq' -> pure $! take i . MQ.toList $ mq'
     emit sh (_,msg) _ = (writeFunc sh) (privData sh) msg
     close sh = (closeFunc sh) (privData sh)
 
@@ -66,10 +68,10 @@ instance Typeable a => LogHandler (GenericHandler a) where
 streamHandler :: Handle -> Severity -> IO (GenericHandler Handle)
 streamHandler h sev = do
     lock <- newMVar ()
-    mq <- newMVar $ MQ.newMemoryQueue $ 2 * 1024 * 1024 -- 2 MB
+    mq <- newMVar $ MQ.newMemoryQueue $ 1024 * 1024 -- 2 MB
     let mywritefunc hdl msg = withMVar lock $ const $ do
             writeToHandle hdl msg
-            modifyMVar_ mq $ pure . pushFront msg
+            modifyMVar_ mq $ \mq' -> pure $! pushFront msg mq'
             hFlush hdl
     return
         GenericHandler

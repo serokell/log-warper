@@ -73,24 +73,22 @@ nullFormatter :: LogFormatter a
 nullFormatter _ (_,msg) _ = pure msg
 
 -- | Replace some '$' variables in a string with supplied values
-replaceVarM
-    :: [(String, IO Text)] -- ^ A list of (variableName, action to
-                           -- get the replacement string) pairs
-    -> String              -- ^ String to perform substitution on
-    -> IO Text             -- ^ Resulting string
-replaceVarM _ [] = pure ""
-replaceVarM keyVals (span (/= '$') -> (before,after)) = do
-    if null after then pure $ T.pack before
-    else do
-        (f, rest) <- replaceStart keyVals $ drop 1 after
-        repRest <- replaceVarM keyVals rest
-        pure $ T.pack before <> f <> repRest
+replaceVars
+    :: [(String, Text)] -- ^ A list of (variableName, action to
+                        -- get the replacement string) pairs
+    -> String           -- ^ String to perform substitution on
+    -> Text             -- ^ Resulting string
+replaceVars _ [] = mempty
+replaceVars keyVals (span (/= '$') -> (before,after)) =
+    if null after then T.pack before
+    else
+        let (f, rest) = replaceStart keyVals $ drop 1 after
+            repRest   = replaceVars keyVals rest
+        in T.pack before <> f <> repRest
   where
-    replaceStart [] str = return ("$", str)
+    replaceStart [] str = ("$", str)
     replaceStart ((k, v):kvs) str
-        | k `isPrefixOf` str = do
-            vs <- v
-            return (vs, drop (length k) str)
+        | k `isPrefixOf` str = (v, drop (length k) str)
         | otherwise = replaceStart kvs str
 
 -- | An extensible formatter that allows new substition /variables/ to
@@ -98,31 +96,42 @@ replaceVarM keyVals (span (/= '$') -> (before,after)) = do
 -- to produce the string to substitute for the variable name.  The
 -- predefined variables are the same as for 'simpleLogFormatter'
 -- /excluding/ @$time@ and @$utcTime@.
-varFormatter :: [(String, IO Text)] -> String -> LogFormatter a
+varFormatter :: [(String, Text)] -> String -> LogFormatter a
 varFormatter vars format _h (prio,msg) loggername = do
-    replaceVarM (vars ++ predefinedVars) format
+    defaultVars  <- predefinedVars
+    platformVars <- osSpecificVars
+    return $ replaceVars (vars <> defaultVars <> platformVars) format
   where
-    predefinedVars = [ ("msg", pure msg)
-                     , ("prio", pure $ T.toUpper $ show prio)
-                     , ("loggername", pure $ T.pack loggername)
-                     , ("tid", show <$> myThreadId)
+    predefinedVars = do
+        tid <- T.pack . show <$> myThreadId
+        pure [ ("msg", msg)
+             , ("prio", T.toUpper $ show prio)
+             , ("loggername", T.pack loggername)
+             , ("tid", tid)
+             ]
 #ifndef mingw32_HOST_OS
-                     , ("pid", show <$> getProcessID)
+    osSpecificVars = do
+      pid <- T.pack . show <$> getProcessID
+      pure [("pid", pid)]
+#else
+    osSpecificVars = return mempty
 #endif
-                     ]
 
 
 -- | Like 'simpleLogFormatter' but allow the time format to be
 -- specified in the first parameter (this is passed to
 -- 'Date.Time.Format.formatTime')
 tfLogFormatter :: String -> String -> LogFormatter a
-tfLogFormatter timeFormat format = do
-    let ftime :: FormatTime t => t -> Text
-        ftime = T.pack . formatTime defaultTimeLocale timeFormat
-    varFormatter [ ("time", ftime <$> getZonedTime)
-                 , ("utcTime", ftime <$> getCurrentTime)
+tfLogFormatter timeFormat format = \h kv loggername -> do
+    time    <- ftime <$> getZonedTime
+    utcTime <- ftime <$> getCurrentTime
+    varFormatter [ ("time", time)
+                 , ("utcTime", utcTime)
                  ]
-        format
+        format h kv loggername
+  where
+     ftime :: FormatTime t => t -> Text
+     ftime = T.pack . formatTime defaultTimeLocale timeFormat
 
 -- | Takes a format string, and returns a formatter that may be used
 --   to format log messages.  The format string may contain variables
