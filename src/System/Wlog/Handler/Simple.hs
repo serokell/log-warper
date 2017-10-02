@@ -27,6 +27,8 @@ import           Control.Concurrent      (modifyMVar_, withMVar)
 import           Control.Exception       (SomeException)
 import qualified Data.Text.IO            as TIO
 import           Data.Typeable           (Typeable)
+import           System.Directory        (createDirectoryIfMissing)
+import           System.FilePath         (takeDirectory)
 import           System.IO               (Handle, IOMode (ReadWriteMode),
                                           SeekMode (SeekFromEnd), hClose, hFlush, hSeek)
 import           Universum
@@ -98,6 +100,7 @@ streamHandler h sev = do
 -- Append mode.  Calling 'close' on the handler will close the file.
 fileHandler :: FilePath -> Severity -> IO (GenericHandler Handle)
 fileHandler fp sev = do
+    createDirectoryIfMissing True (takeDirectory fp)
     h <- openFile fp ReadWriteMode
     hSeek h SeekFromEnd 0
     sh <- streamHandler h sev
