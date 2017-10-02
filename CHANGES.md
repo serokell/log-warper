@@ -1,3 +1,7 @@
+1.2.3
+=====
+
+* Now we create a directory for log files if it's missing.
 
 1.2.2
 =====
