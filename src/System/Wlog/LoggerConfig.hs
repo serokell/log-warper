@@ -38,6 +38,7 @@ module System.Wlog.LoggerConfig
        , lcMapper
        , lcRotation
        , lcShowTime
+       , lcTimeFormat
        , lcShowTid
        , lcTermSeverity
        , lcTree
@@ -46,6 +47,8 @@ module System.Wlog.LoggerConfig
          -- ** Builders for 'LoggerConfig'
        , consoleOutB
        , mapperB
+       , maybePrefixB
+       , maybeTimeFormatB
        , prefixB
        , productionB
        , showTidB
@@ -80,7 +83,6 @@ import           System.Wlog.Wrapper    (Severity)
 filterObject :: [Text] -> HashMap Text a -> HashMap Text a
 filterObject excluded = HM.filterWithKey $ \k _ -> k `notElem` excluded
 
-
 ----------------------------------------------------------------------------
 -- LoggerTree
 ----------------------------------------------------------------------------
@@ -105,7 +107,6 @@ data LoggerTree = LoggerTree
     } deriving (Generic, Show)
 
 makeLenses ''LoggerTree
-
 
 -- TODO: QuickCheck tests on monoid laws
 instance Monoid LoggerTree where
@@ -198,6 +199,12 @@ data LoggerConfig = LoggerConfig
       -- Note that error messages always have timestamp.
     , _lcShowTime      :: Any
 
+      -- | Time format for messages. If not specified then next
+      -- default will be used:
+      -- >>> timeF "%Y-%m-%d %H:%M:%S%Q %Z" t
+      -- "2017-10-06 17:55:20.781549 MSK"
+    , _lcTimeFormat    :: Maybe Text
+
       -- | Show 'ThreadId' for current logging thread.
     , _lcShowTid       :: Any
 
@@ -222,10 +229,11 @@ instance Monoid LoggerConfig where
         { _lcRotation      = Nothing
         , _lcTermSeverity  = Nothing
         , _lcShowTime      = mempty
+        , _lcTimeFormat    = Nothing
         , _lcShowTid       = mempty
         , _lcConsoleOutput = mempty
         , _lcMapper        = mempty
-        , _lcFilePrefix    = mempty
+        , _lcFilePrefix    = Nothing
         , _lcTree          = mempty
         }
 
@@ -233,6 +241,7 @@ instance Monoid LoggerConfig where
         { _lcRotation      = orCombiner  _lcRotation
         , _lcTermSeverity  = orCombiner  _lcTermSeverity
         , _lcShowTime      = andCombiner _lcShowTime
+        , _lcTimeFormat    = orCombiner  _lcTimeFormat
         , _lcShowTid       = andCombiner _lcShowTid
         , _lcConsoleOutput = andCombiner _lcConsoleOutput
         , _lcMapper        = andCombiner _lcMapper
@@ -253,6 +262,7 @@ instance FromJSON LoggerConfig where
         _lcRotation      <-         o .:? "rotation"
         _lcTermSeverity  <-         o .:? "termSeverity"
         _lcShowTime      <- Any <$> o .:? "showTime"    .!= False
+        _lcTimeFormat    <-         o .:? "timeFormat"
         _lcShowTid       <- Any <$> o .:? "showTid"     .!= False
         _lcConsoleOutput <- Any <$> o .:? "printOutput" .!= False
         _lcFilePrefix    <-         o .:? "filePrefix"
@@ -267,6 +277,7 @@ instance ToJSON LoggerConfig where
             [ "rotation"     .= _lcRotation
             , "termSeverity" .= _lcTermSeverity
             , "showTime"     .= getAny _lcShowTime
+            , "timeFormat"   .= _lcTimeFormat
             , "showTid"      .= getAny _lcShowTid
             , "printOutput"  .= getAny _lcConsoleOutput
             , "filePrefix"   .= _lcFilePrefix
@@ -283,6 +294,10 @@ showTimeB = mempty { _lcShowTime = Any True }
 showTidB :: LoggerConfig
 showTidB = mempty { _lcShowTid = Any True }
 
+-- | Setup 'lcFilePrefix' inside 'LoggerConfig' to optional prefix.
+maybeTimeFormatB :: Maybe Text -> LoggerConfig
+maybeTimeFormatB format = mempty { _lcTimeFormat = format }
+
 -- | Setup 'lcConsoleOutput' inside 'LoggerConfig'.
 consoleOutB :: LoggerConfig
 consoleOutB = mempty { _lcConsoleOutput = Any True }
@@ -295,6 +310,10 @@ productionB = showTimeB <> consoleOutB
 mapperB :: (LoggerName -> LoggerName) -> LoggerConfig
 mapperB loggerNameMapper = mempty { _lcMapper = Endo loggerNameMapper }
 
--- | Setup 'lcFilePrefix' inside 'LoggerConfig'.
+-- | Setup 'lcFilePrefix' inside 'LoggerConfig' to optional prefix.
+maybePrefixB :: Maybe FilePath -> LoggerConfig
+maybePrefixB prefix = mempty { _lcFilePrefix = prefix }
+
+-- | Setup 'lcFilePrefix' inside 'LoggerConfig' to specific prefix.
 prefixB :: FilePath -> LoggerConfig
-prefixB filePrefix = mempty { _lcFilePrefix = Just filePrefix }
+prefixB = maybePrefixB . Just

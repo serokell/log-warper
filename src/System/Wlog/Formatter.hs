@@ -15,9 +15,7 @@
 -- Please see "System.WLog.Logger" for extensive documentation on the
 -- logging system.
 module System.Wlog.Formatter
-       ( formatLogMessage
-       , formatLogMessageColors
-       , stdoutFormatter
+       ( stdoutFormatter
        , stderrFormatter
        , stdoutFormatterTimeRounded
        , getRoundedTime
@@ -33,11 +31,10 @@ module System.Wlog.Formatter
 import           Control.Concurrent     (myThreadId)
 import           Data.Monoid            (mconcat)
 import qualified Data.Text              as T
+import           Data.Text.Lazy.Builder as B
 import           Data.Time              (formatTime, getCurrentTime, getZonedTime)
 import           Data.Time.Clock        (UTCTime (..))
 import           Data.Time.Format       (FormatTime)
-import           Data.Text.Lazy.Builder as B
-import           Formatting             (Format, sformat, shown, stext, (%))
 import           Universum
 #ifndef mingw32_HOST_OS
 import           System.Posix.Process   (getProcessID)
@@ -49,9 +46,7 @@ import           System.Locale          (defaultTimeLocale)
 #endif
 
 import           System.Wlog.Color      (colorizer)
-import           System.Wlog.LoggerName (LoggerName, loggerNameF)
-import           System.Wlog.Severity   (LogRecord(..), Severity (..))
-
+import           System.Wlog.Severity   (LogRecord (..), Severity (..))
 
 ----------------------------------------------------------------------------
 -- Basic formatting functionality (initially taken from hslogger)
@@ -174,34 +169,32 @@ getRoundedTime roundN = do
     roundBy :: (Num a, Integral a) => a -> a
     roundBy x = let y = x `div` fromIntegral roundN in y * fromIntegral roundN
 
-stderrFormatter :: Bool -> LogFormatter a
-stderrFormatter isShowTid = simpleLogFormatter $
-    mconcat $! [colorizer Error $ "[$loggername:$prio" <> tid <> "] ", timeFmt, "$msg"]
-  where
-    tid = if isShowTid then ":$tid" else ""
-
 stdoutFmt :: Severity -> Bool -> Bool -> Text
 stdoutFmt pr isShowTime isShowTid = mconcat $!
     [colorizer pr $ "[$loggername:$prio" <> tid <> "] ", timeFmtStdout isShowTime, "$msg"]
   where
     tid = if isShowTid then ":$tid" else mempty
 
-stdoutFormatter :: Bool -> Bool -> LogFormatter a
-stdoutFormatter isShowTime isShowTid handle r@(LR pr _) =
-    simpleLogFormatter (stdoutFmt pr isShowTime isShowTid) handle r
+stdoutFormatter :: Text -> Bool -> Bool -> LogFormatter a
+stdoutFormatter timeFormat isShowTime isShowTid handle r@(LR pr _) =
+    tfLogFormatter timeFormat (stdoutFmt pr isShowTime isShowTid) handle r
 
-stdoutFormatterTimeRounded :: Int -> LogFormatter a
-stdoutFormatterTimeRounded roundN a r@(LR pr _) s = do
+stderrFormatter :: Text -> Bool -> LogFormatter a
+stderrFormatter timeFormat isShowTid handle r@(LR _ _) =
+    tfLogFormatter timeFormat (stdoutFmt Error True isShowTid) handle r
+
+stdoutFormatterTimeRounded :: Text -> Int -> LogFormatter a
+stdoutFormatterTimeRounded timeFormat roundN a r@(LR pr _) s = do
     t <- getRoundedTime roundN
     simpleLogFormatter (fmt t) a r s
   where
     fmt time = mconcat $!
         [ colorizer pr "[$loggername:$prio:$tid]"
         , " ["
-        , T.pack $ formatTime defaultTimeLocale "%Y-%m-%d %H:%M:%S %Z" time
+        , T.pack $ formatTime defaultTimeLocale (T.unpack timeFormat) time
         , "] $msg"]
 
--- TODO: do we need coloring here?
+{- TODO: not used anymore, but probably should
 formatLogMessage :: LoggerName -> Severity -> UTCTime -> Text -> Text
 formatLogMessage = sformat ("["%loggerNameF%":"%shown%"] ["%utcTimeF%"] "%stext)
   where
@@ -216,3 +209,4 @@ formatLogMessageColors lname severity time msg =
     prefix = sformat ("["%loggerNameF%":"%shown%"] ["%utcTimeF%"]") lname severity time
     utcTimeF :: Format r (UTCTime -> r)
     utcTimeF = shown
+-}

@@ -61,11 +61,17 @@ streamHandlerWithLock lock h sev = do
 -- 3. Applies `setSeverity` to given loggers. It can be done later using
 -- `setSeverity` directly.
 initTerminalLogging :: MonadIO m
-                    => Bool  -- ^ Show time?
+                    => Text
+                    -> Bool  -- ^ Show time?
                     -> Bool  -- ^ Show ThreadId?
                     -> Maybe Severity
                     -> m ()
-initTerminalLogging isShowTime isShowTid (fromMaybe Warning -> defaultSeverity) = liftIO $ do
+initTerminalLogging
+    timeFormat
+    isShowTime
+    isShowTid
+    (fromMaybe Warning -> defaultSeverity)
+  = liftIO $ do
     lock <- liftIO $ newMVar ()
     -- We set Debug here, to allow all messages by stdout handler.
     -- They will be filtered by loggers.
@@ -78,8 +84,8 @@ initTerminalLogging isShowTime isShowTid (fromMaybe Warning -> defaultSeverity) 
     updateGlobalLogger rootLoggerName $
         setLevel defaultSeverity
   where
-    setStdoutFormatter = (`setFormatter` stdoutFormatter isShowTime isShowTid)
-    setStderrFormatter = (`setFormatter` stderrFormatter isShowTid)
+    setStdoutFormatter = (`setFormatter` stdoutFormatter timeFormat isShowTime isShowTid)
+    setStderrFormatter = (`setFormatter` stderrFormatter timeFormat isShowTid)
 
 -- | Set severity for given logger. By default parent's severity is used.
 setSeverity :: MonadIO m => LoggerName -> Severity -> m ()
