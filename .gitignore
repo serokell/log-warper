@@ -23,3 +23,5 @@ cabal.project.local
 
 # test logs
 logs/
+.dir-locals.el
+*.svg

@@ -39,6 +39,7 @@ library
                      , ansi-terminal        >= 0.6.2.3
                      , base                 >= 4.7 && < 5
                      , containers           >= 0.5.7.0
+                     , deepseq              >= 1.2.0.0
                      , directory            >= 1.2.6.2
                      , dlist                >= 0.8.0.2
                      , errors               >= 2.1.2
@@ -70,6 +71,7 @@ library
   ghc-options:         -Wall -fno-warn-orphans
 
   default-extensions:  GeneralizedNewtypeDeriving
+                       BangPatterns
                        DeriveDataTypeable
                        DeriveGeneric
                        NoImplicitPrelude

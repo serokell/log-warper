@@ -4,7 +4,7 @@
 
 module System.Wlog.Severity
        ( Severity (..)
-       , LogRecord
+       , LogRecord(..)
        ) where
 
 import           Data.SafeCopy (base, deriveSafeCopySimple)
@@ -29,4 +29,4 @@ instance ToJSON   Severity
 deriveSafeCopySimple 0 'base ''Severity
 
 -- | Internal type of log records.
-type LogRecord = (Severity, Text)
+data LogRecord = LR !Severity !Text

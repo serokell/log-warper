@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE BangPatterns #-}
 
 -- | Queue for in-memory logs. Rolls out old logging if size of queue
 -- is bigger than predefined limit.
@@ -10,15 +11,18 @@ module System.Wlog.MemoryQueue
        , popLast
        , pushFront
        , toList
+       -- * Useful lenses
+       , mqMemSize
+       , mqLimit
        ) where
 
 import           Control.Lens        (to)
 import           Data.Sequence       (Seq, ViewR (..), viewr, (<|))
 import           Universum           hiding (toList)
 import qualified Universum           as U
+import qualified Data.Text           as T
 
-import           Control.Lens        (makeLenses, (%=), (+=))
-import           Control.Monad.Loops (whileM_)
+import           Control.Lens        (makeLenses)
 
 -- | Class for objects that have size. Implementations can take size
 -- as amount of memory items take, as amount of items in container,
@@ -26,10 +30,11 @@ import           Control.Monad.Loops (whileM_)
 class Sized e where
     getSize :: e -> Word64
 
--- Instance for text size that takes number of chars in text as size
--- (not actual bytes).
+-- Instance for text size that pessimistically multiply the number
+-- of characters by 16, although the char-varying nature of UTF16
+-- means this is greater or equal the true size in bytes.
 instance Sized Text where
-    getSize = fromIntegral . length
+    getSize = fromIntegral . (* 16) . T.length
 
 -- | Data structure similar to queue but pops out elements after
 -- 'pushFront' if 'mqMemSize' > 'mqLimit'.
@@ -56,13 +61,20 @@ popLast mq@MemoryQueue{..} = case viewr _mqQueue of
 -- | Add new element at the beginning removing elements from the end
 -- until size become not greater than limit.
 pushFront :: (Sized a) => a -> MemoryQueue a -> MemoryQueue a
-pushFront msg mq = executingState mq $ do
-    mqMemSize += getSize msg
-    mqQueue   %= (msg <|)
-    whileM_ isLimitExceeded $
-        modify (snd . popLast)
+pushFront msg oldQueue =
+  let msgSize = getSize msg
+      newSize = _mqMemSize oldQueue + msgSize
+  in resize oldQueue {
+      _mqMemSize = newSize
+    , _mqQueue   = msg <| _mqQueue oldQueue
+    }
   where
-    isLimitExceeded = liftA2 (<) (use mqLimit) (use mqMemSize)
+    -- Resize the queue so that the inner @Seq@ won't contain more than mqLimit
+    -- elements.
+    resize :: Sized a => MemoryQueue a -> MemoryQueue a
+    resize theQueue = case _mqMemSize theQueue > _mqLimit theQueue of
+        False -> theQueue
+        True  -> let (_, q') = popLast theQueue in resize $! q'
 
 -- | Converts queue to list of messages.
 toList :: (Sized a) => MemoryQueue a -> [a]

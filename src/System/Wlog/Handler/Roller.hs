@@ -10,6 +10,7 @@ module System.Wlog.Handler.Roller
 import           Control.Concurrent         (modifyMVar, modifyMVar_, withMVar)
 import qualified Data.Text                  as T
 import qualified Data.Text.IO               as TIO
+import           Data.Text.Lazy.Builder     as B
 import           Formatting                 (sformat, shown, (%))
 import           Universum
 
@@ -45,7 +46,7 @@ instance LogHandler RollerHandler where
     getFormatter      = rhFormatter
     readBack          = rollerReadback
 
-    emit rh (_, msg) _      = rhWriteAction rh (error "Handler is used internally") msg
+    emit rh bldr _    = rhWriteAction rh (error "Handler is used internally") (toText . B.toLazyText $ bldr)
     close RollerHandler{..} = withMVar rhFileHandle rhCloseAction
 
 data InvalidRotation = InvalidRotation !Text
