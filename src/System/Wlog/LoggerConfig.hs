@@ -38,7 +38,6 @@ module System.Wlog.LoggerConfig
        , lcMapper
        , lcRotation
        , lcShowTime
-       , lcTimeFormat
        , lcShowTid
        , lcTermSeverity
        , lcTree
@@ -48,7 +47,6 @@ module System.Wlog.LoggerConfig
        , consoleOutB
        , mapperB
        , maybePrefixB
-       , maybeTimeFormatB
        , prefixB
        , productionB
        , showTidB
@@ -199,12 +197,6 @@ data LoggerConfig = LoggerConfig
       -- Note that error messages always have timestamp.
     , _lcShowTime      :: Any
 
-      -- | Time format for messages. If not specified then next
-      -- default will be used:
-      -- >>> timeF "%Y-%m-%d %H:%M:%S%Q %Z" t
-      -- "2017-10-06 17:55:20.781549 MSK"
-    , _lcTimeFormat    :: Maybe Text
-
       -- | Show 'ThreadId' for current logging thread.
     , _lcShowTid       :: Any
 
@@ -229,7 +221,6 @@ instance Monoid LoggerConfig where
         { _lcRotation      = Nothing
         , _lcTermSeverity  = Nothing
         , _lcShowTime      = mempty
-        , _lcTimeFormat    = Nothing
         , _lcShowTid       = mempty
         , _lcConsoleOutput = mempty
         , _lcMapper        = mempty
@@ -241,7 +232,6 @@ instance Monoid LoggerConfig where
         { _lcRotation      = orCombiner  _lcRotation
         , _lcTermSeverity  = orCombiner  _lcTermSeverity
         , _lcShowTime      = andCombiner _lcShowTime
-        , _lcTimeFormat    = orCombiner  _lcTimeFormat
         , _lcShowTid       = andCombiner _lcShowTid
         , _lcConsoleOutput = andCombiner _lcConsoleOutput
         , _lcMapper        = andCombiner _lcMapper
@@ -262,7 +252,6 @@ instance FromJSON LoggerConfig where
         _lcRotation      <-         o .:? "rotation"
         _lcTermSeverity  <-         o .:? "termSeverity"
         _lcShowTime      <- Any <$> o .:? "showTime"    .!= False
-        _lcTimeFormat    <-         o .:? "timeFormat"
         _lcShowTid       <- Any <$> o .:? "showTid"     .!= False
         _lcConsoleOutput <- Any <$> o .:? "printOutput" .!= False
         _lcFilePrefix    <-         o .:? "filePrefix"
@@ -277,7 +266,6 @@ instance ToJSON LoggerConfig where
             [ "rotation"     .= _lcRotation
             , "termSeverity" .= _lcTermSeverity
             , "showTime"     .= getAny _lcShowTime
-            , "timeFormat"   .= _lcTimeFormat
             , "showTid"      .= getAny _lcShowTid
             , "printOutput"  .= getAny _lcConsoleOutput
             , "filePrefix"   .= _lcFilePrefix
@@ -293,10 +281,6 @@ showTimeB = mempty { _lcShowTime = Any True }
 -- | Setup 'lcShowTid' to 'True' inside 'LoggerConfig'.
 showTidB :: LoggerConfig
 showTidB = mempty { _lcShowTid = Any True }
-
--- | Setup 'lcFilePrefix' inside 'LoggerConfig' to optional prefix.
-maybeTimeFormatB :: Maybe Text -> LoggerConfig
-maybeTimeFormatB format = mempty { _lcTimeFormat = format }
 
 -- | Setup 'lcConsoleOutput' inside 'LoggerConfig'.
 consoleOutB :: LoggerConfig

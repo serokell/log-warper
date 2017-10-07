@@ -18,6 +18,7 @@ module System.Wlog.Formatter
        ( stdoutFormatter
        , stderrFormatter
        , stdoutFormatterTimeRounded
+       , centiUtcTimeF
        , getRoundedTime
 
        -- * Taken from @hslogger@.
@@ -28,6 +29,8 @@ module System.Wlog.Formatter
        , varFormatter
        ) where
 
+import           Universum
+
 import           Control.Concurrent     (myThreadId)
 import           Data.Monoid            (mconcat)
 import qualified Data.Text              as T
@@ -35,7 +38,9 @@ import           Data.Text.Lazy.Builder as B
 import           Data.Time              (formatTime, getCurrentTime, getZonedTime)
 import           Data.Time.Clock        (UTCTime (..))
 import           Data.Time.Format       (FormatTime)
-import           Universum
+import           Fmt                    (fmt, padRightF, (+|), (|+), (|++|))
+import           Fmt.Time               (dateDashF, hmsF, subsecondF, tzNameF)
+
 #ifndef mingw32_HOST_OS
 import           System.Posix.Process   (getProcessID)
 #endif
@@ -154,11 +159,16 @@ simpleLogFormatter format h logRecord loggername =
 -- Log-warper functionality
 ----------------------------------------------------------------------------
 
-timeFmt :: Text
-timeFmt = "[$time] "
-
-timeFmtStdout :: Bool -> Text
-timeFmtStdout = bool mempty timeFmt
+-- | Formats UTC time in next format: "%Y-%m-%d %H:%M:%S%Q %Z"
+-- but %Q part show only in centiseconds (always 2 digits).
+centiUtcTimeF :: UTCTime -> Text
+centiUtcTimeF t =
+    dateDashF    t |+ " "
+ +| hmsF         t |++|
+    centiSecondF t |+ " "
+ +| tzNameF      t |+ ""
+  where
+    centiSecondF = padRightF 3 '0' . T.take 3 . fmt . subsecondF
 
 getRoundedTime :: Int -> IO UTCTime
 getRoundedTime roundN = do
@@ -169,30 +179,46 @@ getRoundedTime roundN = do
     roundBy :: (Num a, Integral a) => a -> a
     roundBy x = let y = x `div` fromIntegral roundN in y * fromIntegral roundN
 
-stdoutFmt :: Severity -> Bool -> Bool -> Text
-stdoutFmt pr isShowTime isShowTid = mconcat $!
-    [colorizer pr $ "[$loggername:$prio" <> tid <> "] ", timeFmtStdout isShowTime, "$msg"]
+stdoutFormatter :: (UTCTime -> Text) -> Bool -> Bool -> LogFormatter a
+stdoutFormatter timeF isShowTime isShowTid handle record message = do
+    time <- getCurrentTime
+    createLogFormatter isShowTime isShowTid timeF time handle record message
+
+stderrFormatter :: (UTCTime -> Text) -> Bool -> LogFormatter a
+stderrFormatter timeF isShowTid handle (LR _ x) message = do
+    time <- getCurrentTime
+    createLogFormatter True isShowTid timeF time handle (LR Error x) message
+
+stdoutFormatterTimeRounded :: (UTCTime -> Text) -> Int -> LogFormatter a
+stdoutFormatterTimeRounded timeF roundN handle record message = do
+    time <- getRoundedTime roundN
+    createLogFormatter True True timeF time handle record message
+
+createLogFormatter
+    :: Bool
+    -> Bool
+    -> (UTCTime -> Text)
+    -> UTCTime
+    -> LogFormatter a
+createLogFormatter
+    isShowTime
+    isShowTid
+    timeF
+    time
+    handle
+    record@(LR priority _)
+  =
+    simpleLogFormatter format handle record
   where
-    tid = if isShowTid then ":$tid" else mempty
+    format = mconcat $!
+        [ colorizer priority $ "[$loggername:$prio" <> tidShower <> "] "
+        , timeShower
+        , "$msg"
+        ]
 
-stdoutFormatter :: Text -> Bool -> Bool -> LogFormatter a
-stdoutFormatter timeFormat isShowTime isShowTid handle r@(LR pr _) =
-    tfLogFormatter timeFormat (stdoutFmt pr isShowTime isShowTid) handle r
-
-stderrFormatter :: Text -> Bool -> LogFormatter a
-stderrFormatter timeFormat isShowTid handle r@(LR _ _) =
-    tfLogFormatter timeFormat (stdoutFmt Error True isShowTid) handle r
-
-stdoutFormatterTimeRounded :: Text -> Int -> LogFormatter a
-stdoutFormatterTimeRounded timeFormat roundN a r@(LR pr _) s = do
-    t <- getRoundedTime roundN
-    simpleLogFormatter (fmt t) a r s
-  where
-    fmt time = mconcat $!
-        [ colorizer pr "[$loggername:$prio:$tid]"
-        , " ["
-        , T.pack $ formatTime defaultTimeLocale (T.unpack timeFormat) time
-        , "] $msg"]
+    timeShower, tidShower :: Text
+    timeShower = if isShowTime then "[" <> timeF time <> "] " else mempty
+    tidShower  = if isShowTid  then ":$tid"                   else mempty
 
 {- TODO: not used anymore, but probably should
 formatLogMessage :: LoggerName -> Severity -> UTCTime -> Text -> Text
