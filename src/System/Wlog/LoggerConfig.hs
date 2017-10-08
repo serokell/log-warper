@@ -46,6 +46,7 @@ module System.Wlog.LoggerConfig
          -- ** Builders for 'LoggerConfig'
        , consoleOutB
        , mapperB
+       , maybePrefixB
        , prefixB
        , productionB
        , showTidB
@@ -80,7 +81,6 @@ import           System.Wlog.Wrapper    (Severity)
 filterObject :: [Text] -> HashMap Text a -> HashMap Text a
 filterObject excluded = HM.filterWithKey $ \k _ -> k `notElem` excluded
 
-
 ----------------------------------------------------------------------------
 -- LoggerTree
 ----------------------------------------------------------------------------
@@ -105,7 +105,6 @@ data LoggerTree = LoggerTree
     } deriving (Generic, Show)
 
 makeLenses ''LoggerTree
-
 
 -- TODO: QuickCheck tests on monoid laws
 instance Monoid LoggerTree where
@@ -225,7 +224,7 @@ instance Monoid LoggerConfig where
         , _lcShowTid       = mempty
         , _lcConsoleOutput = mempty
         , _lcMapper        = mempty
-        , _lcFilePrefix    = mempty
+        , _lcFilePrefix    = Nothing
         , _lcTree          = mempty
         }
 
@@ -295,6 +294,10 @@ productionB = showTimeB <> consoleOutB
 mapperB :: (LoggerName -> LoggerName) -> LoggerConfig
 mapperB loggerNameMapper = mempty { _lcMapper = Endo loggerNameMapper }
 
--- | Setup 'lcFilePrefix' inside 'LoggerConfig'.
+-- | Setup 'lcFilePrefix' inside 'LoggerConfig' to optional prefix.
+maybePrefixB :: Maybe FilePath -> LoggerConfig
+maybePrefixB prefix = mempty { _lcFilePrefix = prefix }
+
+-- | Setup 'lcFilePrefix' inside 'LoggerConfig' to specific prefix.
 prefixB :: FilePath -> LoggerConfig
-prefixB filePrefix = mempty { _lcFilePrefix = Just filePrefix }
+prefixB = maybePrefixB . Just

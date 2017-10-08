@@ -24,6 +24,7 @@ module System.Wlog.Wrapper
 import           Universum
 
 import           Control.Concurrent.MVar    (withMVar)
+import           Data.Time                  (UTCTime)
 import           System.IO                  (Handle, stderr, stdout)
 
 import           System.Wlog.Formatter      (stderrFormatter, stdoutFormatter)
@@ -61,11 +62,17 @@ streamHandlerWithLock lock h sev = do
 -- 3. Applies `setSeverity` to given loggers. It can be done later using
 -- `setSeverity` directly.
 initTerminalLogging :: MonadIO m
-                    => Bool  -- ^ Show time?
+                    => (UTCTime -> Text)
+                    -> Bool  -- ^ Show time?
                     -> Bool  -- ^ Show ThreadId?
                     -> Maybe Severity
                     -> m ()
-initTerminalLogging isShowTime isShowTid (fromMaybe Warning -> defaultSeverity) = liftIO $ do
+initTerminalLogging
+    timeF
+    isShowTime
+    isShowTid
+    (fromMaybe Warning -> defaultSeverity)
+  = liftIO $ do
     lock <- liftIO $ newMVar ()
     -- We set Debug here, to allow all messages by stdout handler.
     -- They will be filtered by loggers.
@@ -78,8 +85,8 @@ initTerminalLogging isShowTime isShowTid (fromMaybe Warning -> defaultSeverity) 
     updateGlobalLogger rootLoggerName $
         setLevel defaultSeverity
   where
-    setStdoutFormatter = (`setFormatter` stdoutFormatter isShowTime isShowTid)
-    setStderrFormatter = (`setFormatter` stderrFormatter isShowTid)
+    setStdoutFormatter = (`setFormatter` stdoutFormatter timeF isShowTime isShowTid)
+    setStderrFormatter = (`setFormatter` stderrFormatter timeF isShowTid)
 
 -- | Set severity for given logger. By default parent's severity is used.
 setSeverity :: MonadIO m => LoggerName -> Severity -> m ()

@@ -83,7 +83,7 @@ logThreadsNum = 4
 writeConcurrentLogs :: RotationParameters -> LinesToLog -> IO ()
 writeConcurrentLogs rp@RotationParameters{..} (getNumberOfLinesToLog -> linesNum) =
     bracket_
-        (setupLogging $ testLoggerConfig rp)
+        (setupLogging Nothing $ testLoggerConfig rp)
         releaseAllHandlers
         concurrentWriting
   where

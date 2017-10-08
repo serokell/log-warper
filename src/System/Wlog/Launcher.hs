@@ -36,12 +36,14 @@ import           Control.Error.Util         ((?:))
 import           Control.Exception          (throwIO)
 import qualified Data.HashMap.Strict        as HM hiding (HashMap)
 import qualified Data.Text                  as T
+import           Data.Time                  (UTCTime)
 import           Data.Yaml                  (decodeFileEither)
 import           System.Directory           (createDirectoryIfMissing)
 import           System.FilePath            ((</>))
 import           Universum
 
-import           System.Wlog.Formatter      (stdoutFormatter, stdoutFormatterTimeRounded)
+import           System.Wlog.Formatter      (centiUtcTimeF, stdoutFormatter,
+                                             stdoutFormatterTimeRounded)
 import           System.Wlog.Handler        (LogHandler (setFormatter))
 import           System.Wlog.Handler.Roller (rotationFileHandler)
 import           System.Wlog.Handler.Simple (fileHandler)
@@ -58,18 +60,22 @@ data HandlerFabric
 -- | This function traverses 'LoggerConfig' initializing all subloggers
 -- with 'Severity' and redirecting output in file handlers.
 -- See 'LoggerConfig' for more details.
-setupLogging :: MonadIO m => LoggerConfig -> m ()
-setupLogging LoggerConfig{..} = do
+setupLogging :: MonadIO m => Maybe (UTCTime -> Text) -> LoggerConfig -> m ()
+setupLogging mTimeFunction LoggerConfig{..} = do
     liftIO $ createDirectoryIfMissing True handlerPrefix
 
     when consoleOutput $
-        initTerminalLogging isShowTime isShowTid _lcTermSeverity
+        initTerminalLogging timeF
+                            isShowTime
+                            isShowTid
+                            _lcTermSeverity
 
     liftIO $ setPrefix _lcFilePrefix
     processLoggers mempty _lcTree
   where
     handlerPrefix = _lcFilePrefix ?: "."
     logMapper     = appEndo _lcMapper
+    timeF         = fromMaybe centiUtcTimeF mTimeFunction
     isShowTime    = getAny _lcShowTime
     isShowTid     = getAny _lcShowTid
     consoleOutput = getAny _lcConsoleOutput
@@ -91,8 +97,8 @@ setupLogging LoggerConfig{..} = do
             case handlerFabric of
                 HandlerFabric fabric -> do
                     let handlerCreator = fabric handlerPath fileSeverity
-                    let defFmt = (`setFormatter` stdoutFormatter isShowTime isShowTid)
-                    let roundFmt r = (`setFormatter` stdoutFormatterTimeRounded r)
+                    let defFmt = (`setFormatter` stdoutFormatter timeF isShowTime isShowTid)
+                    let roundFmt r = (`setFormatter` stdoutFormatterTimeRounded timeF r)
                     let fmt = maybe defFmt roundFmt _hwRounding
                     thisLoggerHandler <- fmt <$> handlerCreator
                     updateGlobalLogger (loggerName parent) $ addHandler thisLoggerHandler
@@ -112,7 +118,7 @@ buildAndSetupYamlLogging :: MonadIO m => LoggerConfig -> FilePath -> m ()
 buildAndSetupYamlLogging configBuilder loggerConfigPath = do
     cfg@LoggerConfig{..} <- parseLoggerConfig loggerConfigPath
     let builtConfig       = cfg <> configBuilder
-    setupLogging builtConfig
+    setupLogging Nothing builtConfig
 
 -- | Initialize logger hierarchy from configuration file.
 -- See this module description.
