@@ -1,3 +1,13 @@
+1.3.1
+=====
+
+* Fix minor bug with stdout severity.
+
+1.3.0
+=====
+
+* Allow to use arbitrary text formatter function.
+
 1.2.4
 =====
 

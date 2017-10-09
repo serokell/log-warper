@@ -77,7 +77,7 @@ initTerminalLogging
     -- We set Debug here, to allow all messages by stdout handler.
     -- They will be filtered by loggers.
     stdoutHandler <- setStdoutFormatter <$>
-        streamHandlerWithLock lock stdout Debug
+        streamHandlerWithLock lock stdout defaultSeverity
     stderrHandler <- setStderrFormatter <$>
         streamHandlerWithLock lock stderr Error
     updateGlobalLogger rootLoggerName $
