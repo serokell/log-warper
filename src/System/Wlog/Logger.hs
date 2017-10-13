@@ -70,7 +70,7 @@ import           System.Wlog.Handler        (LogHandler (getTag),
                                              readBack)
 import qualified System.Wlog.Handler        (handle)
 import           System.Wlog.Handler.Simple (streamHandler)
-import           System.Wlog.Severity       (LogRecord(..), Severity (..))
+import           System.Wlog.Severity       (LogRecord (..), Severity (..))
 
 
 ---------------------------------------------------------------------------
@@ -321,7 +321,7 @@ updateGlobalLogger ln func =
 removeAllHandlers :: IO ()
 removeAllHandlers =
     modifyMVar_ logInternalState $ \LogInternalState{..} -> do
-        let allHandlers = M.fold (\l r -> concat [r, view lHandlers l]) [] liTree
+        let allHandlers = M.foldr (\l r -> concat [r, view lHandlers l]) [] liTree
         mapM_ (\(HandlerT h) -> close h) allHandlers
         let newTree = map (lHandlers .~ []) liTree
         return $ LogInternalState newTree liPrefix
