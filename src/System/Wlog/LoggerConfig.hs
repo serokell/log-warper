@@ -59,7 +59,6 @@ import           Control.Lens           (at, makeLenses, zoom, _Just)
 import           Control.Monad.State    (put)
 import           Data.Aeson             (withObject)
 import qualified Data.HashMap.Strict    as HM hiding (HashMap)
-import           Data.List              (notElem)
 import           Data.Monoid            (Any (..))
 import           Data.Text              (Text)
 import qualified Data.Text.Buildable    as Buildable
