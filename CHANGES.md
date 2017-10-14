@@ -1,3 +1,13 @@
+1.3.3
+=====
+
+* Fixed a bug related to ugly output to stdout even when it was turned off.
+
+1.3.2
+=====
+
+* Minor dependencies update.
+
 1.3.1
 =====
 
