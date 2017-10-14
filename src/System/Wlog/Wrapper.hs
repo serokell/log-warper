@@ -74,8 +74,6 @@ initTerminalLogging
     (fromMaybe Warning -> defaultSeverity)
   = liftIO $ do
     lock <- liftIO $ newMVar ()
-    -- We set Debug here, to allow all messages by stdout handler.
-    -- They will be filtered by loggers.
     stdoutHandler <- setStdoutFormatter <$>
         streamHandlerWithLock lock stdout defaultSeverity
     stderrHandler <- setStderrFormatter <$>

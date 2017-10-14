@@ -46,7 +46,8 @@ showPureLog = do
 main :: IO ()
 main = do
     testToJsonConfigOutput
+    let config = (productionB <> prefixB "logs")
     bracket_
-        (buildAndSetupYamlLogging (productionB <> prefixB "logs") testLoggerConfigPath)
+        (buildAndSetupYamlLogging config testLoggerConfigPath)
         releaseAllHandlers
         (testLogging >> showPureLog)

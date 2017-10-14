@@ -54,23 +54,22 @@ module System.Wlog.Logger
        , retrieveLogContent
        ) where
 
-import           Control.Concurrent.MVar    (modifyMVar, modifyMVar_, withMVar)
-import           Control.Lens               (makeLenses)
-import           Data.List                  (isPrefixOf)
-import qualified Data.Map                   as M
-import           Data.Maybe                 (fromJust)
-import qualified Data.Text                  as T
-import qualified Data.Text.IO               as TIO
-import           System.FilePath            ((</>))
-import           System.IO.Unsafe           (unsafePerformIO)
+import           Control.Concurrent.MVar (modifyMVar, modifyMVar_, withMVar)
+import           Control.Lens            (makeLenses)
+import           Data.List               (isPrefixOf)
+import qualified Data.Map                as M
+import           Data.Maybe              (fromJust)
+import qualified Data.Text               as T
+import qualified Data.Text.IO            as TIO
+import           System.FilePath         ((</>))
+import           System.IO.Unsafe        (unsafePerformIO)
 import           Universum
 
-import           System.Wlog.Handler        (LogHandler (getTag),
-                                             LogHandlerTag (HandlerFilelike), close,
-                                             readBack)
-import qualified System.Wlog.Handler        (handle)
-import           System.Wlog.Handler.Simple (streamHandler)
-import           System.Wlog.Severity       (LogRecord (..), Severity (..))
+import           System.Wlog.Handler     (LogHandler (getTag),
+                                          LogHandlerTag (HandlerFilelike), close,
+                                          readBack)
+import qualified System.Wlog.Handler     (handle)
+import           System.Wlog.Severity    (LogRecord (..), Severity (..))
 
 
 ---------------------------------------------------------------------------
@@ -112,11 +111,10 @@ rootLoggerName = ""
 logInternalState :: MVar LogInternalState
 -- note: only kick up tree if handled locally
 logInternalState = unsafePerformIO $ do
-    h <- streamHandler stderr Debug
     let liTree = M.singleton rootLoggerName $
                  Logger { _lLevel = Just Warning
                         , _lName = ""
-                        , _lHandlers = [HandlerT h]}
+                        , _lHandlers = []}
         liPrefix = Nothing
     newMVar $ LogInternalState {..}
 
@@ -250,7 +248,7 @@ handle l lrecord@(LR sev _) handlerFilter = do
     callHandler :: LogRecord -> String -> HandlerT -> IO ()
     callHandler lr loggername (HandlerT x) =
         when (handlerFilter $ getTag x) $
-        System.Wlog.Handler.handle x lr loggername
+            System.Wlog.Handler.handle x lr loggername
 
 -- | Sets file prefix to 'LogInternalState'.
 setPrefix :: Maybe FilePath -> IO ()

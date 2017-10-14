@@ -29,4 +29,4 @@ instance ToJSON   Severity
 deriveSafeCopySimple 0 'base ''Severity
 
 -- | Internal type of log records.
-data LogRecord = LR !Severity !Text
+data LogRecord = LR !Severity !Text deriving Show
