@@ -1,5 +1,5 @@
 name:                log-warper
-version:             1.3.2
+version:             1.3.3
 synopsis:            Flexible, configurable, monadic and pretty logging
 homepage:            https://github.com/serokell/log-warper
 license:             MIT
