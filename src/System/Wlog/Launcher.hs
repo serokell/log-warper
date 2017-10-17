@@ -32,6 +32,8 @@ module System.Wlog.Launcher
        , setupLogging
        ) where
 
+import           Universum
+
 import           Control.Error.Util         ((?:))
 import           Control.Exception          (throwIO)
 import qualified Data.HashMap.Strict        as HM hiding (HashMap)
@@ -40,7 +42,6 @@ import           Data.Time                  (UTCTime)
 import           Data.Yaml                  (decodeFileEither)
 import           System.Directory           (createDirectoryIfMissing)
 import           System.FilePath            ((</>))
-import           Universum
 
 import           System.Wlog.Formatter      (centiUtcTimeF, stdoutFormatter,
                                              stdoutFormatterTimeRounded)
@@ -64,8 +65,9 @@ setupLogging :: MonadIO m => Maybe (UTCTime -> Text) -> LoggerConfig -> m ()
 setupLogging mTimeFunction LoggerConfig{..} = do
     liftIO $ createDirectoryIfMissing True handlerPrefix
 
-    when consoleOutput $
+    whenJust consoleAction $ \customTerminalAction ->
         initTerminalLogging timeF
+                            customTerminalAction
                             isShowTime
                             isShowTid
                             _lcTermSeverity
@@ -78,7 +80,7 @@ setupLogging mTimeFunction LoggerConfig{..} = do
     timeF         = fromMaybe centiUtcTimeF mTimeFunction
     isShowTime    = getAny _lcShowTime
     isShowTid     = getAny _lcShowTid
-    consoleOutput = getAny _lcConsoleOutput
+    consoleAction = getLast _lcConsoleAction
 
     handlerFabric :: HandlerFabric
     handlerFabric = case _lcRotation of
@@ -88,7 +90,7 @@ setupLogging mTimeFunction LoggerConfig{..} = do
     processLoggers :: MonadIO m => LoggerName -> LoggerTree -> m ()
     processLoggers parent LoggerTree{..} = do
         -- This prevents logger output to appear in terminal
-        unless (parent == mempty && not consoleOutput) $
+        unless (parent == mempty && isNothing consoleAction) $
             setSeverityMaybe parent _ltSeverity
 
         forM_ _ltFiles $ \HandlerWrap{..} -> liftIO $ do
