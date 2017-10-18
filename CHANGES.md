@@ -1,3 +1,8 @@
+1.3.4
+====
+
+* Correct logger config parsing
+
 1.3.3
 =====
 
