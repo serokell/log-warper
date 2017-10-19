@@ -33,7 +33,7 @@ module System.Wlog.LoggerConfig
        , LoggerConfig (..)
 
          -- ** Lenses
-       , lcConsoleOutput
+       , lcConsoleAction
        , lcFilePrefix
        , lcMapper
        , lcRotation
@@ -44,34 +44,37 @@ module System.Wlog.LoggerConfig
        , zoomLogger
 
          -- ** Builders for 'LoggerConfig'
-       , consoleOutB
+       , consoleActionB
+       , customConsoleActionB
        , mapperB
        , maybePrefixB
        , prefixB
        , productionB
        , showTidB
        , showTimeB
+       , termSeverityB
        ) where
 
 import           Universum
 
-import           Control.Lens           (at, makeLenses, zoom, _Just)
-import           Control.Monad.State    (put)
-import           Data.Aeson             (withObject)
-import qualified Data.HashMap.Strict    as HM hiding (HashMap)
-import           Data.Monoid            (Any (..))
-import           Data.Text              (Text)
-import qualified Data.Text.Buildable    as Buildable
-import           Data.Traversable       (for)
-import           Data.Word              (Word64)
-import           Data.Yaml              (FromJSON (..), ToJSON (..), Value (Object),
-                                         object, (.!=), (.:), (.:?), (.=))
-import           Formatting             (bprint, shown)
-import           GHC.Generics           (Generic)
-import           System.FilePath        (normalise)
+import           Control.Lens               (at, makeLenses, zoom, _Just)
+import           Control.Monad.State        (put)
+import           Data.Aeson                 (withObject)
+import qualified Data.HashMap.Strict        as HM hiding (HashMap)
+import           Data.Monoid                (Any (..))
+import           Data.Text                  (Text)
+import qualified Data.Text.Buildable        as Buildable
+import           Data.Traversable           (for)
+import           Data.Word                  (Word64)
+import           Data.Yaml                  (FromJSON (..), ToJSON (..), Value (Object),
+                                             object, (.!=), (.:), (.:?), (.=))
+import           Formatting                 (bprint, shown)
+import           GHC.Generics               (Generic)
+import           System.FilePath            (normalise)
 
-import           System.Wlog.LoggerName (LoggerName)
-import           System.Wlog.Wrapper    (Severity)
+import           System.Wlog.Handler.Simple (defaultHandleAction)
+import           System.Wlog.LoggerName     (LoggerName)
+import           System.Wlog.Severity       (Severity)
 
 ----------------------------------------------------------------------------
 -- Utilites & helpers
@@ -199,8 +202,8 @@ data LoggerConfig = LoggerConfig
       -- | Show 'ThreadId' for current logging thread.
     , _lcShowTid       :: Any
 
-      -- | @True@ if we should also print output into console.
-    , _lcConsoleOutput :: Any
+      -- | Specifies action for printing to console.
+    , _lcConsoleAction :: Last (Handle -> Text -> IO ())
 
       -- | Defines how to transform logger names in config.
     , _lcMapper        :: Endo LoggerName
@@ -221,7 +224,7 @@ instance Monoid LoggerConfig where
         , _lcTermSeverity  = Nothing
         , _lcShowTime      = mempty
         , _lcShowTid       = mempty
-        , _lcConsoleOutput = mempty
+        , _lcConsoleAction = mempty
         , _lcMapper        = mempty
         , _lcFilePrefix    = Nothing
         , _lcTree          = mempty
@@ -232,7 +235,7 @@ instance Monoid LoggerConfig where
         , _lcTermSeverity  = orCombiner  _lcTermSeverity
         , _lcShowTime      = andCombiner _lcShowTime
         , _lcShowTid       = andCombiner _lcShowTid
-        , _lcConsoleOutput = andCombiner _lcConsoleOutput
+        , _lcConsoleAction = andCombiner _lcConsoleAction
         , _lcMapper        = andCombiner _lcMapper
         , _lcFilePrefix    = orCombiner  _lcFilePrefix
         , _lcTree          = andCombiner _lcTree
@@ -258,10 +261,12 @@ instance FromJSON LoggerConfig where
         _lcTermSeverity  <-         o .:? "termSeverity"
         _lcShowTime      <- Any <$> o .:? "showTime"    .!= False
         _lcShowTid       <- Any <$> o .:? "showTid"     .!= False
-        _lcConsoleOutput <- Any <$> o .:? "printOutput" .!= False
         _lcFilePrefix    <-         o .:? "filePrefix"
         _lcTree          <- parseJSON $ Object $ filterObject topLevelParams o
-        let _lcMapper     = mempty
+
+        printConsoleFlag    <- o .:? "printOutput" .!= False
+        let _lcConsoleAction = Last $ bool Nothing (Just defaultHandleAction) printConsoleFlag
+        let _lcMapper        = mempty
         return LoggerConfig{..}
 
 -- | This instances violates @fromJSON . toJSON = identity@ rule but doesn't matter
@@ -272,12 +277,17 @@ instance ToJSON LoggerConfig where
             , "termSeverity" .= _lcTermSeverity
             , "showTime"     .= getAny _lcShowTime
             , "showTid"      .= getAny _lcShowTid
-            , "printOutput"  .= getAny _lcConsoleOutput
+            , "printOutput"  .= maybe False (const True) (getLast _lcConsoleAction)
             , "filePrefix"   .= _lcFilePrefix
             , ("logTree", toJSON _lcTree)
             ]
-
+----------------------------------------------------------------------------
 -- Builders for 'LoggerConfig'.
+----------------------------------------------------------------------------
+
+-- | Setup 'lcTermSeverity' to specified severity inside 'LoggerConfig'.
+termSeverityB :: Severity -> LoggerConfig
+termSeverityB severity = mempty { _lcTermSeverity = Just severity }
 
 -- | Setup 'lcShowTime' to 'True' inside 'LoggerConfig'.
 showTimeB :: LoggerConfig
@@ -287,13 +297,16 @@ showTimeB = mempty { _lcShowTime = Any True }
 showTidB :: LoggerConfig
 showTidB = mempty { _lcShowTid = Any True }
 
+consoleActionB :: (Handle -> Text -> IO ()) -> LoggerConfig
+consoleActionB action = mempty { _lcConsoleAction = Last $ Just action }
+
 -- | Setup 'lcConsoleOutput' inside 'LoggerConfig'.
-consoleOutB :: LoggerConfig
-consoleOutB = mempty { _lcConsoleOutput = Any True }
+customConsoleActionB :: Maybe (Handle -> Text -> IO ()) -> LoggerConfig
+customConsoleActionB action = mempty { _lcConsoleAction = Last action }
 
 -- | Adds sensible predefined set of parameters to logger.
 productionB :: LoggerConfig
-productionB = showTimeB <> consoleOutB
+productionB = showTimeB <> customConsoleActionB (Just defaultHandleAction)
 
 -- | Setup 'lcMapper' inside 'LoggerConfig'.
 mapperB :: (LoggerName -> LoggerName) -> LoggerConfig

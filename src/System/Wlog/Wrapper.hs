@@ -23,7 +23,6 @@ module System.Wlog.Wrapper
 
 import           Universum
 
-import           Control.Concurrent.MVar    (withMVar)
 import           Data.Time                  (UTCTime)
 import           System.IO                  (Handle, stderr, stdout)
 
@@ -38,12 +37,13 @@ import           System.Wlog.Severity       (Severity (..))
 
 -- | Like `streamHandler`, but syncronized using given `MVar` as lock
 -- (it should be filled before this function call).
-streamHandlerWithLock :: MVar () -> Handle -> Severity -> IO (GenericHandler Handle)
-streamHandlerWithLock lock h sev = do
-    GenericHandler {..} <- streamHandler h sev
-    pure
-        GenericHandler
-        {writeFunc = \a s -> withMVar lock $ const $ writeFunc a s, ..}
+streamHandlerWithLock :: (Handle -> Text -> IO ())
+                      -> MVar ()
+                      -> Handle
+                      -> Severity
+                      -> IO (GenericHandler Handle)
+streamHandlerWithLock customTerminalAction lock handle severity =
+    streamHandler handle customTerminalAction lock severity
 
 -- | This function initializes global logging system for terminal output.
 -- At high level, it sets severity which will be used by all loggers by default,
@@ -63,21 +63,23 @@ streamHandlerWithLock lock h sev = do
 -- `setSeverity` directly.
 initTerminalLogging :: MonadIO m
                     => (UTCTime -> Text)
+                    -> (Handle -> Text -> IO ())
                     -> Bool  -- ^ Show time?
                     -> Bool  -- ^ Show ThreadId?
                     -> Maybe Severity
                     -> m ()
 initTerminalLogging
     timeF
+    customConsoleAction
     isShowTime
     isShowTid
     (fromMaybe Warning -> defaultSeverity)
   = liftIO $ do
     lock <- liftIO $ newMVar ()
     stdoutHandler <- setStdoutFormatter <$>
-        streamHandlerWithLock lock stdout defaultSeverity
+        streamHandlerWithLock customConsoleAction lock stdout defaultSeverity
     stderrHandler <- setStderrFormatter <$>
-        streamHandlerWithLock lock stderr Error
+        streamHandlerWithLock customConsoleAction lock stderr Error
     updateGlobalLogger rootLoggerName $
         setHandlers [stderrHandler, stdoutHandler]
     updateGlobalLogger rootLoggerName $

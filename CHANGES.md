@@ -1,3 +1,8 @@
+1.4.0
+=====
+
+* Add ability to specify custom logging action.
+
 1.3.4
 ====
 
