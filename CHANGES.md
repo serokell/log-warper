@@ -1,3 +1,8 @@
+1.4.1
+=====
+
+* Add `logEvents` function to log `[LogEvent]` with proper logName.
+
 1.4.0
 =====
 
