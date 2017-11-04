@@ -20,6 +20,7 @@ module System.Wlog.CanLog
        , PureLogger (..)
        , LogEvent   (..)
        , dispatchEvents
+       , logEvents
        , runPureLog
        , launchPureLog
 
@@ -36,22 +37,23 @@ module System.Wlog.CanLog
        , logMessage
        ) where
 
-import           Control.Monad.Except      (ExceptT)
-import           Control.Monad.Morph       (MFunctor (..))
-import qualified Control.Monad.RWS         as RWSLazy
-import qualified Control.Monad.RWS.Strict  as RWSStrict
-import qualified Control.Monad.State.Lazy  as StateLazy
-import qualified Control.Monad.State.Strict  as StateStrict
-import           Control.Monad.Trans       (MonadTrans (lift))
-import qualified Data.DList                as DL (DList, snoc)
-import           Data.SafeCopy             (base, deriveSafeCopySimple)
 import           Universum
 
-import           System.Wlog.Logger        (logM)
-import           System.Wlog.LoggerName    (LoggerName (..))
-import           System.Wlog.LoggerNameBox (HasLoggerName (..), LoggerNameBox (..),
-                                            usingLoggerName)
-import           System.Wlog.Severity      (Severity (..))
+import           Control.Monad.Except       (ExceptT)
+import           Control.Monad.Morph        (MFunctor (..))
+import qualified Control.Monad.RWS          as RWSLazy
+import qualified Control.Monad.RWS.Strict   as RWSStrict
+import qualified Control.Monad.State.Lazy   as StateLazy
+import           Control.Monad.State.Strict (modify')
+import           Control.Monad.Trans        (MonadTrans (lift))
+import qualified Data.DList                 as DL (DList, snoc)
+import           Data.SafeCopy              (base, deriveSafeCopySimple)
+
+import           System.Wlog.Logger         (logM)
+import           System.Wlog.LoggerName     (LoggerName (..))
+import           System.Wlog.LoggerNameBox  (HasLoggerName (..), LoggerNameBox (..),
+                                             usingLoggerName)
+import           System.Wlog.Severity       (Severity (..))
 
 
 -- | Type alias for constraints 'CanLog' and 'HasLoggerName'.
@@ -100,12 +102,12 @@ deriveSafeCopySimple 0 'base ''LogEvent
 -- TODO: Should we use some @Data.Tree@-like structure to observe message only
 -- by chosen logger names?
 newtype PureLogger m a = PureLogger
-    { runPureLogger :: StateStrict.StateT (DL.DList LogEvent) m a
+    { runPureLogger :: StateT (DL.DList LogEvent) m a
     } deriving (Functor, Applicative, Monad, MonadTrans, MonadState (DL.DList LogEvent),
                 MonadThrow, HasLoggerName)
 
 instance Monad m => CanLog (PureLogger m) where
-    dispatchMessage leLoggerName leSeverity leMessage = StateStrict.modify' (flip DL.snoc LogEvent{..})
+    dispatchMessage leLoggerName leSeverity leMessage = modify' (flip DL.snoc LogEvent{..})
 
 instance MFunctor PureLogger where
     hoist f = PureLogger . hoist f . runPureLogger
@@ -120,6 +122,15 @@ dispatchEvents :: CanLog m => [LogEvent] -> m ()
 dispatchEvents = mapM_ dispatchLogEvent
   where
     dispatchLogEvent (LogEvent name sev t) = dispatchMessage name sev t
+
+-- | Logs all 'LogEvent'`s from given list. Just like
+-- 'dispatchEvents' but uses proper logger Name.
+logEvents :: WithLogger m => [LogEvent] -> m ()
+logEvents events = do
+    logName <- getLoggerName
+    mapM_ (dispatchLogEvent logName) events
+  where
+    dispatchLogEvent logName (LogEvent _ sev t) = dispatchMessage logName sev t
 
 -- | Performs actual logging once given action completes.
 launchPureLog
