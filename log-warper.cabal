@@ -24,6 +24,7 @@ library
                        System.Wlog.Handler.Roller
                        System.Wlog.Handler.Simple
                        System.Wlog.Handler.Syslog
+                       System.Wlog.HasLoggerName
                        System.Wlog.Launcher
                        System.Wlog.Logger
                        System.Wlog.LoggerConfig

@@ -17,6 +17,7 @@ module System.Wlog
        , module System.Wlog.Handler.Roller
        , module System.Wlog.Handler.Simple
        , module System.Wlog.Handler.Syslog
+       , module System.Wlog.HasLoggerName
        , module System.Wlog.Launcher
        , module System.Wlog.Logger
        , module System.Wlog.LoggerConfig
@@ -31,6 +32,7 @@ import           System.Wlog.FileUtils
 import           System.Wlog.Handler.Roller
 import           System.Wlog.Handler.Simple
 import           System.Wlog.Handler.Syslog
+import           System.Wlog.HasLoggerName
 import           System.Wlog.Launcher
 import           System.Wlog.Logger
 import           System.Wlog.LoggerConfig

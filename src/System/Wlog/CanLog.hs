@@ -48,10 +48,10 @@ import           Control.Monad.Trans        (MonadTrans (lift))
 import qualified Data.DList                 as DL (DList, snoc)
 import           Data.SafeCopy              (base, deriveSafeCopySimple)
 
+import           System.Wlog.HasLoggerName  (HasLoggerName (..))
 import           System.Wlog.Logger         (logM)
 import           System.Wlog.LoggerName     (LoggerName (..))
-import           System.Wlog.LoggerNameBox  (HasLoggerName (..), LoggerNameBox (..),
-                                             usingLoggerName)
+import           System.Wlog.LoggerNameBox  (LoggerNameBox (..), usingLoggerName)
 import           System.Wlog.Severity       (Severity (..))
 
 
