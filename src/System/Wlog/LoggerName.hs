@@ -7,6 +7,8 @@ module System.Wlog.LoggerName
        , loggerNameF
        ) where
 
+import           Universum
+
 import           Data.Hashable       (Hashable)
 import           Data.SafeCopy       (base, deriveSafeCopySimple)
 import           Data.Semigroup      (Semigroup)
@@ -15,12 +17,11 @@ import           Data.String         (IsString)
 import           Data.Text.Buildable (Buildable)
 import qualified Data.Text.Buildable as Buildable
 import           Formatting          (Format, bprint, build, stext)
-import           Universum
 
 -- | Logger name to keep in context.
 newtype LoggerName = LoggerName
     { getLoggerName :: Text
-    } deriving (Show, IsString, Eq, Hashable)
+    } deriving (Show, IsString, Eq, Ord, Hashable)
 
 deriveSafeCopySimple 0 'base ''LoggerName
 

@@ -8,7 +8,6 @@
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE ViewPatterns          #-}
 
 -- | Type class that add ability to log messages.
 -- Supports pure and IO logging.
@@ -75,7 +74,7 @@ class Monad m => CanLog m where
     dispatchMessage name sev t = lift $ dispatchMessage name sev t
 
 instance CanLog IO where
-    dispatchMessage (getLoggerName -> name) prior msg = logM name prior msg
+    dispatchMessage name prior msg = logM name prior msg
 
 instance CanLog m => CanLog (LoggerNameBox m)
 instance CanLog m => CanLog (ReaderT r m)

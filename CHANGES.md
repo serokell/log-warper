@@ -3,6 +3,8 @@
 
 * Replace `String` to `Text` in `LoggerName`
 * Rename `LoggerName` field name to `getLoggerName`
+* Rename `getLoggerName` of `HasLoggerName` class to `askLoggerName`
+* Use `LoggerName` instead of `Text` where possible
 
 1.4.1
 =====

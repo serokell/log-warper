@@ -102,7 +102,7 @@ setupLogging mTimeFunction LoggerConfig{..} = do
                     let roundFmt r = (`setFormatter` stdoutFormatterTimeRounded timeF r)
                     let fmt = maybe defFmt roundFmt _hwRounding
                     thisLoggerHandler <- fmt <$> handlerCreator
-                    updateGlobalLogger (getLoggerName parent) $ addHandler thisLoggerHandler
+                    updateGlobalLogger parent $ addHandler thisLoggerHandler
 
         for_ (HM.toList _ltSubloggers) $ \(name, loggerConfig) -> do
             let thisLoggerName = LoggerName name
