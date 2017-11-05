@@ -101,7 +101,7 @@ data LogInternalState = LogInternalState
 -- | The name of the root logger, which is always defined and present
 -- on the system.
 rootLoggerName :: LoggerName
-rootLoggerName = LoggerName ""
+rootLoggerName = mempty
 
 ---------------------------------------------------------------------------
 -- Logger Tree Storage

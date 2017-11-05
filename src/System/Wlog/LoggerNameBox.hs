@@ -14,23 +14,23 @@ module System.Wlog.LoggerNameBox
        , usingLoggerName
        ) where
 
+import           Universum
+
 import           Control.Monad.Base          (MonadBase)
 import           Control.Monad.Catch         (MonadCatch, MonadMask, MonadThrow)
-import           Control.Monad.Except        (ExceptT (..), mapExceptT)
+import           Control.Monad.Except        (ExceptT (..))
 import           Control.Monad.Except        (MonadError)
 import           Control.Monad.Fix           (MonadFix)
 import           Control.Monad.Morph         (MFunctor (..))
-import           Control.Monad.Reader        (MonadReader (..), ReaderT, mapReaderT,
-                                              runReaderT)
+import           Control.Monad.Reader        (MonadReader (..), ReaderT, runReaderT)
 import qualified Control.Monad.RWS           as RWSLazy
 import qualified Control.Monad.RWS.Strict    as RWSStrict
-import qualified Control.Monad.State         as StateLazy (StateT, mapStateT)
-import           Control.Monad.State.Strict  (MonadState, StateT, mapStateT)
+import qualified Control.Monad.State         as StateLazy (StateT)
+import           Control.Monad.State.Strict  (MonadState, StateT)
 import           Control.Monad.Trans         (MonadIO, MonadTrans, lift)
 import           Control.Monad.Trans.Cont    (ContT, mapContT)
 import           Control.Monad.Trans.Control (MonadBaseControl (..))
-import           Control.Monad.Writer        (WriterT (..), mapWriterT)
-import           Universum
+import           Control.Monad.Writer        (WriterT (..))
 
 import           System.Wlog.LoggerName      (LoggerName)
 
@@ -55,43 +55,16 @@ class HasLoggerName m where
     modifyLoggerName f = hoist (modifyLoggerName f)
 
 instance (Monad m, HasLoggerName m) => HasLoggerName (ReaderT a m) where
-    askLoggerName = lift askLoggerName
-
-    modifyLoggerName = mapReaderT . modifyLoggerName
-
 instance (Monad m, HasLoggerName m) => HasLoggerName (StateT a m) where
-    askLoggerName = lift askLoggerName
-
-    modifyLoggerName = mapStateT . modifyLoggerName
-
 instance (Monad m, HasLoggerName m) => HasLoggerName (StateLazy.StateT a m) where
-    askLoggerName = lift askLoggerName
-    modifyLoggerName = StateLazy.mapStateT . modifyLoggerName
-
 instance (Monoid w, Monad m, HasLoggerName m) => HasLoggerName (WriterT w m) where
-    askLoggerName = lift askLoggerName
-
-    modifyLoggerName = mapWriterT . modifyLoggerName
-
 instance (Monad m, HasLoggerName m) => HasLoggerName (ExceptT e m) where
-    askLoggerName = lift askLoggerName
-
-    modifyLoggerName = mapExceptT . modifyLoggerName
-
 instance (Monad m, HasLoggerName m) => HasLoggerName (ContT r m) where
-    askLoggerName = lift askLoggerName
-
+    askLoggerName    = lift askLoggerName
     modifyLoggerName = mapContT . modifyLoggerName
 
 instance (Monad m, HasLoggerName m, Monoid w) => HasLoggerName (RWSLazy.RWST r w s m) where
-    askLoggerName = lift askLoggerName
-
-    modifyLoggerName = RWSLazy.mapRWST . modifyLoggerName
-
 instance (Monad m, HasLoggerName m, Monoid w) => HasLoggerName (RWSStrict.RWST r w s m) where
-    askLoggerName = lift askLoggerName
-
-    modifyLoggerName = RWSStrict.mapRWST . modifyLoggerName
 
 instance HasLoggerName Identity where
     askLoggerName    = Identity "Identity"
