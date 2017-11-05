@@ -1,3 +1,9 @@
+1.5.0
+=====
+
+* Replace `String` to `Text` in `LoggerName`
+* Rename `LoggerName` field name to `getLoggerName`
+
 1.4.1
 =====
 
