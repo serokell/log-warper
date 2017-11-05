@@ -23,6 +23,7 @@ module System.Wlog
        , module System.Wlog.LoggerConfig
        , module System.Wlog.LoggerName
        , module System.Wlog.LoggerNameBox
+       , module System.Wlog.PureLogging
        , module System.Wlog.Severity
        , module System.Wlog.Wrapper
        ) where
@@ -38,5 +39,6 @@ import           System.Wlog.Logger
 import           System.Wlog.LoggerConfig
 import           System.Wlog.LoggerName
 import           System.Wlog.LoggerNameBox
+import           System.Wlog.PureLogging
 import           System.Wlog.Severity
 import           System.Wlog.Wrapper

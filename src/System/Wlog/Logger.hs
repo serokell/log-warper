@@ -229,10 +229,9 @@ logLCond l pri msg = handle l (LR pri msg)
 handle :: Logger -> LogRecord -> (LogHandlerTag -> Bool) -> IO ()
 handle l lrecord@(LR sev _) handlerFilter = do
     lp <- getLoggerSeverity nm
-    if sev >= lp then do
+    when (sev >= lp) $ do
         ph <- concatMap (view lHandlers) <$> parentLoggers nm
         forM_ ph $ callHandler lrecord nm
-    else return ()
   where
     nm = view lName l
     parentLoggers :: LoggerName -> IO [Logger]

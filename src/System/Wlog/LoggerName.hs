@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 -- | Contains @newtype@ wrapper around logger name to support hierarchy.
 
 module System.Wlog.LoggerName
@@ -10,7 +8,6 @@ module System.Wlog.LoggerName
 import           Universum
 
 import           Data.Hashable       (Hashable)
-import           Data.SafeCopy       (base, deriveSafeCopySimple)
 import           Data.Semigroup      (Semigroup)
 import qualified Data.Semigroup      as Semigroup
 import           Data.String         (IsString)
@@ -22,8 +19,6 @@ import           Formatting          (Format, bprint, build, stext)
 newtype LoggerName = LoggerName
     { getLoggerName :: Text
     } deriving (Show, IsString, Eq, Ord, Hashable)
-
-deriveSafeCopySimple 0 'base ''LoggerName
 
 -- | Defined such that @n1@ is parent for @(n1 <> n2)@
 -- (see <http://hackage.haskell.org/package/hslogger-1.2.10/docs/System-Log-Logger.html hslogger description>).

@@ -1,10 +1,13 @@
 1.5.0
 =====
 
-* Replace `String` to `Text` in `LoggerName`
-* Rename `LoggerName` field name to `getLoggerName`
-* Rename `getLoggerName` of `HasLoggerName` class to `askLoggerName`
-* Use `LoggerName` instead of `Text` where possible
+* Replace `String` to `Text` in `LoggerName`.
+* Rename `LoggerName` field name to `getLoggerName`.
+* Rename `getLoggerName` of `HasLoggerName` class to `askLoggerName`.
+* Use `LoggerName` instead of `Text` where possible.
+* Make separate `HasLoggerName` module.
+* Make separate `PureLogging` module.
+* Remove `safecopy` dependency and refactor code.
 
 1.4.1
 =====
