@@ -1,3 +1,4 @@
+{-# LANGUAGE DefaultSignatures     #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -43,6 +44,15 @@ class HasLoggerName m where
 
     -- | Change logger name in context
     modifyLoggerName :: (LoggerName -> LoggerName) -> m a -> m a
+
+    default askLoggerName :: (MonadTrans t, t n ~ m, Monad n, HasLoggerName n) => m LoggerName
+    askLoggerName = lift askLoggerName
+
+    default modifyLoggerName :: (MFunctor t, t n ~ m, Monad n, HasLoggerName n)
+                             => (LoggerName -> LoggerName)
+                             -> m a
+                             -> m a
+    modifyLoggerName f = hoist (modifyLoggerName f)
 
 instance (Monad m, HasLoggerName m) => HasLoggerName (ReaderT a m) where
     askLoggerName = lift askLoggerName
