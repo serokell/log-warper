@@ -56,7 +56,6 @@ module System.Wlog.Logger
 
 import           Control.Concurrent.MVar (modifyMVar, modifyMVar_, withMVar)
 import           Control.Lens            (makeLenses)
-import           Data.List               (isPrefixOf)
 import qualified Data.Map                as M
 import           Data.Maybe              (fromJust)
 import qualified Data.Text               as T
@@ -81,15 +80,15 @@ data HandlerT = forall a. LogHandler a => HandlerT a
 data Logger = Logger
     { _lLevel    :: Maybe Severity
     , _lHandlers :: [HandlerT]
-    , _lName     :: String
+    , _lName     :: Text
     } deriving (Generic)
 
 makeLenses ''Logger
 
-type LogTree = Map String Logger
+type LogTree = Map Text Logger
 
 data LogInternalState = LogInternalState
-    { liTree   :: Map String Logger
+    { liTree   :: Map Text Logger
     , liPrefix :: Maybe FilePath
     } deriving (Generic)
 
@@ -99,7 +98,7 @@ data LogInternalState = LogInternalState
 
 -- | The name of the root logger, which is always defined and present
 -- on the system.
-rootLoggerName :: String
+rootLoggerName :: Text
 rootLoggerName = ""
 
 ---------------------------------------------------------------------------
@@ -124,14 +123,14 @@ Example return value:
 >["", "MissingH", "System.Cmd.Utils", "System.Cmd.Utils.pOpen"]
 
 -}
-componentsOfName :: String -> [String]
+componentsOfName :: Text -> [Text]
 componentsOfName name =
-    rootLoggerName : joinComp (split "." name) []
+    rootLoggerName : joinComp (T.splitOn "." name) ""
   where
     joinComp [] _ = []
-    joinComp (x:xs) [] = x : joinComp xs x
+    joinComp (x:xs) "" = x : joinComp xs x
     joinComp (x:xs) accum =
-        let newlevel = accum ++ "." ++ x
+        let newlevel = accum <> "." <> x
         in newlevel : joinComp xs newlevel
 
 ---------------------------------------------------------------------------
@@ -139,7 +138,7 @@ componentsOfName name =
 ---------------------------------------------------------------------------
 
 -- | Log a message using the given logger at a given priority.
-logM :: String     -- ^ Name of the logger to use
+logM :: Text       -- ^ Name of the logger to use
      -> Severity   -- ^ Severity of this message
      -> Text       -- ^ The log text itself
      -> IO ()
@@ -147,7 +146,7 @@ logM logname pri msg = do
     l <- getLogger logname
     logL l pri msg
 
-logMCond :: String -> Severity -> Text -> (LogHandlerTag -> Bool) -> IO ()
+logMCond :: Text -> Severity -> Text -> (LogHandlerTag -> Bool) -> IO ()
 logMCond logname sev msg cond = do
     l <- getLogger logname
     logLCond l sev msg cond
@@ -157,31 +156,31 @@ logMCond logname sev msg cond = do
 ---------------------------------------------------------------------------
 
 {- | Log a message at 'Debug' priority -}
-debugM :: String                       -- ^ Logger name
+debugM :: Text                         -- ^ Logger name
        -> Text                         -- ^ Log message
        -> IO ()
 debugM s = logM s Debug
 
 {- | Log a message at 'Info' priority -}
-infoM :: String                        -- ^ Logger name
+infoM :: Text                          -- ^ Logger name
       -> Text                          -- ^ Log message
       -> IO ()
 infoM s = logM s Info
 
 {- | Log a message at 'Notice' priority -}
-noticeM :: String                      -- ^ Logger name
+noticeM :: Text                        -- ^ Logger name
         -> Text                        -- ^ Log message
         -> IO ()
 noticeM s = logM s Notice
 
 {- | Log a message at 'Warning' priority -}
-warningM :: String                     -- ^ Logger name
+warningM :: Text                       -- ^ Logger name
          -> Text                       -- ^ Log message
          -> IO ()
 warningM s = logM s Warning
 
 {- | Log a message at 'Error' priority -}
-errorM :: String                       -- ^ Logger name
+errorM :: Text                         -- ^ Logger name
        -> Text                         -- ^ Log message
        -> IO ()
 errorM s = logM s Error
@@ -193,7 +192,7 @@ errorM s = logM s Error
 -- | Returns the logger for the given name.  If no logger with that name
 -- exists, creates new loggers and any necessary parent loggers, with
 -- no connected handlers.
-getLogger :: String -> IO Logger
+getLogger :: Text -> IO Logger
 getLogger lname = modifyMVar logInternalState $ \lt@LogInternalState{..} ->
     case M.lookup lname liTree of
       Just x ->  return (lt, x) -- A logger exists; return it and leave tree
@@ -203,7 +202,7 @@ getLogger lname = modifyMVar logInternalState $ \lt@LogInternalState{..} ->
           let result = fromJust $ M.lookup lname newlt
           return (LogInternalState newlt liPrefix, result)
   where
-    createLoggers :: [String] -> LogTree -> LogTree
+    createLoggers :: [Text] -> LogTree -> LogTree
     createLoggers [] lt = lt -- No names to add; return tree unmodified
     createLoggers (x:xs) lt = -- Add logger to tree
         createLoggers xs $
@@ -234,18 +233,18 @@ handle l lrecord@(LR sev _) handlerFilter = do
     else return ()
   where
     nm = view lName l
-    parentLoggers :: String -> IO [Logger]
+    parentLoggers :: Text -> IO [Logger]
     parentLoggers = mapM getLogger . componentsOfName
     -- Get the severity we should use. Find the first logger in the
     -- tree, starting here, with a set severity. If even root doesn't
     -- have one, assume "Debug".
-    getLoggerSeverity :: String -> IO Severity
+    getLoggerSeverity :: Text -> IO Severity
     getLoggerSeverity name = do
         pl <- parentLoggers name
         case catMaybes . map (view lLevel) $ (l : pl) of
             []    -> pure Debug
             (x:_) -> pure x
-    callHandler :: LogRecord -> String -> HandlerT -> IO ()
+    callHandler :: LogRecord -> Text -> HandlerT -> IO ()
     callHandler lr loggername (HandlerT x) =
         when (handlerFilter $ getTag x) $
             System.Wlog.Handler.handle x lr loggername
@@ -308,7 +307,7 @@ saveGlobalLogger l =
 -- > updateGlobalLogger "MyApp.BuggyComponent"
 -- >                    (setLevel DEBUG . setHandlers [s])
 updateGlobalLogger
-    :: String -- ^ Logger name
+    :: Text -- ^ Logger name
     -> (Logger -> Logger) -- ^ Function to call
     -> IO ()
 updateGlobalLogger ln func =
@@ -328,7 +327,7 @@ removeAllHandlers =
 --
 -- Takes a logger name, priority, leading description text (you can set it to
 -- @\"\"@ if you don't want any), and action to run.
-traplogging :: String     -- ^ Logger name
+traplogging :: Text       -- ^ Logger name
             -> Severity   -- ^ Logging priority
             -> Text       -- ^ Descriptive text to prepend to logged messages
             -> IO a       -- ^ Action to run
@@ -371,31 +370,3 @@ retrieveLogContent filePath linesNum =
             []  -> takeMaybe . reverse . T.lines <$> TIO.readFile filePathFull
             xs  -> error $ "Found more than one (" <> show (length xs) <>
                            "handle with the same filePath tag, impossible."
-
-----------------------------------------------------------------------------
--- List util functions
-----------------------------------------------------------------------------
-
--- | This function pulled in from MissingH to avoid a dep on it
-split :: Eq a => [a] -> [a] -> [[a]]
-split _ [] = []
-split delim str =
-    let (firstline, remainder) = breakList (isPrefixOf delim) str
-    in firstline :
-       case remainder of
-           [] -> []
-           x | x == delim -> [] : []
-             | otherwise -> split delim (drop (length delim) x)
-
--- This function also pulled from MissingH
-breakList :: ([a] -> Bool) -> [a] -> ([a], [a])
-breakList func = spanList (not . func)
-
--- This function also pulled from MissingH
-spanList :: ([a] -> Bool) -> [a] -> ([a], [a])
-spanList _ [] = ([],[])
-spanList func l@(x:xs) =
-    let (ys, zs) = spanList func xs
-    in if func l
-       then (x : ys, zs)
-       else ([], l)

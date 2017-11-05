@@ -37,7 +37,6 @@ import           Universum
 import           Control.Error.Util         ((?:))
 import           Control.Exception          (throwIO)
 import qualified Data.HashMap.Strict        as HM hiding (HashMap)
-import qualified Data.Text                  as T
 import           Data.Time                  (UTCTime)
 import           Data.Yaml                  (decodeFileEither)
 import           System.Directory           (createDirectoryIfMissing)
@@ -103,10 +102,10 @@ setupLogging mTimeFunction LoggerConfig{..} = do
                     let roundFmt r = (`setFormatter` stdoutFormatterTimeRounded timeF r)
                     let fmt = maybe defFmt roundFmt _hwRounding
                     thisLoggerHandler <- fmt <$> handlerCreator
-                    updateGlobalLogger (loggerName parent) $ addHandler thisLoggerHandler
+                    updateGlobalLogger (getLoggerName parent) $ addHandler thisLoggerHandler
 
         for_ (HM.toList _ltSubloggers) $ \(name, loggerConfig) -> do
-            let thisLoggerName = LoggerName $ T.unpack name
+            let thisLoggerName = LoggerName name
             let thisLogger     = parent <> logMapper thisLoggerName
             processLoggers thisLogger loggerConfig
 

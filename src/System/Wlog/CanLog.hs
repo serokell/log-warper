@@ -75,7 +75,7 @@ class Monad m => CanLog m where
     dispatchMessage name sev t = lift $ dispatchMessage name sev t
 
 instance CanLog IO where
-    dispatchMessage (loggerName -> name) prior msg = logM name prior msg
+    dispatchMessage (getLoggerName -> name) prior msg = logM name prior msg
 
 instance CanLog m => CanLog (LoggerNameBox m)
 instance CanLog m => CanLog (ReaderT r m)
@@ -127,7 +127,7 @@ dispatchEvents = mapM_ dispatchLogEvent
 -- 'dispatchEvents' but uses proper logger Name.
 logEvents :: WithLogger m => [LogEvent] -> m ()
 logEvents events = do
-    logName <- getLoggerName
+    logName <- askLoggerName
     mapM_ (dispatchLogEvent logName) events
   where
     dispatchLogEvent logName (LogEvent _ sev t) = dispatchMessage logName sev t
@@ -163,7 +163,7 @@ runNamedPureLog
     :: (Monad m, HasLoggerName m)
     => NamedPureLogger m a -> m (a, [LogEvent])
 runNamedPureLog (NamedPureLogger action) =
-    getLoggerName >>= (`usingLoggerName` runPureLog action)
+    askLoggerName >>= (`usingLoggerName` runPureLog action)
 
 -- | Similar as `launchPureLog`, but provides logger name from current context.
 launchNamedPureLog
@@ -172,7 +172,7 @@ launchNamedPureLog
     -> NamedPureLogger m a
     -> n b
 launchNamedPureLog hoist' (NamedPureLogger action) = do
-    name <- getLoggerName
+    name <- askLoggerName
     (logs, res) <- hoist' $ swap <$> usingLoggerName name (runPureLog action)
     res <$ dispatchEvents logs
 
@@ -193,5 +193,5 @@ logMessage
     -> Text
     -> m ()
 logMessage severity t = do
-    name <- getLoggerName
+    name <- askLoggerName
     dispatchMessage name severity t
