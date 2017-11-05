@@ -1,5 +1,5 @@
 name:                log-warper
-version:             1.4.1
+version:             1.5.0
 synopsis:            Flexible, configurable, monadic and pretty logging
 homepage:            https://github.com/serokell/log-warper
 license:             MIT
@@ -24,11 +24,13 @@ library
                        System.Wlog.Handler.Roller
                        System.Wlog.Handler.Simple
                        System.Wlog.Handler.Syslog
+                       System.Wlog.HasLoggerName
                        System.Wlog.Launcher
                        System.Wlog.Logger
                        System.Wlog.LoggerConfig
                        System.Wlog.LoggerName
                        System.Wlog.LoggerNameBox
+                       System.Wlog.PureLogging
                        System.Wlog.Severity
                        System.Wlog.Wrapper
 
@@ -55,7 +57,6 @@ library
                      , mmorph               >= 1.0.9
                      , mtl                  >= 2.2.1
                      , network              >= 2.6.3.1
-                     , safecopy             >= 0.9.1
                      , text                 >= 1.2.2.0
                      , text-format          >= 0.3.1.1
                      , time                 >= 1.6.0.1

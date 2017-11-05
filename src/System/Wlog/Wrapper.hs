@@ -90,14 +90,14 @@ initTerminalLogging
 
 -- | Set severity for given logger. By default parent's severity is used.
 setSeverity :: MonadIO m => LoggerName -> Severity -> m ()
-setSeverity (LoggerName name) =
+setSeverity name =
     liftIO . updateGlobalLogger name . setLevel
 
 -- | Set or clear severity.
 setSeverityMaybe
     :: MonadIO m
     => LoggerName -> Maybe Severity -> m ()
-setSeverityMaybe (LoggerName name) Nothing =
+setSeverityMaybe name Nothing =
     liftIO $ updateGlobalLogger name clearLevel
 setSeverityMaybe n (Just x) = setSeverity n x
 

@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 -- | Custom wrapper around @hslogger.Priority@.
 
 module System.Wlog.Severity
@@ -7,11 +5,11 @@ module System.Wlog.Severity
        , LogRecord(..)
        ) where
 
-import           Data.SafeCopy (base, deriveSafeCopySimple)
+import           Universum
+
 import           Data.Typeable (Typeable)
 import           Data.Yaml     (FromJSON, ToJSON)
 import           GHC.Generics  (Generic)
-import           Universum
 
 -- | Severity is level of log message importance. It uniquely
 -- determines which messages to print.
@@ -25,8 +23,6 @@ data Severity
 
 instance FromJSON Severity
 instance ToJSON   Severity
-
-deriveSafeCopySimple 0 'base ''Severity
 
 -- | Internal type of log records.
 data LogRecord = LR !Severity !Text deriving Show

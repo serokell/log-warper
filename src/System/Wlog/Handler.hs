@@ -26,10 +26,13 @@ module System.Wlog.Handler
        , LogHandler(..)
        ) where
 
-import           Data.Text.Lazy.Builder as B
-import           System.Wlog.Formatter  (LogFormatter, nullFormatter)
-import           System.Wlog.Severity   (LogRecord (..), Severity)
 import           Universum
+
+import           Data.Text.Lazy.Builder as B
+
+import           System.Wlog.Formatter  (LogFormatter, nullFormatter)
+import           System.Wlog.LoggerName (LoggerName (..))
+import           System.Wlog.Severity   (LogRecord (..), Severity)
 
 -- | Tag identifying handlers.
 data LogHandlerTag
@@ -58,15 +61,16 @@ class LogHandler a where
 
     -- | Logs an event if it meets the requirements
     -- given by the most recent call to 'setLevel'.
-    handle :: a -> LogRecord -> String -> IO ()
+    handle :: a -> LogRecord -> LoggerName -> IO ()
     handle h lr@(LR pri _) logname =
         when (pri >= (getLevel h)) $ do
-            formattedMsg <- (getFormatter h) h lr (toText logname)
-            emit h formattedMsg logname
+            let lName = getLoggerName logname
+            formattedMsg <- (getFormatter h) h lr lName
+            emit h formattedMsg lName
 
     -- | Forces an event to be logged regardless of
     -- the configured level.
-    emit :: a -> B.Builder -> String -> IO ()
+    emit :: a -> B.Builder -> Text -> IO ()
 
     -- | Read back from logger (e.g. file), newest first. You specify
     -- the number of (newest) logging entries. Logger can return @pure
