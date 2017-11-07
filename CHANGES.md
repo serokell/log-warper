@@ -1,3 +1,8 @@
+1.5.1
+=====
+
+* Add `usingNamedPureLogger` to `PureLogging`.
+
 1.5.0
 =====
 
