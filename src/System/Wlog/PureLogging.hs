@@ -62,7 +62,7 @@ instance MFunctor PureLogger where
     hoist f = PureLogger . hoist f . runPureLogger
 
 -- | Return log of pure logging action as list of 'LogEvent'.
-runPureLog :: Monad m => PureLogger m a -> m (a, [LogEvent])
+runPureLog :: Functor m => PureLogger m a -> m (a, [LogEvent])
 runPureLog = fmap (second toList) . flip runStateT mempty . runPureLogger
 
 -- | Logs all 'LogEvent'`s from given list. This function supposed to
@@ -126,10 +126,9 @@ launchNamedPureLog hoist' (NamedPureLogger action) = do
     res <$ dispatchEvents logs
 
 -- | Similar to 'runNamedPureLog', but using provided logger name.
-usingPureLoggerName
-    :: Monad m
-    => LoggerName
-    -> NamedPureLogger m a
-    -> m (a, [LogEvent])
+usingPureLoggerName :: Functor m
+                    => LoggerName
+                    -> NamedPureLogger m a
+                    -> m (a, [LogEvent])
 usingPureLoggerName name (NamedPureLogger action) =
     usingLoggerName name $ runPureLog action
