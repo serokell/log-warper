@@ -20,6 +20,7 @@ module System.Wlog.PureLogging
        , NamedPureLogger (..)
        , runNamedPureLog
        , launchNamedPureLog
+       , usingPureLoggerName
        ) where
 
 import           Universum
@@ -113,7 +114,7 @@ runNamedPureLog
 runNamedPureLog (NamedPureLogger action) =
     askLoggerName >>= (`usingLoggerName` runPureLog action)
 
--- | Similar as `launchPureLog`, but provides logger name from current context.
+-- | Similar to 'launchPureLog', but provides logger name from current context.
 launchNamedPureLog
     :: (WithLogger n, Monad m)
     => (forall f. Functor f => m (f a) -> n (f b))
@@ -123,3 +124,12 @@ launchNamedPureLog hoist' (NamedPureLogger action) = do
     name <- askLoggerName
     (logs, res) <- hoist' $ swap <$> usingLoggerName name (runPureLog action)
     res <$ dispatchEvents logs
+
+-- | Similar to 'runNamedPureLog', but using provided logger name.
+usingPureLoggerName
+    :: Monad m
+    => LoggerName
+    -> NamedPureLogger m a
+    -> m (a, [LogEvent])
+usingPureLoggerName name (NamedPureLogger action) =
+    usingLoggerName name $ runPureLog action
