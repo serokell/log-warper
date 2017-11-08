@@ -20,7 +20,8 @@ module System.Wlog.PureLogging
        , NamedPureLogger (..)
        , runNamedPureLog
        , launchNamedPureLog
-       , usingPureLoggerName
+       , usingNamedPureLogger
+       , logPureAction
        ) where
 
 import           Universum
@@ -126,9 +127,17 @@ launchNamedPureLog hoist' (NamedPureLogger action) = do
     res <$ dispatchEvents logs
 
 -- | Similar to 'runNamedPureLog', but using provided logger name.
-usingPureLoggerName :: Functor m
-                    => LoggerName
-                    -> NamedPureLogger m a
-                    -> m (a, [LogEvent])
-usingPureLoggerName name (NamedPureLogger action) =
+usingNamedPureLogger :: Functor m
+                     => LoggerName
+                     -> NamedPureLogger m a
+                     -> m (a, [LogEvent])
+usingNamedPureLogger name (NamedPureLogger action) =
     usingLoggerName name $ runPureLog action
+
+-- | Perform pure-logging computation, log its events
+-- and return the result of the computation
+logPureAction :: WithLogger m => NamedPureLogger m a -> m a
+logPureAction namedPureLogger = do
+    loggerName  <- askLoggerName
+    (a, events) <- usingNamedPureLogger loggerName namedPureLogger
+    a <$ dispatchEvents events

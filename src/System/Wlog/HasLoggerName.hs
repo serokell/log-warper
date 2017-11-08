@@ -10,6 +10,7 @@ module System.Wlog.HasLoggerName
        ( -- * Remove boilerplater
          HasLoggerName (..)
        , setLoggerName
+       , withSublogger
        ) where
 
 import           Universum
@@ -65,3 +66,7 @@ instance HasLoggerName Identity where
 -- | Set logger name in context.
 setLoggerName :: HasLoggerName m => LoggerName -> m a -> m a
 setLoggerName = modifyLoggerName . const
+
+-- | Change logger name to the given one
+withSublogger :: HasLoggerName m => LoggerName -> m a -> m a
+withSublogger name = modifyLoggerName (<> name)
