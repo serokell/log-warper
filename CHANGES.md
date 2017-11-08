@@ -2,6 +2,7 @@
 =====
 
 * Add `logPureAction` to `PureLogging`.
+* Add `withSublogger` to `HasLoggerName`.
 
 1.5.1
 =====

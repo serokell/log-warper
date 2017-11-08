@@ -138,7 +138,6 @@ usingNamedPureLogger name (NamedPureLogger action) =
 -- and return the result of the computation
 logPureAction :: WithLogger m => NamedPureLogger m a -> m a
 logPureAction namedPureLogger = do
-    loggerName    <- askLoggerName
-    (a, logEvnts) <- usingNamedPureLogger loggerName namedPureLogger
-    logEvents logEvnts
-    pure a
+    loggerName  <- askLoggerName
+    (a, events) <- usingNamedPureLogger loggerName namedPureLogger
+    a <$ dispatchEvents events
