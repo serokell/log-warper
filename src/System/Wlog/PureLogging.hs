@@ -20,6 +20,7 @@ module System.Wlog.PureLogging
        , NamedPureLogger (..)
        , runNamedPureLog
        , launchNamedPureLog
+       , launchNamedPureLogWith
        , usingNamedPureLogger
        , logPureAction
        ) where
@@ -115,16 +116,75 @@ runNamedPureLog
 runNamedPureLog (NamedPureLogger action) =
     askLoggerName >>= (`usingLoggerName` runPureLog action)
 
--- | Similar to 'launchPureLog', but provides logger name from current context.
+{- | Similar to 'launchPureLog', but provides logger name from current context.
+
+Running the 'NamedPureLogger' gives us the pair  of target and the list of 'LogEvent's,
+wrapped in 'Monad' from where using the fact that @(,)@ is 'Functor' logging can be triggered.
+
+==== __Example__
+
+@
+  newtype PureSmth a = ...
+      deriving (MonadSmth, ...)
+
+  instance MonadSmth m => MonadSmt (NamedLoggerName m)
+
+  evalPureSmth :: PureSmth a -> a
+
+  makeField    :: MonadSmth m => Data -> m Field
+
+  run :: (MonadIO m, WithLogger m) => m ()
+  run = do
+      data  <- getData
+      -- field :: Field
+      field <- launchNamedPureLog (pure . evalPureSmth) (makeField data)
+      --       ^ logging happens here
+      ...
+@
+
+-}
 launchNamedPureLog
     :: (WithLogger n, Monad m)
     => (forall f. Functor f => m (f a) -> n (f b))
     -> NamedPureLogger m a
     -> n b
-launchNamedPureLog hoist' (NamedPureLogger action) = do
+launchNamedPureLog hoist' namedPureLogger = do
     name <- askLoggerName
-    (logs, res) <- hoist' $ swap <$> usingLoggerName name (runPureLog action)
+    (logs, res) <- hoist' $ swap <$> usingNamedPureLogger name namedPureLogger
     res <$ dispatchEvents logs
+
+{- | Similar to 'launchNamedPureLog', but calls 'pure' on passed function result.
+
+==== __Example__
+
+The example from 'launchNamedPureLog' with usage of this function will look like:
+
+@
+  newtype PureSmth a = ...
+      deriving (MonadSmth, ...)
+
+  instance MonadSmth m => MonadSmt (NamedLoggerName m)
+
+  evalPureSmth :: PureSmth a -> a
+
+  makeField    :: MonadSmth m => Data -> m Field
+
+  run :: (MonadIO m, WithLogger m) => m ()
+  run = do
+      data  <- getData
+      -- field :: Field
+      field <- launchNamedPureLogWith evalPureSmth $ makeField data
+      --       ^ logging happens here
+      ...
+@
+
+-}
+launchNamedPureLogWith
+    :: (WithLogger n, Monad m)
+    => (forall f. Functor f => m (f a) -> f b)
+    -> NamedPureLogger m a
+    -> n b
+launchNamedPureLogWith hoist' = launchNamedPureLog (pure . hoist')
 
 -- | Similar to 'runNamedPureLog', but using provided logger name.
 usingNamedPureLogger :: Functor m

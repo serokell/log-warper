@@ -1,3 +1,9 @@
+1.5.3
+=====
+
+* Add `launchNamedPureLogWith` to `PureLogging`
+* Improve documentation for `launchNamedPureLog`
+
 1.5.2
 =====
 
