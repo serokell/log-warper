@@ -45,6 +45,7 @@ instance LogHandler RollerHandler where
     getLevel          = rhSeverity
     getFormatter      = rhFormatter
     readBack          = rollerReadback
+    shouldPrintError  = const True
 
     emit rh bldr _    = rhWriteAction rh (error "Handler is used internally") (toText . B.toLazyText $ bldr)
     close RollerHandler{..} = withMVar rhFileHandle rhCloseAction

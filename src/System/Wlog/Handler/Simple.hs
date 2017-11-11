@@ -45,6 +45,7 @@ import           System.Wlog.Severity    (Severity (..))
 -- | A helper data type.
 data GenericHandler a = GenericHandler
     { severity       :: !Severity
+    , printErr       :: !Bool
     , formatter      :: !(LogFormatter (GenericHandler a))
     , privData       :: !a
     , writeFunc      :: !(a -> Text -> IO ())
@@ -57,6 +58,7 @@ instance Typeable a => LogHandler (GenericHandler a) where
     getTag = ghTag
     setLevel sh s = sh {severity = s}
     getLevel sh = severity sh
+    shouldPrintError a = printErr a
     setFormatter sh f = sh{formatter = f}
     getFormatter sh = formatter sh
     readBack sh i = withMVar (readBackBuffer sh) $ \mq' -> pure $! take i . MQ.toList $ mq'
@@ -103,15 +105,17 @@ createWriteFuncWrapper action lock = do
 -- close the underlying stream.
 streamHandler :: Handle
               -> (Handle -> Text -> IO ())
+              -> (Handle -> Bool)
               -> MVar ()
               -> Severity
               -> IO (GenericHandler Handle)
-streamHandler privData writeAction lock severity = do
+streamHandler privData writeAction shouldPrintErr lock severity = do
     (writeFunc, readBackBuffer) <- createWriteFuncWrapper writeAction lock
     return GenericHandler
         { formatter = nullFormatter
         , closeFunc = const $ pure ()
         , ghTag     = HandlerOther "GenericHandler/StreamHandler"
+        , printErr  = shouldPrintErr privData
         , ..
         }
 
@@ -125,7 +129,7 @@ fileHandler fp sev = do
     hSeek h SeekFromEnd 0
 
     lock <- newMVar ()
-    sh <- streamHandler h defaultHandleAction lock sev
+    sh <- streamHandler h defaultHandleAction (const True) lock sev
     pure $ sh { closeFunc = hClose
               , ghTag = HandlerFilelike fp
               }

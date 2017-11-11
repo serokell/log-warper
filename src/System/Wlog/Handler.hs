@@ -32,7 +32,7 @@ import           Data.Text.Lazy.Builder as B
 
 import           System.Wlog.Formatter  (LogFormatter, nullFormatter)
 import           System.Wlog.LoggerName (LoggerName (..))
-import           System.Wlog.Severity   (LogRecord (..), Severity)
+import           System.Wlog.Severity   (LogRecord (..), Severity (Error))
 
 -- | Tag identifying handlers.
 data LogHandlerTag
@@ -54,6 +54,9 @@ class LogHandler a where
     -- | Gets the current level.
     getLevel :: a -> Severity
 
+    -- | Needed for printing 'Error' only to @stderr@
+    shouldPrintError :: a -> Bool
+
     -- | Set a log formatter to customize the log format for this Handler
     setFormatter :: a -> LogFormatter a -> a
     getFormatter :: a -> LogFormatter a
@@ -63,10 +66,11 @@ class LogHandler a where
     -- given by the most recent call to 'setLevel'.
     handle :: a -> LogRecord -> LoggerName -> IO ()
     handle h lr@(LR pri _) logname =
-        when (pri >= (getLevel h)) $ do
-            let lName = getLoggerName logname
-            formattedMsg <- (getFormatter h) h lr lName
-            emit h formattedMsg lName
+        when (pri >= (getLevel h)) $
+            when (not $ pri == Error && not (shouldPrintError h)) $ do
+                let lName = getLoggerName logname
+                formattedMsg <- (getFormatter h) h lr lName
+                emit h formattedMsg lName
 
     -- | Forces an event to be logged regardless of
     -- the configured level.

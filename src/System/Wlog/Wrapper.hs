@@ -40,10 +40,11 @@ import           System.Wlog.Severity       (Severity (..))
 streamHandlerWithLock :: (Handle -> Text -> IO ())
                       -> MVar ()
                       -> Handle
+                      -> (Handle -> Bool)
                       -> Severity
                       -> IO (GenericHandler Handle)
-streamHandlerWithLock customTerminalAction lock handle severity =
-    streamHandler handle customTerminalAction lock severity
+streamHandlerWithLock customTerminalAction lock handle shouldPrintError severity =
+    streamHandler handle customTerminalAction shouldPrintError lock severity
 
 -- | This function initializes global logging system for terminal output.
 -- At high level, it sets severity which will be used by all loggers by default,
@@ -77,9 +78,9 @@ initTerminalLogging
   = liftIO $ do
     lock <- liftIO $ newMVar ()
     stdoutHandler <- setStdoutFormatter <$>
-        streamHandlerWithLock customConsoleAction lock stdout defaultSeverity
+        streamHandlerWithLock customConsoleAction lock stdout (const False) defaultSeverity
     stderrHandler <- setStderrFormatter <$>
-        streamHandlerWithLock customConsoleAction lock stderr Error
+        streamHandlerWithLock customConsoleAction lock stderr (const True) Error
     updateGlobalLogger rootLoggerName $
         setHandlers [stderrHandler, stdoutHandler]
     updateGlobalLogger rootLoggerName $

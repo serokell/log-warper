@@ -52,10 +52,10 @@ import qualified Data.Text                 as T
 import qualified Data.Text.Encoding        as TE
 import           Data.Text.Lazy.Builder    as B
 import           Network.BSD               (getHostByName, hostAddresses)
-import           Network.Socket            (Family, Family (..), HostName,
-                                            PortNumber, SockAddr (..), Socket,
-                                            SocketType (Datagram, Stream),
-                                            connect, socket)
+import           Network.Socket            (Family, Family (..), HostName, PortNumber,
+                                            SockAddr (..), Socket,
+                                            SocketType (Datagram, Stream), connect,
+                                            socket)
 import qualified Network.Socket            as S
 import qualified Network.Socket.ByteString as NBS
 #ifndef mingw32_HOST_OS
@@ -66,8 +66,7 @@ import           System.IO                 ()
 import           Universum                 hiding (Option, identity)
 
 import           System.Wlog.Formatter     (LogFormatter, varFormatter)
-import           System.Wlog.Handler       (LogHandler (..),
-                                            LogHandlerTag (HandlerOther))
+import           System.Wlog.Handler       (LogHandler (..), LogHandlerTag (HandlerOther))
 import           System.Wlog.Severity      (Severity (..))
 
 
@@ -268,6 +267,7 @@ instance LogHandler SyslogHandler where
     getTag = const $ HandlerOther "SyslogHandlerTag"
     setLevel sh p = sh{priority = p}
     getLevel sh = priority sh
+    shouldPrintError = const True
     setFormatter sh f = sh{formatter = f}
     getFormatter sh = formatter sh
     readBack _ _ = pure []
