@@ -34,25 +34,25 @@ module System.Wlog.Launcher
 
 import           Universum
 
-import           Control.Error.Util         ((?:))
-import           Control.Exception          (throwIO)
-import qualified Data.HashMap.Strict        as HM hiding (HashMap)
-import           Data.Time                  (UTCTime)
-import           Data.Yaml                  (decodeFileEither)
-import           System.Directory           (createDirectoryIfMissing)
-import           System.FilePath            ((</>))
+import           Control.Error.Util            ((?:))
+import           Control.Exception             (throwIO)
+import qualified Data.HashMap.Strict           as HM hiding (HashMap)
+import           Data.Time                     (UTCTime)
+import           Data.Yaml                     (decodeFileEither)
+import           System.Directory              (createDirectoryIfMissing)
+import           System.FilePath               ((</>))
 
-import           System.Wlog.Formatter      (centiUtcTimeF, stdoutFormatter,
-                                             stdoutFormatterTimeRounded)
-import           System.Wlog.Handler        (LogHandler (setFormatter))
-import           System.Wlog.Handler.Roller (rotationFileHandler)
-import           System.Wlog.Handler.Simple (fileHandler)
-import           System.Wlog.Logger         (addHandler, setPrefix, updateGlobalLogger)
-import           System.Wlog.LoggerConfig   (HandlerWrap (..), LoggerConfig (..),
-                                             LoggerTree (..))
-import           System.Wlog.LoggerName     (LoggerName (..))
-import           System.Wlog.Wrapper        (Severity (Debug), initTerminalLogging,
-                                             setSeverityMaybe)
+import           System.Wlog.Formatter         (centiUtcTimeF, stdoutFormatter,
+                                                stdoutFormatterTimeRounded)
+import           System.Wlog.IOLogger          (addHandler, setPrefix, setSeverityMaybe,
+                                                updateGlobalLogger)
+import           System.Wlog.LoggerConfig      (HandlerWrap (..), LoggerConfig (..),
+                                                LoggerTree (..))
+import           System.Wlog.LoggerName        (LoggerName (..))
+import           System.Wlog.LogHandler        (LogHandler (setFormatter))
+import           System.Wlog.LogHandler.Roller (rotationFileHandler)
+import           System.Wlog.LogHandler.Simple (fileHandler)
+import           System.Wlog.Terminal          (Severity (Debug), initTerminalLogging)
 
 data HandlerFabric
     = forall h . LogHandler h => HandlerFabric (FilePath -> Severity -> IO h)

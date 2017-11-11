@@ -14,31 +14,31 @@
 module System.Wlog
        ( module System.Wlog.CanLog
        , module System.Wlog.FileUtils
-       , module System.Wlog.Handler.Roller
-       , module System.Wlog.Handler.Simple
-       , module System.Wlog.Handler.Syslog
        , module System.Wlog.HasLoggerName
+       , module System.Wlog.IOLogger
        , module System.Wlog.Launcher
-       , module System.Wlog.Logger
        , module System.Wlog.LoggerConfig
        , module System.Wlog.LoggerName
        , module System.Wlog.LoggerNameBox
+       , module System.Wlog.LogHandler.Roller
+       , module System.Wlog.LogHandler.Simple
+       , module System.Wlog.LogHandler.Syslog
        , module System.Wlog.PureLogging
        , module System.Wlog.Severity
-       , module System.Wlog.Wrapper
+       , module System.Wlog.Terminal
        ) where
 
 import           System.Wlog.CanLog
 import           System.Wlog.FileUtils
-import           System.Wlog.Handler.Roller
-import           System.Wlog.Handler.Simple
-import           System.Wlog.Handler.Syslog
 import           System.Wlog.HasLoggerName
+import           System.Wlog.IOLogger
 import           System.Wlog.Launcher
-import           System.Wlog.Logger
 import           System.Wlog.LoggerConfig
 import           System.Wlog.LoggerName
 import           System.Wlog.LoggerNameBox
+import           System.Wlog.LogHandler.Roller
+import           System.Wlog.LogHandler.Simple
+import           System.Wlog.LogHandler.Syslog
 import           System.Wlog.PureLogging
 import           System.Wlog.Severity
-import           System.Wlog.Wrapper
+import           System.Wlog.Terminal

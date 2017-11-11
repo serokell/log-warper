@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeFamilies      #-}
 
 {- |
-   Module     : System.Log.Handler.Syslog
+   Module     : System.Log.LogHandler.Syslog
    Copyright  : Copyright (C) 2004-2011 John Goerzen
    License    : BSD3
 
@@ -30,7 +30,7 @@ More information on the Haskell Logging Framework can be found at
 of the rest of that framework for those interested in that.
 -}
 
-module System.Wlog.Handler.Syslog
+module System.Wlog.LogHandler.Syslog
        ( SyslogHandler -- No constructors.
          -- * Handler Initialization
        , openlog
@@ -44,6 +44,8 @@ module System.Wlog.Handler.Syslog
        , Facility(..)
        , Option(..)
        ) where
+
+import           Universum                 hiding (Option, identity)
 
 import qualified Control.Exception         as E
 import           Control.Monad             (void, when)
@@ -63,10 +65,9 @@ import           System.Posix.Process      (getProcessID)
 #endif
 import qualified Data.Text.Lazy.IO         as TIO
 import           System.IO                 ()
-import           Universum                 hiding (Option, identity)
 
 import           System.Wlog.Formatter     (LogFormatter, varFormatter)
-import           System.Wlog.Handler       (LogHandler (..), LogHandlerTag (HandlerOther))
+import           System.Wlog.LogHandler    (LogHandler (..), LogHandlerTag (HandlerOther))
 import           System.Wlog.Severity      (Severity (..))
 
 
@@ -271,7 +272,7 @@ instance LogHandler SyslogHandler where
     setFormatter sh f = sh{formatter = f}
     getFormatter sh = formatter sh
     readBack _ _ = pure []
-    emit sh bldr _ = do
+    emit sh bldr _ = liftIO $ do
       when (elem PERROR (options sh)) (TIO.hPutStrLn stderr (B.toLazyText bldr))
       pidPart <- getPidPart
       void $ sendstr (toSyslogFormat (toText $ B.toLazyText bldr) pidPart)
@@ -303,4 +304,4 @@ instance LogHandler SyslogHandler where
           return "windows"
 #endif
 
-    close sh = S.close (logsocket sh)
+    close = liftIO . S.close . logsocket

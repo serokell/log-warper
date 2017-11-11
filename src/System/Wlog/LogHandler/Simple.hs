@@ -16,7 +16,7 @@ Simple log handlers
 Written by John Goerzen, jgoerzen\@complete.org
 -}
 
-module System.Wlog.Handler.Simple
+module System.Wlog.LogHandler.Simple
        ( GenericHandler(..)
        , defaultHandleAction
 
@@ -24,6 +24,8 @@ module System.Wlog.Handler.Simple
        , fileHandler
        , streamHandler
        ) where
+
+import           Universum
 
 import           Control.Concurrent      (modifyMVar_, withMVar)
 import           Control.Exception       (SomeException)
@@ -34,10 +36,9 @@ import           System.Directory        (createDirectoryIfMissing)
 import           System.FilePath         (takeDirectory)
 import           System.IO               (Handle, IOMode (ReadWriteMode),
                                           SeekMode (SeekFromEnd), hClose, hFlush, hSeek)
-import           Universum
 
 import           System.Wlog.Formatter   (LogFormatter, nullFormatter)
-import           System.Wlog.Handler     (LogHandler (..), LogHandlerTag (..))
+import           System.Wlog.LogHandler  (LogHandler (..), LogHandlerTag (..))
 import           System.Wlog.MemoryQueue (MemoryQueue)
 import           System.Wlog.MemoryQueue as MQ
 import           System.Wlog.Severity    (Severity (..))
@@ -61,9 +62,9 @@ instance Typeable a => LogHandler (GenericHandler a) where
     shouldPrintError a = printErr a
     setFormatter sh f = sh{formatter = f}
     getFormatter sh = formatter sh
-    readBack sh i = withMVar (readBackBuffer sh) $ \mq' -> pure $! take i . MQ.toList $ mq'
-    emit sh bldr _ = (writeFunc sh) (privData sh) (toText . B.toLazyText $ bldr)
-    close sh = (closeFunc sh) (privData sh)
+    readBack sh i = liftIO $ withMVar (readBackBuffer sh) $ \mq' -> pure $! take i . MQ.toList $ mq'
+    emit sh bldr _ = liftIO $ (writeFunc sh) (privData sh) (toText . B.toLazyText $ bldr)
+    close sh = liftIO $ (closeFunc sh) (privData sh)
 
 -- | Default action which just prints to handle using given message.
 defaultHandleAction :: Handle -> Text -> IO ()

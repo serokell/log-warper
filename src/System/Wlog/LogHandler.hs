@@ -1,8 +1,9 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TypeFamilies     #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE TypeFamilies      #-}
 
 {- |
-   Module     : System.Log.Handler
+   Module     : System.Log.LogHandler
    Copyright  : Copyright (C) 2004-2011 John Goerzen
    License    : BSD3
 
@@ -20,7 +21,7 @@ logging system.
 
 Written by John Goerzen, jgoerzen\@complete.org
 -}
-module System.Wlog.Handler
+module System.Wlog.LogHandler
        ( -- * Basic Types
          LogHandlerTag(..)
        , LogHandler(..)
@@ -64,23 +65,23 @@ class LogHandler a where
 
     -- | Logs an event if it meets the requirements
     -- given by the most recent call to 'setLevel'.
-    handle :: a -> LogRecord -> LoggerName -> IO ()
+    handle :: MonadIO m => a -> LogRecord -> LoggerName -> m ()
     handle h lr@(LR pri _) logname =
         when (pri >= (getLevel h)) $
             when (not $ pri == Error && not (shouldPrintError h)) $ do
                 let lName = getLoggerName logname
-                formattedMsg <- (getFormatter h) h lr lName
+                formattedMsg <- liftIO $ (getFormatter h) h lr lName
                 emit h formattedMsg lName
 
     -- | Forces an event to be logged regardless of
     -- the configured level.
-    emit :: a -> B.Builder -> Text -> IO ()
+    emit :: MonadIO m => a -> B.Builder -> Text -> m ()
 
     -- | Read back from logger (e.g. file), newest first. You specify
     -- the number of (newest) logging entries. Logger can return @pure
     -- []@ if this behaviour can't be emulated or store buffer.
-    readBack :: a -> Int -> IO [Text]
+    readBack :: MonadIO m => a -> Int -> m [Text]
 
     -- | Closes the logging system, causing it to close
     -- any open files, etc.
-    close :: a -> IO ()
+    close :: MonadIO m => a -> m ()

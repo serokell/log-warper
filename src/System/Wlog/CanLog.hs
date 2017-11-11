@@ -31,7 +31,7 @@ import qualified Control.Monad.State.Lazy  as StateLazy
 import           Control.Monad.Trans       (MonadTrans (lift))
 
 import           System.Wlog.HasLoggerName (HasLoggerName (..))
-import           System.Wlog.Logger        (logM)
+import           System.Wlog.IOLogger      (logM)
 import           System.Wlog.LoggerName    (LoggerName (..))
 import           System.Wlog.LoggerNameBox (LoggerNameBox (..))
 import           System.Wlog.Severity      (Severity (..))

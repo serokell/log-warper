@@ -1,3 +1,5 @@
+{-# LANGUAGE NoImplicitPrelude #-}
+
 -- | Custom wrapper around @hslogger.Priority@.
 
 module System.Wlog.Severity

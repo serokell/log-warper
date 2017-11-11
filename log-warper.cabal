@@ -20,19 +20,19 @@ library
                        System.Wlog.CanLog
                        System.Wlog.FileUtils
                        System.Wlog.Formatter
-                       System.Wlog.Handler
-                       System.Wlog.Handler.Roller
-                       System.Wlog.Handler.Simple
-                       System.Wlog.Handler.Syslog
                        System.Wlog.HasLoggerName
+                       System.Wlog.IOLogger
                        System.Wlog.Launcher
-                       System.Wlog.Logger
                        System.Wlog.LoggerConfig
                        System.Wlog.LoggerName
                        System.Wlog.LoggerNameBox
+                       System.Wlog.LogHandler
+                           System.Wlog.LogHandler.Roller
+                           System.Wlog.LogHandler.Simple
+                           System.Wlog.LogHandler.Syslog
                        System.Wlog.PureLogging
                        System.Wlog.Severity
-                       System.Wlog.Wrapper
+                       System.Wlog.Terminal
 
   other-modules:       System.Wlog.Color
                        System.Wlog.MemoryQueue

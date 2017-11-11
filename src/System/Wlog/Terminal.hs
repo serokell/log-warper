@@ -2,7 +2,7 @@
 {-# LANGUAGE ViewPatterns      #-}
 
 -- |
--- Module      : System.Wlog.Wrapper
+-- Module      : System.Wlog.Terminal
 -- Copyright   : (c) Serokell, 2016
 -- License     : GPL-3 (see the file LICENSE)
 -- Maintainer  : Serokell <hi@serokell.io>
@@ -13,38 +13,22 @@
 -- <http://hackage.haskell.org/package/hslogger hslogger>,
 -- which allows to keep logger name in monadic context.
 
-module System.Wlog.Wrapper
+module System.Wlog.Terminal
        ( Severity (..)
        , initTerminalLogging
-       , releaseAllHandlers
-       , setSeverity
-       , setSeverityMaybe
        ) where
 
 import           Universum
 
-import           Data.Time                  (UTCTime)
-import           System.IO                  (Handle, stderr, stdout)
+import           Data.Time                     (UTCTime)
+import           System.IO                     (Handle, stderr, stdout)
 
-import           System.Wlog.Formatter      (stderrFormatter, stdoutFormatter)
-import           System.Wlog.Handler        (LogHandler (setFormatter))
-import           System.Wlog.Handler.Simple (GenericHandler (..), streamHandler)
-import           System.Wlog.Logger         (clearLevel, removeAllHandlers,
-                                             rootLoggerName, setHandlers, setLevel,
-                                             updateGlobalLogger)
-import           System.Wlog.LoggerName     (LoggerName (..))
-import           System.Wlog.Severity       (Severity (..))
-
--- | Like `streamHandler`, but syncronized using given `MVar` as lock
--- (it should be filled before this function call).
-streamHandlerWithLock :: (Handle -> Text -> IO ())
-                      -> MVar ()
-                      -> Handle
-                      -> (Handle -> Bool)
-                      -> Severity
-                      -> IO (GenericHandler Handle)
-streamHandlerWithLock customTerminalAction lock handle shouldPrintError severity =
-    streamHandler handle customTerminalAction shouldPrintError lock severity
+import           System.Wlog.Formatter         (stderrFormatter, stdoutFormatter)
+import           System.Wlog.IOLogger          (rootLoggerName, setHandlers, setLevel,
+                                                updateGlobalLogger)
+import           System.Wlog.LogHandler        (LogHandler (setFormatter))
+import           System.Wlog.LogHandler.Simple (streamHandler)
+import           System.Wlog.Severity          (Severity (..))
 
 -- | This function initializes global logging system for terminal output.
 -- At high level, it sets severity which will be used by all loggers by default,
@@ -78,9 +62,9 @@ initTerminalLogging
   = liftIO $ do
     lock <- liftIO $ newMVar ()
     stdoutHandler <- setStdoutFormatter <$>
-        streamHandlerWithLock customConsoleAction lock stdout (const False) defaultSeverity
+        streamHandler stdout customConsoleAction (const False) lock defaultSeverity
     stderrHandler <- setStderrFormatter <$>
-        streamHandlerWithLock customConsoleAction lock stderr (const True) Error
+        streamHandler stderr customConsoleAction (const True) lock Error
     updateGlobalLogger rootLoggerName $
         setHandlers [stderrHandler, stdoutHandler]
     updateGlobalLogger rootLoggerName $
@@ -88,20 +72,3 @@ initTerminalLogging
   where
     setStdoutFormatter = (`setFormatter` stdoutFormatter timeF isShowTime isShowTid)
     setStderrFormatter = (`setFormatter` stderrFormatter timeF isShowTid)
-
--- | Set severity for given logger. By default parent's severity is used.
-setSeverity :: MonadIO m => LoggerName -> Severity -> m ()
-setSeverity name =
-    liftIO . updateGlobalLogger name . setLevel
-
--- | Set or clear severity.
-setSeverityMaybe
-    :: MonadIO m
-    => LoggerName -> Maybe Severity -> m ()
-setSeverityMaybe name Nothing =
-    liftIO $ updateGlobalLogger name clearLevel
-setSeverityMaybe n (Just x) = setSeverity n x
-
--- | Lifted alias to 'removeAllHandlers'.
-releaseAllHandlers :: MonadIO m => m ()
-releaseAllHandlers = liftIO removeAllHandlers
