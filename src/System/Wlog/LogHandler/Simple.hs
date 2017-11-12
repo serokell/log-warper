@@ -41,12 +41,11 @@ import           System.Wlog.Formatter   (LogFormatter, nullFormatter)
 import           System.Wlog.LogHandler  (LogHandler (..), LogHandlerTag (..))
 import           System.Wlog.MemoryQueue (MemoryQueue)
 import           System.Wlog.MemoryQueue as MQ
-import           System.Wlog.Severity    (Severity (..))
+import           System.Wlog.Severity    (Severities)
 
 -- | A helper data type.
 data GenericHandler a = GenericHandler
-    { severity       :: !Severity
-    , printErr       :: !Bool
+    { severities     :: !Severities
     , formatter      :: !(LogFormatter (GenericHandler a))
     , privData       :: !a
     , writeFunc      :: !(a -> Text -> IO ())
@@ -57,9 +56,8 @@ data GenericHandler a = GenericHandler
 
 instance Typeable a => LogHandler (GenericHandler a) where
     getTag = ghTag
-    setLevel sh s = sh {severity = s}
-    getLevel sh = severity sh
-    shouldPrintError a = printErr a
+    setLevel sh s = sh {severities = s}
+    getLevel sh = severities sh
     setFormatter sh f = sh{formatter = f}
     getFormatter sh = formatter sh
     readBack sh i = liftIO $ withMVar (readBackBuffer sh) $ \mq' -> pure $! take i . MQ.toList $ mq'
@@ -106,31 +104,29 @@ createWriteFuncWrapper action lock = do
 -- close the underlying stream.
 streamHandler :: Handle
               -> (Handle -> Text -> IO ())
-              -> (Handle -> Bool)
               -> MVar ()
-              -> Severity
+              -> Severities
               -> IO (GenericHandler Handle)
-streamHandler privData writeAction shouldPrintErr lock severity = do
+streamHandler privData writeAction lock severities = do
     (writeFunc, readBackBuffer) <- createWriteFuncWrapper writeAction lock
     return GenericHandler
         { formatter = nullFormatter
         , closeFunc = const $ pure ()
         , ghTag     = HandlerOther "GenericHandler/StreamHandler"
-        , printErr  = shouldPrintErr privData
         , ..
         }
 
 -- | Create a file log handler.  Log messages sent to this handler
 -- will be sent to the filename specified, which will be opened in
 -- Append mode.  Calling 'close' on the handler will close the file.
-fileHandler :: FilePath -> Severity -> IO (GenericHandler Handle)
+fileHandler :: FilePath -> Severities -> IO (GenericHandler Handle)
 fileHandler fp sev = do
     createDirectoryIfMissing True (takeDirectory fp)
     h <- openFile fp ReadWriteMode
     hSeek h SeekFromEnd 0
 
     lock <- newMVar ()
-    sh <- streamHandler h defaultHandleAction (const True) lock sev
+    sh <- streamHandler h defaultHandleAction lock sev
     pure $ sh { closeFunc = hClose
               , ghTag = HandlerFilelike fp
               }

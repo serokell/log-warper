@@ -44,7 +44,7 @@ import           System.FilePath               ((</>))
 
 import           System.Wlog.Formatter         (centiUtcTimeF, stdoutFormatter,
                                                 stdoutFormatterTimeRounded)
-import           System.Wlog.IOLogger          (addHandler, setPrefix, setSeverityMaybe,
+import           System.Wlog.IOLogger          (addHandler, setPrefix, setSeveritiesMaybe,
                                                 updateGlobalLogger)
 import           System.Wlog.LoggerConfig      (HandlerWrap (..), LoggerConfig (..),
                                                 LoggerTree (..))
@@ -52,10 +52,11 @@ import           System.Wlog.LoggerName        (LoggerName (..))
 import           System.Wlog.LogHandler        (LogHandler (setFormatter))
 import           System.Wlog.LogHandler.Roller (rotationFileHandler)
 import           System.Wlog.LogHandler.Simple (fileHandler)
-import           System.Wlog.Terminal          (Severity (Debug), initTerminalLogging)
+import           System.Wlog.Severity          (Severities, debugPlus, severityPlus)
+import           System.Wlog.Terminal          (initTerminalLogging)
 
 data HandlerFabric
-    = forall h . LogHandler h => HandlerFabric (FilePath -> Severity -> IO h)
+    = forall h . LogHandler h => HandlerFabric (FilePath -> Severities -> IO h)
 
 -- | This function traverses 'LoggerConfig' initializing all subloggers
 -- with 'Severity' and redirecting output in file handlers.
@@ -69,7 +70,7 @@ setupLogging mTimeFunction LoggerConfig{..} = do
                             customTerminalAction
                             isShowTime
                             isShowTid
-                            _lcTermSeverity
+                            (_lcTermSeverity >>= pure . severityPlus)
 
     liftIO $ setPrefix _lcFilePrefix
     processLoggers mempty _lcTree
@@ -90,14 +91,14 @@ setupLogging mTimeFunction LoggerConfig{..} = do
     processLoggers parent LoggerTree{..} = do
         -- This prevents logger output to appear in terminal
         unless (parent == mempty && isNothing consoleAction) $
-            setSeverityMaybe parent _ltSeverity
+            setSeveritiesMaybe parent (_ltSeverity >>= pure . severityPlus)
 
         forM_ _ltFiles $ \HandlerWrap{..} -> liftIO $ do
-            let fileSeverity   = _ltSeverity ?: Debug
+            let fileSeverities   = (_ltSeverity >>= pure . severityPlus) ?: debugPlus
             let handlerPath    = handlerPrefix </> _hwFilePath
             case handlerFabric of
                 HandlerFabric fabric -> do
-                    let handlerCreator = fabric handlerPath fileSeverity
+                    let handlerCreator = fabric handlerPath fileSeverities
                     let defFmt = (`setFormatter` stdoutFormatter timeF isShowTime isShowTid)
                     let roundFmt r = (`setFormatter` stdoutFormatterTimeRounded timeF r)
                     let fmt = maybe defFmt roundFmt _hwRounding

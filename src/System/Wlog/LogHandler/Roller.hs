@@ -28,12 +28,12 @@ import           System.Wlog.LoggerConfig      (RotationParameters (..), isValid
 import           System.Wlog.LogHandler        (LogHandler (..),
                                                 LogHandlerTag (HandlerFilelike))
 import           System.Wlog.LogHandler.Simple (GenericHandler (..), fileHandler)
-import           System.Wlog.Severity          (Severity (..))
+import           System.Wlog.Severity          (Severities)
 
 -- | Similar to 'GenericHandler'. But holds file 'Handle' inside
 -- mutable variable ('MVar') to be able to rotate loggers.
 data RollerHandler = RollerHandler
-    { rhSeverity    :: !Severity
+    { rhSeverities  :: !Severities
     , rhFormatter   :: !(LogFormatter RollerHandler)
     , rhFileHandle  :: !(MVar Handle)
     , rhWriteAction :: !(Handle -> Text -> IO ())
@@ -43,12 +43,11 @@ data RollerHandler = RollerHandler
 
 instance LogHandler RollerHandler where
     getTag rh         = HandlerFilelike $ rhFileName rh
-    setLevel     rh p = rh { rhSeverity  = p }
-    setFormatter rh f = rh { rhFormatter = f }
-    getLevel          = rhSeverity
+    setLevel     rh p = rh { rhSeverities = p }
+    setFormatter rh f = rh { rhFormatter  = f }
+    getLevel          = rhSeverities
     getFormatter      = rhFormatter
     readBack          = rollerReadback
-    shouldPrintError  = const True
 
     emit rh bldr _    = liftIO $ rhWriteAction rh (error "Handler is used internally") (toText . B.toLazyText $ bldr)
     close RollerHandler{..} = liftIO $ withMVar rhFileHandle rhCloseAction
@@ -108,13 +107,13 @@ rotationFileHandler
     :: MonadIO m
     => RotationParameters
     -> FilePath
-    -> Severity
+    -> Severities
     -> m RollerHandler
 rotationFileHandler rp@RotationParameters{..} _ _
     | not $ isValidRotation rp = liftIO $ throwM $ InvalidRotation $
       sformat ("Rotation parameters must be positive: "%shown) rp
-rotationFileHandler rp@RotationParameters{..} handlerPath rhSeverity = liftIO $ do
-    GenericHandler{..} <- fileHandler handlerPath rhSeverity
+rotationFileHandler rp@RotationParameters{..} handlerPath rhSeverities = liftIO $ do
+    GenericHandler{..} <- fileHandler handlerPath rhSeverities
     rhFileHandle       <- newMVar privData
     let rhWriteAction   = rollerWriting rp handlerPath writeFunc rhFileHandle
     pure RollerHandler { rhFormatter   = nullFormatter

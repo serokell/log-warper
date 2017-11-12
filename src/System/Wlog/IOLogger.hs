@@ -43,7 +43,7 @@ module System.Wlog.IOLogger
        , addHandler, removeHandler, setHandlers
        , getLevel, setLevel, clearLevel
          -- ** Severity settings
-       , setSeverity, setSeverityMaybe
+       , setSeverities, setSeveritiesMaybe
          -- ** Saving Your Changes
        , saveGlobalLogger
        , updateGlobalLogger
@@ -57,6 +57,7 @@ import           Control.Concurrent.MVar (modifyMVar, modifyMVar_, withMVar)
 import           Control.Lens            (makeLenses)
 import qualified Data.Map                as M
 import           Data.Maybe              (fromJust)
+import qualified Data.Set                as Set
 import qualified Data.Text               as T
 import qualified Data.Text.IO            as TIO
 import           System.FilePath         ((</>))
@@ -67,7 +68,8 @@ import           System.Wlog.LogHandler  (LogHandler (getTag),
                                           LogHandlerTag (HandlerFilelike), close,
                                           readBack)
 import qualified System.Wlog.LogHandler  (handle)
-import           System.Wlog.Severity    (LogRecord (..), Severity (..))
+import           System.Wlog.Severity    (LogRecord (..), Severities, Severity (..),
+                                          debugPlus, warningPlus)
 
 
 ---------------------------------------------------------------------------
@@ -77,7 +79,7 @@ import           System.Wlog.Severity    (LogRecord (..), Severity (..))
 data HandlerT = forall a. LogHandler a => HandlerT a
 
 data Logger = Logger
-    { _lLevel    :: Maybe Severity
+    { _lLevel    :: Maybe Severities
     , _lHandlers :: [HandlerT]
     , _lName     :: LoggerName
     } deriving (Generic)
@@ -110,7 +112,7 @@ logInternalState :: MVar LogInternalState
 -- note: only kick up tree if handled locally
 logInternalState = unsafePerformIO $ do
     let liTree = M.singleton rootLoggerName $
-                 Logger { _lLevel = Just Warning
+                 Logger { _lLevel = Just warningPlus
                         , _lName = ""
                         , _lHandlers = []}
         liPrefix = Nothing
@@ -186,8 +188,8 @@ getRootLogger = getLogger rootLoggerName
 -- | Handle a log request.
 handle :: MonadIO m => Logger -> LogRecord -> (LogHandlerTag -> Bool) -> m ()
 handle l lrecord@(LR sev _) handlerFilter = do
-    lp <- getLoggerSeverity nm
-    when (sev >= lp) $ do
+    lp <- getLoggerSeverities nm
+    when (sev `Set.member` lp) $ do
         ph <- concatMap (view lHandlers) <$> parentLoggers nm
         forM_ ph $ callHandler lrecord nm
   where
@@ -200,11 +202,11 @@ handle l lrecord@(LR sev _) handlerFilter = do
     -- Get the severity we should use. Find the first logger in the
     -- tree, starting here, with a set severity. If even root doesn't
     -- have one, assume "Debug".
-    getLoggerSeverity :: MonadIO m => LoggerName -> m Severity
-    getLoggerSeverity name = do
+    getLoggerSeverities :: MonadIO m => LoggerName -> m Severities
+    getLoggerSeverities name = do
         pl <- parentLoggers name
         case catMaybes . map (view lLevel) $ (l : pl) of
-            []    -> pure Debug
+            []    -> pure debugPlus
             (x:_) -> pure x
 
     callHandler :: MonadIO m => LogRecord -> LoggerName -> HandlerT -> m ()
@@ -245,12 +247,12 @@ setHandlers hl = lHandlers .~ map HandlerT hl
 
 -- | Returns the "level" of the logger.  Items beneath this
 -- level will be ignored.
-getLevel :: Logger -> Maybe Severity
+getLevel :: Logger -> Maybe Severities
 getLevel = _lLevel
 
 -- | Sets the "level" of the 'Logger'.  Returns a new
 -- 'Logger' object with the new level.
-setLevel :: Severity -> Logger -> Logger
+setLevel :: Severities -> Logger -> Logger
 setLevel p = lLevel .~ Just p
 
 -- | Clears the "level" of the 'Logger'.  It will now inherit the level of
@@ -258,18 +260,16 @@ setLevel p = lLevel .~ Just p
 clearLevel :: Logger -> Logger
 clearLevel = lLevel .~ Nothing
 
--- | Set severity for given logger. By default parent's severity is used.
-setSeverity :: MonadIO m => LoggerName -> Severity -> m ()
-setSeverity name =
-    liftIO . updateGlobalLogger name . setLevel
+-- | Set severities for given logger. By default parent's severities are used.
+setSeverities :: MonadIO m => LoggerName -> Severities -> m ()
+setSeverities name = updateGlobalLogger name . setLevel
 
--- | Set or clear severity.
-setSeverityMaybe
+-- | Set or clear severities.
+setSeveritiesMaybe
     :: MonadIO m
-    => LoggerName -> Maybe Severity -> m ()
-setSeverityMaybe name Nothing =
-    liftIO $ updateGlobalLogger name clearLevel
-setSeverityMaybe n (Just x) = setSeverity n x
+    => LoggerName -> Maybe Severities -> m ()
+setSeveritiesMaybe name Nothing  = updateGlobalLogger name clearLevel
+setSeveritiesMaybe n    (Just x) = setSeverities n x
 
 -- | Updates the global record for the given logger to take into
 -- account any changes you may have made.

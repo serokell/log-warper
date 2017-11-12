@@ -29,11 +29,12 @@ module System.Wlog.LogHandler
 
 import           Universum
 
+import qualified Data.Set               as Set
 import           Data.Text.Lazy.Builder as B
 
 import           System.Wlog.Formatter  (LogFormatter, nullFormatter)
 import           System.Wlog.LoggerName (LoggerName (..))
-import           System.Wlog.Severity   (LogRecord (..), Severity (Error))
+import           System.Wlog.Severity   (LogRecord (..), Severities)
 
 -- | Tag identifying handlers.
 data LogHandlerTag
@@ -50,13 +51,10 @@ class LogHandler a where
 
     -- | Sets the log level. 'handle' will drop items beneath this
     -- level.
-    setLevel :: a -> Severity -> a
+    setLevel :: a -> Severities -> a
 
     -- | Gets the current level.
-    getLevel :: a -> Severity
-
-    -- | Needed for printing 'Error' only to @stderr@
-    shouldPrintError :: a -> Bool
+    getLevel :: a -> Severities
 
     -- | Set a log formatter to customize the log format for this Handler
     setFormatter :: a -> LogFormatter a -> a
@@ -67,11 +65,10 @@ class LogHandler a where
     -- given by the most recent call to 'setLevel'.
     handle :: MonadIO m => a -> LogRecord -> LoggerName -> m ()
     handle h lr@(LR pri _) logname =
-        when (pri >= (getLevel h)) $
-            when (not $ pri == Error && not (shouldPrintError h)) $ do
-                let lName = getLoggerName logname
-                formattedMsg <- liftIO $ (getFormatter h) h lr lName
-                emit h formattedMsg lName
+        when (pri `Set.member` (getLevel h)) $ do
+            let lName = getLoggerName logname
+            formattedMsg <- liftIO $ (getFormatter h) h lr lName
+            emit h formattedMsg lName
 
     -- | Forces an event to be logged regardless of
     -- the configured level.
