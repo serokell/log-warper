@@ -1,6 +1,5 @@
-{-# LANGUAGE CPP               #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE ViewPatterns      #-}
+{-# LANGUAGE CPP          #-}
+{-# LANGUAGE ViewPatterns #-}
 
 -- |
 -- Module      : System.Wlog.Formatter
@@ -29,29 +28,30 @@ module System.Wlog.Formatter
        , varFormatter
        ) where
 
-import           Universum
+import Universum
 
-import           Control.Concurrent     (myThreadId)
-import           Data.Monoid            (mconcat)
-import qualified Data.Text              as T
-import           Data.Text.Lazy.Builder as B
-import           Data.Time              (formatTime, getCurrentTime, getZonedTime)
-import           Data.Time.Clock        (UTCTime (..))
-import           Data.Time.Format       (FormatTime)
-import           Fmt                    (fmt, padRightF, (+|), (|+), (|++|))
-import           Fmt.Time               (dateDashF, hmsF, subsecondF, tzNameF)
+import Control.Concurrent (myThreadId)
+import Data.Monoid (mconcat)
+import Data.Text.Lazy.Builder as B
+import Data.Time (formatTime, getCurrentTime, getZonedTime)
+import Data.Time.Clock (UTCTime (..))
+import Data.Time.Format (FormatTime)
+import Fmt (fmt, padRightF, (+|), (|+), (|++|))
+import Fmt.Time (dateDashF, hmsF, subsecondF, tzNameF)
 
 #ifndef mingw32_HOST_OS
-import           System.Posix.Process   (getProcessID)
+import System.Posix.Process (getProcessID)
 #endif
 #if MIN_VERSION_time(1,5,0)
-import           Data.Time.Format       (defaultTimeLocale)
+import Data.Time.Format (defaultTimeLocale)
 #else
-import           System.Locale          (defaultTimeLocale)
+import System.Locale (defaultTimeLocale)
 #endif
 
-import           System.Wlog.Color      (colorizer)
-import           System.Wlog.Severity   (LogRecord (..), Severity (..))
+import System.Wlog.Color (colorizer)
+import System.Wlog.Severity (LogRecord (..), Severity (..))
+
+import qualified Data.Text as T
 
 ----------------------------------------------------------------------------
 -- Basic formatting functionality (initially taken from hslogger)

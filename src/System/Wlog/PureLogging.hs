@@ -1,7 +1,6 @@
 {-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NoImplicitPrelude     #-}
 {-# LANGUAGE OverloadedLists       #-}
 {-# LANGUAGE Rank2Types            #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -25,18 +24,19 @@ module System.Wlog.PureLogging
        , logPureAction
        ) where
 
-import           Universum
+import Universum
 
-import           Control.Monad.Morph        (MFunctor (..))
-import           Control.Monad.State.Strict (modify')
-import           Control.Monad.Trans        (MonadTrans (lift))
-import qualified Data.DList                 as DL (DList, snoc)
+import Control.Monad.Morph (MFunctor (..))
+import Control.Monad.State.Strict (modify')
+import Control.Monad.Trans (MonadTrans (lift))
 
-import           System.Wlog.CanLog         (CanLog (..), WithLogger)
-import           System.Wlog.HasLoggerName  (HasLoggerName (..))
-import           System.Wlog.LoggerName     (LoggerName (..))
-import           System.Wlog.LoggerNameBox  (LoggerNameBox (..), usingLoggerName)
-import           System.Wlog.Severity       (Severity (..))
+import System.Wlog.CanLog (CanLog (..), WithLogger)
+import System.Wlog.HasLoggerName (HasLoggerName (..))
+import System.Wlog.LoggerName (LoggerName (..))
+import System.Wlog.LoggerNameBox (LoggerNameBox (..), usingLoggerName)
+import System.Wlog.Severity (Severity (..))
+
+import qualified Data.DList as DL (DList, snoc)
 
 -- | Holds all required information for 'dispatchLoggerName' function.
 data LogEvent = LogEvent

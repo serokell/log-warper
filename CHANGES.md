@@ -1,3 +1,19 @@
+1.6.0
+=====
+
+* `Error` is now printed only to `stderr`, all other messages to `stdout`.
+* `Logger` severity is now `Set Severity`.
+* Interface changes: functions which worked with `Severity` now work with `Set Severity`.
+* Remove `releaseAllHandlers`, `streamHandlerWithLock`,
+  `trapLogging`, `debugM`, `errorM`, `infoM`, `noticeM`, `warningM`.
+* Rename `Wrapper` module to `Terminal`.
+* Rename `Handler` module to `LogHandler`.
+* Rename `Logger` module to `IOLogger`.
+* Move `setSeverity` and `setSeverityMaybe` to `IOLogger`.
+* Lift all functions inside `IOLogger` module to `MonadIO`.
+* `handle` from `LogHandler` module is renamed to `logHandlerMessage`
+  and moved out of type class `LogHandler`.
+
 1.5.3
 =====
 

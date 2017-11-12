@@ -1,6 +1,5 @@
-{-# LANGUAGE CPP               #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE CPP          #-}
+{-# LANGUAGE TypeFamilies #-}
 
 {- |
    Module     : System.Log.Handler.Simple
@@ -16,7 +15,7 @@ Simple log handlers
 Written by John Goerzen, jgoerzen\@complete.org
 -}
 
-module System.Wlog.Handler.Simple
+module System.Wlog.LogHandler.Simple
        ( GenericHandler(..)
        , defaultHandleAction
 
@@ -25,26 +24,27 @@ module System.Wlog.Handler.Simple
        , streamHandler
        ) where
 
-import           Control.Concurrent      (modifyMVar_, withMVar)
-import           Control.Exception       (SomeException)
-import qualified Data.Text.IO            as TIO
-import           Data.Text.Lazy.Builder  as B
-import           Data.Typeable           (Typeable)
-import           System.Directory        (createDirectoryIfMissing)
-import           System.FilePath         (takeDirectory)
-import           System.IO               (Handle, IOMode (ReadWriteMode),
-                                          SeekMode (SeekFromEnd), hClose, hFlush, hSeek)
-import           Universum
+import Universum
 
-import           System.Wlog.Formatter   (LogFormatter, nullFormatter)
-import           System.Wlog.Handler     (LogHandler (..), LogHandlerTag (..))
-import           System.Wlog.MemoryQueue (MemoryQueue)
-import           System.Wlog.MemoryQueue as MQ
-import           System.Wlog.Severity    (Severity (..))
+import Control.Concurrent (modifyMVar_, withMVar)
+import Control.Exception (SomeException)
+import Data.Text.Lazy.Builder as B
+import Data.Typeable (Typeable)
+import System.Directory (createDirectoryIfMissing)
+import System.FilePath (takeDirectory)
+import System.IO (Handle, IOMode (ReadWriteMode), SeekMode (SeekFromEnd), hClose, hFlush, hSeek)
+
+import System.Wlog.Formatter (LogFormatter, nullFormatter)
+import System.Wlog.LogHandler (LogHandler (..), LogHandlerTag (..))
+import System.Wlog.MemoryQueue (MemoryQueue)
+import System.Wlog.MemoryQueue as MQ
+import System.Wlog.Severity (Severities)
+
+import qualified Data.Text.IO as TIO
 
 -- | A helper data type.
 data GenericHandler a = GenericHandler
-    { severity       :: !Severity
+    { severities     :: !Severities
     , formatter      :: !(LogFormatter (GenericHandler a))
     , privData       :: !a
     , writeFunc      :: !(a -> Text -> IO ())
@@ -55,13 +55,13 @@ data GenericHandler a = GenericHandler
 
 instance Typeable a => LogHandler (GenericHandler a) where
     getTag = ghTag
-    setLevel sh s = sh {severity = s}
-    getLevel sh = severity sh
+    setLevel sh s = sh {severities = s}
+    getLevel sh = severities sh
     setFormatter sh f = sh{formatter = f}
     getFormatter sh = formatter sh
-    readBack sh i = withMVar (readBackBuffer sh) $ \mq' -> pure $! take i . MQ.toList $ mq'
-    emit sh bldr _ = (writeFunc sh) (privData sh) (toText . B.toLazyText $ bldr)
-    close sh = (closeFunc sh) (privData sh)
+    readBack sh i = liftIO $ withMVar (readBackBuffer sh) $ \mq' -> pure $! take i . MQ.toList $ mq'
+    emit sh bldr _ = liftIO $ (writeFunc sh) (privData sh) (toText . B.toLazyText $ bldr)
+    close sh = liftIO $ (closeFunc sh) (privData sh)
 
 -- | Default action which just prints to handle using given message.
 defaultHandleAction :: Handle -> Text -> IO ()
@@ -104,9 +104,9 @@ createWriteFuncWrapper action lock = do
 streamHandler :: Handle
               -> (Handle -> Text -> IO ())
               -> MVar ()
-              -> Severity
+              -> Severities
               -> IO (GenericHandler Handle)
-streamHandler privData writeAction lock severity = do
+streamHandler privData writeAction lock severities = do
     (writeFunc, readBackBuffer) <- createWriteFuncWrapper writeAction lock
     return GenericHandler
         { formatter = nullFormatter
@@ -118,7 +118,7 @@ streamHandler privData writeAction lock severity = do
 -- | Create a file log handler.  Log messages sent to this handler
 -- will be sent to the filename specified, which will be opened in
 -- Append mode.  Calling 'close' on the handler will close the file.
-fileHandler :: FilePath -> Severity -> IO (GenericHandler Handle)
+fileHandler :: FilePath -> Severities -> IO (GenericHandler Handle)
 fileHandler fp sev = do
     createDirectoryIfMissing True (takeDirectory fp)
     h <- openFile fp ReadWriteMode

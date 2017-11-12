@@ -2,16 +2,15 @@
 
 module Main where
 
-import           Universum
+import Universum
 
-import           Data.Monoid      ((<>))
-import           Data.Yaml.Pretty (defConfig, encodePretty)
+import Data.Monoid ((<>))
+import Data.Yaml.Pretty (defConfig, encodePretty)
 
-import           System.Wlog      (CanLog, Severity (Debug), buildAndSetupYamlLogging,
-                                   dispatchEvents, logDebug, logError, logInfo, logNotice,
-                                   logWarning, modifyLoggerName, parseLoggerConfig,
-                                   prefixB, productionB, releaseAllHandlers, runPureLog,
-                                   termSeverityB, usingLoggerName)
+import System.Wlog (CanLog, Severity (Debug), buildAndSetupYamlLogging, dispatchEvents, logDebug,
+                    logError, logInfo, logNotice, logWarning, modifyLoggerName, parseLoggerConfig,
+                    prefixB, productionB, removeAllHandlers, runPureLog, termSeverityB,
+                    usingLoggerName)
 
 testLoggerConfigPath :: FilePath
 testLoggerConfigPath = "logger-config-example.yaml"
@@ -49,5 +48,5 @@ main = do
     let config = (productionB <> prefixB "logs" <> termSeverityB Debug)
     bracket_
         (buildAndSetupYamlLogging config testLoggerConfigPath)
-        releaseAllHandlers
+        removeAllHandlers
         (testLogging >> showPureLog)

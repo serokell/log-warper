@@ -1,9 +1,8 @@
-{-# LANGUAGE CPP               #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE CPP          #-}
+{-# LANGUAGE TypeFamilies #-}
 
 {- |
-   Module     : System.Log.Handler.Syslog
+   Module     : System.Log.LogHandler.Syslog
    Copyright  : Copyright (C) 2004-2011 John Goerzen
    License    : BSD3
 
@@ -30,7 +29,7 @@ More information on the Haskell Logging Framework can be found at
 of the rest of that framework for those interested in that.
 -}
 
-module System.Wlog.Handler.Syslog
+module System.Wlog.LogHandler.Syslog
        ( SyslogHandler -- No constructors.
          -- * Handler Initialization
        , openlog
@@ -45,36 +44,35 @@ module System.Wlog.Handler.Syslog
        , Option(..)
        ) where
 
-import qualified Control.Exception         as E
-import           Control.Monad             (void, when)
-import           Data.Bits                 (shiftL, (.|.))
-import qualified Data.Text                 as T
-import qualified Data.Text.Encoding        as TE
-import           Data.Text.Lazy.Builder    as B
-import           Network.BSD               (getHostByName, hostAddresses)
-import           Network.Socket            (Family, Family (..), HostName,
-                                            PortNumber, SockAddr (..), Socket,
-                                            SocketType (Datagram, Stream),
-                                            connect, socket)
-import qualified Network.Socket            as S
-import qualified Network.Socket.ByteString as NBS
+import Universum hiding (Option, identity)
+
+import Control.Monad (void, when)
+import Data.Bits (shiftL, (.|.))
+import Data.Text.Lazy.Builder as B
+import Network.BSD (getHostByName, hostAddresses)
+import Network.Socket (Family, Family (..), HostName, PortNumber, SockAddr (..), Socket,
+                       SocketType (Datagram, Stream), connect, socket)
 #ifndef mingw32_HOST_OS
-import           System.Posix.Process      (getProcessID)
+import System.Posix.Process (getProcessID)
 #endif
-import qualified Data.Text.Lazy.IO         as TIO
-import           System.IO                 ()
-import           Universum                 hiding (Option, identity)
+import System.IO ()
 
-import           System.Wlog.Formatter     (LogFormatter, varFormatter)
-import           System.Wlog.Handler       (LogHandler (..),
-                                            LogHandlerTag (HandlerOther))
-import           System.Wlog.Severity      (Severity (..))
+import System.Wlog.Formatter (LogFormatter, varFormatter)
+import System.Wlog.LogHandler (LogHandler (..), LogHandlerTag (HandlerOther))
+import System.Wlog.Severity (Severities, Severity (..))
 
 
+import qualified Control.Exception as E
+import qualified Data.Set as Set
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
+import qualified Data.Text.Lazy.IO as TIO
+import qualified Network.Socket as S
+import qualified Network.Socket.ByteString as NBS
 
-code_of_pri :: Severity -> Int
-code_of_pri p =
-    case p of
+code_of_sev :: Severities -> Int
+code_of_sev sevs =
+    case fromMaybe Debug (Set.lookupMin sevs) of
         Error   -> 3
         Warning -> 4
         Notice  -> 5
@@ -130,10 +128,10 @@ code_of_fac f = case f of
     LOCAL6   -> 22
     LOCAL7   -> 23
 
-makeCode :: Facility -> Severity -> Int
-makeCode fac pri =
+makeCode :: Facility -> Set Severity -> Int
+makeCode fac sevs =
     let faccode = code_of_fac fac
-        pricode = code_of_pri pri
+        pricode = code_of_sev sevs
     in (faccode `shiftL` 3) .|. pricode
 
 -- | Options for 'openlog'.
@@ -143,14 +141,14 @@ data Option
     deriving (Eq, Show, Read)
 
 data SyslogHandler = SyslogHandler
-    { options   :: [Option]
-    , facility  :: Facility
-    , identity  :: String
-    , logsocket :: Socket
-    , address   :: SockAddr
-    , sock_type :: SocketType
-    , priority  :: Severity
-    , formatter :: LogFormatter SyslogHandler
+    { options    :: [Option]
+    , facility   :: Facility
+    , identity   :: String
+    , logsocket  :: Socket
+    , address    :: SockAddr
+    , sock_type  :: SocketType
+    , severities :: Set Severity
+    , formatter  :: LogFormatter SyslogHandler
     }
 
 {- | Initialize the Syslog system using the local system's default interface,
@@ -169,7 +167,7 @@ openlog :: String           -- ^ The name of this program -- will be
                             -- most common here.
         -> Facility         -- ^ The 'Facility' value to pass to the
                             -- syslog system for every message logged
-        -> Severity         -- ^ Messages logged below this priority
+        -> Severities       -- ^ Messages logged below this priority
                             -- will be ignored. To include every
                             -- message, set this to 'DEBUG'.
         -> IO SyslogHandler -- ^ Returns the new handler
@@ -191,9 +189,9 @@ openlog_local :: String                 -- ^ Path to FIFO
               -> String                 -- ^ Program name
               -> [Option]               -- ^ 'Option's
               -> Facility               -- ^ Facility value
-              -> Severity               -- ^ Severity limit
+              -> Severities           -- ^ Severities
               -> IO SyslogHandler
-openlog_local fifopath ident options fac pri =
+openlog_local fifopath ident options fac sevs =
     do (s, t) <- do -- "/dev/log" is usually Datagram,
                     -- but most of syslog loggers allow it to be
                     -- of Stream type. glibc's" openlog()"
@@ -202,7 +200,7 @@ openlog_local fifopath ident options fac pri =
 
                     s <- socket AF_UNIX Stream 0
                     tryStream s `E.catch` (onIOException (fallbackToDgram s))
-       openlog_generic s (SockAddrUnix fifopath) t ident options fac pri
+       openlog_generic s (SockAddrUnix fifopath) t ident options fac sevs
 
   where onIOException :: IO a -> E.IOException -> IO a
         onIOException a _ = a
@@ -221,21 +219,21 @@ openlog_local fifopath ident options fac pri =
 
 {- | Log to a remote server via UDP. -}
 openlog_remote
-    :: Family     -- ^ Usually AF_INET or AF_INET6; see Network.Socket
-    -> HostName   -- ^ Remote hostname.  Some use @localhost@
-    -> PortNumber -- ^ 514 is the default for syslog
-    -> String     -- ^ Program name
-    -> [Option]   -- ^ 'Option's
-    -> Facility   -- ^ Facility value
-    -> Severity   -- ^ Severity limit
+    :: Family         -- ^ Usually AF_INET or AF_INET6; see Network.Socket
+    -> HostName       -- ^ Remote hostname.  Some use @localhost@
+    -> PortNumber     -- ^ 514 is the default for syslog
+    -> String         -- ^ Program name
+    -> [Option]       -- ^ 'Option's
+    -> Facility       -- ^ Facility value
+    -> Severities     -- ^ Severity limit
     -> IO SyslogHandler
-openlog_remote fam hostname port ident options fac pri =
+openlog_remote fam hostname port ident options fac sevs =
     do
     he <- getHostByName hostname
     s <- socket fam Datagram 0
     let addr = SockAddrInet port (fromMaybe (error "head in openlog_remote") $
                                              head (hostAddresses he))
-    openlog_generic s addr Datagram ident options fac pri
+    openlog_generic s addr Datagram ident options fac sevs
 
 {- | The most powerful initialization mechanism.  Takes an open datagram
 socket. -}
@@ -245,17 +243,17 @@ openlog_generic :: Socket               -- ^ A datagram socket
                 -> String               -- ^ Program name
                 -> [Option]             -- ^ 'Option's
                 -> Facility             -- ^ Facility value
-                -> Severity             -- ^ Severity limit
+                -> Severities           -- ^ Severity limit
                 -> IO SyslogHandler
-openlog_generic sock addr sock_t ident opt fac pri =
-    return (SyslogHandler {options = opt,
-                            facility = fac,
-                            identity = ident,
-                            logsocket = sock,
-                            address = addr,
-                            sock_type = sock_t,
-                            priority = pri,
-                            formatter = syslogFormatter
+openlog_generic sock addr sock_t ident opt fac sevs =
+    return (SyslogHandler { options    = opt,
+                            facility   = fac,
+                            identity   = ident,
+                            logsocket  = sock,
+                            address    = addr,
+                            sock_type  = sock_t,
+                            severities = sevs,
+                            formatter  = syslogFormatter
                           })
 
 syslogFormatter :: LogFormatter SyslogHandler
@@ -266,12 +264,12 @@ syslogFormatter sh lr logname =
 
 instance LogHandler SyslogHandler where
     getTag = const $ HandlerOther "SyslogHandlerTag"
-    setLevel sh p = sh{priority = p}
-    getLevel sh = priority sh
+    setLevel sh s = sh{severities = s}
+    getLevel sh = severities sh
     setFormatter sh f = sh{formatter = f}
     getFormatter sh = formatter sh
     readBack _ _ = pure []
-    emit sh bldr _ = do
+    emit sh bldr _ = liftIO $ do
       when (elem PERROR (options sh)) (TIO.hPutStrLn stderr (B.toLazyText bldr))
       pidPart <- getPidPart
       void $ sendstr (toSyslogFormat (toText $ B.toLazyText bldr) pidPart)
@@ -303,4 +301,4 @@ instance LogHandler SyslogHandler where
           return "windows"
 #endif
 
-    close sh = S.close (logsocket sh)
+    close = liftIO . S.close . logsocket

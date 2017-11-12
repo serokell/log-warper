@@ -1,6 +1,5 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE MultiWayIf                #-}
-{-# LANGUAGE NoImplicitPrelude         #-}
 {-# LANGUAGE TemplateHaskell           #-}
 {-# LANGUAGE TupleSections             #-}
 
@@ -22,7 +21,7 @@ library. Unless proper description is written here, please use the
 original documentation available on hackage/hslogger.
 -}
 
-module System.Wlog.Logger
+module System.Wlog.IOLogger
        (
          -- * Basic Types
          Logger
@@ -34,12 +33,7 @@ module System.Wlog.Logger
        , logM
        , logMCond
          -- ** Utility Functions
-       , debugM, infoM, noticeM, warningM, errorM
        , removeAllHandlers
-       , traplogging
-         -- ** Logging to a particular Logger by object
-       , logL
-       , logLCond
 
          -- * Logger Manipulation
          -- ** Finding ∨ Creating Loggers
@@ -47,6 +41,8 @@ module System.Wlog.Logger
          -- ** Modifying Loggers
        , addHandler, removeHandler, setHandlers
        , getLevel, setLevel, clearLevel
+         -- ** Severity settings
+       , setSeverities, setSeveritiesMaybe
          -- ** Saving Your Changes
        , saveGlobalLogger
        , updateGlobalLogger
@@ -54,24 +50,26 @@ module System.Wlog.Logger
        , retrieveLogContent
        ) where
 
-import           Universum
+import Universum
 
-import           Control.Concurrent.MVar (modifyMVar, modifyMVar_, withMVar)
-import           Control.Lens            (makeLenses)
-import qualified Data.Map                as M
-import           Data.Maybe              (fromJust)
-import qualified Data.Text               as T
-import qualified Data.Text.IO            as TIO
-import           System.FilePath         ((</>))
-import           System.IO.Unsafe        (unsafePerformIO)
+import Control.Concurrent.MVar (modifyMVar, modifyMVar_, withMVar)
+import Control.Lens (makeLenses)
+import Data.Maybe (fromJust)
+import System.FilePath ((</>))
+import System.IO.Unsafe (unsafePerformIO)
 
-import           System.Wlog.Handler     (LogHandler (getTag),
-                                          LogHandlerTag (HandlerFilelike), close,
-                                          readBack)
-import qualified System.Wlog.Handler     (handle)
-import           System.Wlog.LoggerName  (LoggerName (..))
-import           System.Wlog.Severity    (LogRecord (..), Severity (..))
+import System.Wlog.LoggerName (LoggerName (..))
+import System.Wlog.LogHandler (LogHandler (getTag), LogHandlerTag (HandlerFilelike), close,
+                               readBack)
+import System.Wlog.Severity (LogRecord (..), Severities, Severity (..), debugPlus, warningPlus)
 
+
+import qualified Data.Map as M
+import qualified Data.Set as Set
+import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
+
+import qualified System.Wlog.LogHandler (logHandlerMessage)
 
 ---------------------------------------------------------------------------
 -- Basic logger types
@@ -80,7 +78,7 @@ import           System.Wlog.Severity    (LogRecord (..), Severity (..))
 data HandlerT = forall a. LogHandler a => HandlerT a
 
 data Logger = Logger
-    { _lLevel    :: Maybe Severity
+    { _lLevel    :: Maybe Severities
     , _lHandlers :: [HandlerT]
     , _lName     :: LoggerName
     } deriving (Generic)
@@ -113,7 +111,7 @@ logInternalState :: MVar LogInternalState
 -- note: only kick up tree if handled locally
 logInternalState = unsafePerformIO $ do
     let liTree = M.singleton rootLoggerName $
-                 Logger { _lLevel = Just Warning
+                 Logger { _lLevel = Just warningPlus
                         , _lName = ""
                         , _lHandlers = []}
         liPrefix = Nothing
@@ -140,52 +138,19 @@ componentsOfName (LoggerName name) =
 ---------------------------------------------------------------------------
 
 -- | Log a message using the given logger at a given priority.
-logM :: LoggerName -- ^ Name of the logger to use
+logM :: MonadIO m
+     => LoggerName -- ^ Name of the logger to use
      -> Severity   -- ^ Severity of this message
      -> Text       -- ^ The log text itself
-     -> IO ()
-logM logname pri msg = do
+     -> m ()
+logM logname sev msg = do
     l <- getLogger logname
-    logL l pri msg
+    handle l (LR sev msg) (const True)
 
-logMCond :: LoggerName -> Severity -> Text -> (LogHandlerTag -> Bool) -> IO ()
+logMCond :: MonadIO m => LoggerName -> Severity -> Text -> (LogHandlerTag -> Bool) -> m ()
 logMCond logname sev msg cond = do
     l <- getLogger logname
-    logLCond l sev msg cond
-
----------------------------------------------------------------------------
--- Utility functions
----------------------------------------------------------------------------
-
-{- | Log a message at 'Debug' priority -}
-debugM :: LoggerName                   -- ^ Logger name
-       -> Text                         -- ^ Log message
-       -> IO ()
-debugM s = logM s Debug
-
-{- | Log a message at 'Info' priority -}
-infoM :: LoggerName                    -- ^ Logger name
-      -> Text                          -- ^ Log message
-      -> IO ()
-infoM s = logM s Info
-
-{- | Log a message at 'Notice' priority -}
-noticeM :: LoggerName                  -- ^ Logger name
-        -> Text                        -- ^ Log message
-        -> IO ()
-noticeM s = logM s Notice
-
-{- | Log a message at 'Warning' priority -}
-warningM :: LoggerName                 -- ^ Logger name
-         -> Text                       -- ^ Log message
-         -> IO ()
-warningM s = logM s Warning
-
-{- | Log a message at 'Error' priority -}
-errorM :: LoggerName                   -- ^ Logger name
-       -> Text                         -- ^ Log message
-       -> IO ()
-errorM s = logM s Error
+    handle l (LR sev msg) cond
 
 ---------------------------------------------------------------------------
 -- Public Logger Interaction Support
@@ -194,8 +159,8 @@ errorM s = logM s Error
 -- | Returns the logger for the given name.  If no logger with that name
 -- exists, creates new loggers and any necessary parent loggers, with
 -- no connected handlers.
-getLogger :: LoggerName -> IO Logger
-getLogger lname = modifyMVar logInternalState $ \lt@LogInternalState{..} ->
+getLogger :: MonadIO m => LoggerName -> m Logger
+getLogger lname = liftIO $ modifyMVar logInternalState $ \lt@LogInternalState{..} ->
     case M.lookup lname liTree of
       Just x ->  return (lt, x) -- A logger exists; return it and leave tree
       Nothing -> do
@@ -211,48 +176,48 @@ getLogger lname = modifyMVar logInternalState $ \lt@LogInternalState{..} ->
             if M.member x lt
                then lt
                else M.insert x (defaultLogger & lName .~ x) lt
+
+    defaultLogger :: Logger
     defaultLogger = Logger Nothing [] (error "log-warper has some strange code") -- ???!??!
 
 -- | Returns the root logger.
-getRootLogger :: IO Logger
+getRootLogger :: MonadIO m => m Logger
 getRootLogger = getLogger rootLoggerName
 
--- | Log a message, assuming the current logger's level permits it.
-logL :: Logger -> Severity -> Text -> IO ()
-logL l pri msg = handle l (LR pri msg) (const True)
-
--- | Logs a message with condition.
-logLCond :: Logger -> Severity -> Text -> (LogHandlerTag -> Bool) -> IO ()
-logLCond l pri msg = handle l (LR pri msg)
-
 -- | Handle a log request.
-handle :: Logger -> LogRecord -> (LogHandlerTag -> Bool) -> IO ()
+handle :: MonadIO m => Logger -> LogRecord -> (LogHandlerTag -> Bool) -> m ()
 handle l lrecord@(LR sev _) handlerFilter = do
-    lp <- getLoggerSeverity nm
-    when (sev >= lp) $ do
+    lp <- getLoggerSeverities nm
+    when (sev `Set.member` lp) $ do
         ph <- concatMap (view lHandlers) <$> parentLoggers nm
         forM_ ph $ callHandler lrecord nm
   where
+    nm :: LoggerName
     nm = view lName l
-    parentLoggers :: LoggerName -> IO [Logger]
+
+    parentLoggers :: MonadIO m => LoggerName -> m [Logger]
     parentLoggers = mapM getLogger . componentsOfName
+
     -- Get the severity we should use. Find the first logger in the
     -- tree, starting here, with a set severity. If even root doesn't
     -- have one, assume "Debug".
-    getLoggerSeverity :: LoggerName -> IO Severity
-    getLoggerSeverity name = do
+    getLoggerSeverities :: MonadIO m => LoggerName -> m Severities
+    getLoggerSeverities name = do
         pl <- parentLoggers name
         case catMaybes . map (view lLevel) $ (l : pl) of
-            []    -> pure Debug
+            []    -> pure debugPlus
             (x:_) -> pure x
-    callHandler :: LogRecord -> LoggerName -> HandlerT -> IO ()
+
+    callHandler :: MonadIO m => LogRecord -> LoggerName -> HandlerT -> m ()
     callHandler lr loggername (HandlerT x) =
         when (handlerFilter $ getTag x) $
-            System.Wlog.Handler.handle x lr loggername
+            System.Wlog.LogHandler.logHandlerMessage x lr loggername
 
 -- | Sets file prefix to 'LogInternalState'.
-setPrefix :: Maybe FilePath -> IO ()
-setPrefix p = modifyMVar_ logInternalState $ \li -> pure $ li { liPrefix = p }
+setPrefix :: MonadIO m => Maybe FilePath -> m ()
+setPrefix p = liftIO
+            $ modifyMVar_ logInternalState
+            $ \li -> pure $ li { liPrefix = p }
 
 -- | Add handler to 'Logger'.  Returns a new 'Logger'.
 addHandler :: LogHandler a => a -> Logger -> Logger
@@ -281,12 +246,12 @@ setHandlers hl = lHandlers .~ map HandlerT hl
 
 -- | Returns the "level" of the logger.  Items beneath this
 -- level will be ignored.
-getLevel :: Logger -> Maybe Severity
+getLevel :: Logger -> Maybe Severities
 getLevel = _lLevel
 
 -- | Sets the "level" of the 'Logger'.  Returns a new
 -- 'Logger' object with the new level.
-setLevel :: Severity -> Logger -> Logger
+setLevel :: Severities -> Logger -> Logger
 setLevel p = lLevel .~ Just p
 
 -- | Clears the "level" of the 'Logger'.  It will now inherit the level of
@@ -294,10 +259,21 @@ setLevel p = lLevel .~ Just p
 clearLevel :: Logger -> Logger
 clearLevel = lLevel .~ Nothing
 
+-- | Set severities for given logger. By default parent's severities are used.
+setSeverities :: MonadIO m => LoggerName -> Severities -> m ()
+setSeverities name = updateGlobalLogger name . setLevel
+
+-- | Set or clear severities.
+setSeveritiesMaybe
+    :: MonadIO m
+    => LoggerName -> Maybe Severities -> m ()
+setSeveritiesMaybe name Nothing  = updateGlobalLogger name clearLevel
+setSeveritiesMaybe n    (Just x) = setSeverities n x
+
 -- | Updates the global record for the given logger to take into
 -- account any changes you may have made.
-saveGlobalLogger :: Logger -> IO ()
-saveGlobalLogger l =
+saveGlobalLogger :: MonadIO m => Logger -> m ()
+saveGlobalLogger l = liftIO $
     modifyMVar_ logInternalState $ \LogInternalState{..} ->
     pure $ LogInternalState (M.insert (view lName l) l liTree) liPrefix
 
@@ -308,41 +284,22 @@ saveGlobalLogger l =
 -- > updateGlobalLogger "MyApp.BuggyComponent"
 -- >                    (setLevel DEBUG . setHandlers [s])
 updateGlobalLogger
-    :: LoggerName         -- ^ Logger name
+    :: MonadIO m
+    => LoggerName         -- ^ Logger name
     -> (Logger -> Logger) -- ^ Function to call
-    -> IO ()
-updateGlobalLogger ln func =
-    do l <- getLogger ln
-       saveGlobalLogger (func l)
+    -> m ()
+updateGlobalLogger ln func = do
+    l <- getLogger ln
+    saveGlobalLogger (func l)
 
 -- | Allow graceful shutdown. Release all opened files/handlers/etc.
-removeAllHandlers :: IO ()
-removeAllHandlers =
+removeAllHandlers :: MonadIO m => m ()
+removeAllHandlers = liftIO $
     modifyMVar_ logInternalState $ \LogInternalState{..} -> do
         let allHandlers = M.foldr (\l r -> concat [r, view lHandlers l]) [] liTree
         mapM_ (\(HandlerT h) -> close h) allHandlers
         let newTree = map (lHandlers .~ []) liTree
         return $ LogInternalState newTree liPrefix
-
--- | Traps exceptions that may occur, logging them, then passing them on.
---
--- Takes a logger name, priority, leading description text (you can set it to
--- @\"\"@ if you don't want any), and action to run.
-traplogging :: LoggerName -- ^ Logger name
-            -> Severity   -- ^ Logging priority
-            -> Text       -- ^ Descriptive text to prepend to logged messages
-            -> IO a       -- ^ Action to run
-            -> IO a       -- ^ Return value
-traplogging logger priority desc action = action `catch` handler
-  where
-    realdesc =
-        case desc of
-            "" -> ""
-            x  -> x <> ": "
-    handler :: SomeException -> IO a
-    handler e = do
-        logM logger priority (realdesc <> show e)
-        throwM e -- Re-raise it
 
 ----------------------------------------------------------------------------
 -- Retrieving logs ad-hoc

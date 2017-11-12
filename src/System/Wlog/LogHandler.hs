@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeFamilies     #-}
 
 {- |
-   Module     : System.Log.Handler
+   Module     : System.Log.LogHandler
    Copyright  : Copyright (C) 2004-2011 John Goerzen
    License    : BSD3
 
@@ -20,19 +20,32 @@ logging system.
 
 Written by John Goerzen, jgoerzen\@complete.org
 -}
-module System.Wlog.Handler
+module System.Wlog.LogHandler
        ( -- * Basic Types
          LogHandlerTag(..)
        , LogHandler(..)
+       , logHandlerMessage
        ) where
 
-import           Universum
+import Universum
 
-import           Data.Text.Lazy.Builder as B
+import Data.Text.Lazy.Builder as B
 
-import           System.Wlog.Formatter  (LogFormatter, nullFormatter)
-import           System.Wlog.LoggerName (LoggerName (..))
-import           System.Wlog.Severity   (LogRecord (..), Severity)
+import System.Wlog.Formatter (LogFormatter, nullFormatter)
+import System.Wlog.LoggerName (LoggerName (..))
+import System.Wlog.Severity (LogRecord (..), Severities)
+
+import qualified Data.Set as Set
+
+
+-- | Logs an event if it meets the requirements
+-- given by the most recent call to 'setLevel'.
+logHandlerMessage :: (MonadIO m, LogHandler a) => a -> LogRecord -> LoggerName -> m ()
+logHandlerMessage h lr@(LR pri _) logname =
+    when (pri `Set.member` (getLevel h)) $ do
+        let lName = getLoggerName logname
+        formattedMsg <- liftIO $ (getFormatter h) h lr lName
+        emit h formattedMsg lName
 
 -- | Tag identifying handlers.
 data LogHandlerTag
@@ -49,34 +62,25 @@ class LogHandler a where
 
     -- | Sets the log level. 'handle' will drop items beneath this
     -- level.
-    setLevel :: a -> Severity -> a
+    setLevel :: a -> Severities -> a
 
     -- | Gets the current level.
-    getLevel :: a -> Severity
+    getLevel :: a -> Severities
 
     -- | Set a log formatter to customize the log format for this Handler
     setFormatter :: a -> LogFormatter a -> a
     getFormatter :: a -> LogFormatter a
     getFormatter _h = nullFormatter
 
-    -- | Logs an event if it meets the requirements
-    -- given by the most recent call to 'setLevel'.
-    handle :: a -> LogRecord -> LoggerName -> IO ()
-    handle h lr@(LR pri _) logname =
-        when (pri >= (getLevel h)) $ do
-            let lName = getLoggerName logname
-            formattedMsg <- (getFormatter h) h lr lName
-            emit h formattedMsg lName
-
     -- | Forces an event to be logged regardless of
     -- the configured level.
-    emit :: a -> B.Builder -> Text -> IO ()
+    emit :: MonadIO m => a -> B.Builder -> Text -> m ()
 
     -- | Read back from logger (e.g. file), newest first. You specify
     -- the number of (newest) logging entries. Logger can return @pure
     -- []@ if this behaviour can't be emulated or store buffer.
-    readBack :: a -> Int -> IO [Text]
+    readBack :: MonadIO m => a -> Int -> m [Text]
 
     -- | Closes the logging system, causing it to close
     -- any open files, etc.
-    close :: a -> IO ()
+    close :: MonadIO m => a -> m ()

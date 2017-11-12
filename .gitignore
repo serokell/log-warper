@@ -21,6 +21,8 @@ cabal.project.local
 # editor specific
 *~
 
+TAGS
+
 # test logs
 logs/
 .dir-locals.el
