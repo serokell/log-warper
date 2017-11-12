@@ -1,6 +1,5 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE MultiWayIf                #-}
-{-# LANGUAGE NoImplicitPrelude         #-}
 {-# LANGUAGE TemplateHaskell           #-}
 {-# LANGUAGE TupleSections             #-}
 
@@ -34,7 +33,7 @@ module System.Wlog.IOLogger
        , logM
        , logMCond
          -- ** Utility Functions
-       , removeAllHandlers, releaseAllHandlers
+       , removeAllHandlers
 
          -- * Logger Manipulation
          -- ** Finding ∨ Creating Loggers
@@ -51,26 +50,26 @@ module System.Wlog.IOLogger
        , retrieveLogContent
        ) where
 
-import           Universum
+import Universum
 
-import           Control.Concurrent.MVar (modifyMVar, modifyMVar_, withMVar)
-import           Control.Lens            (makeLenses)
-import qualified Data.Map                as M
-import           Data.Maybe              (fromJust)
-import qualified Data.Set                as Set
-import qualified Data.Text               as T
-import qualified Data.Text.IO            as TIO
-import           System.FilePath         ((</>))
-import           System.IO.Unsafe        (unsafePerformIO)
+import Control.Concurrent.MVar (modifyMVar, modifyMVar_, withMVar)
+import Control.Lens (makeLenses)
+import Data.Maybe (fromJust)
+import System.FilePath ((</>))
+import System.IO.Unsafe (unsafePerformIO)
 
-import           System.Wlog.LoggerName  (LoggerName (..))
-import           System.Wlog.LogHandler  (LogHandler (getTag),
-                                          LogHandlerTag (HandlerFilelike), close,
-                                          readBack)
-import qualified System.Wlog.LogHandler  (handle)
-import           System.Wlog.Severity    (LogRecord (..), Severities, Severity (..),
-                                          debugPlus, warningPlus)
+import System.Wlog.LoggerName (LoggerName (..))
+import System.Wlog.LogHandler (LogHandler (getTag), LogHandlerTag (HandlerFilelike), close,
+                               readBack)
+import System.Wlog.Severity (LogRecord (..), Severities, Severity (..), debugPlus, warningPlus)
 
+
+import qualified Data.Map as M
+import qualified Data.Set as Set
+import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
+
+import qualified System.Wlog.LogHandler (logHandlerMessage)
 
 ---------------------------------------------------------------------------
 -- Basic logger types
@@ -212,7 +211,7 @@ handle l lrecord@(LR sev _) handlerFilter = do
     callHandler :: MonadIO m => LogRecord -> LoggerName -> HandlerT -> m ()
     callHandler lr loggername (HandlerT x) =
         when (handlerFilter $ getTag x) $
-            System.Wlog.LogHandler.handle x lr loggername
+            System.Wlog.LogHandler.logHandlerMessage x lr loggername
 
 -- | Sets file prefix to 'LogInternalState'.
 setPrefix :: MonadIO m => Maybe FilePath -> m ()
@@ -289,9 +288,9 @@ updateGlobalLogger
     => LoggerName         -- ^ Logger name
     -> (Logger -> Logger) -- ^ Function to call
     -> m ()
-updateGlobalLogger ln func =
-    do l <- getLogger ln
-       saveGlobalLogger (func l)
+updateGlobalLogger ln func = do
+    l <- getLogger ln
+    saveGlobalLogger (func l)
 
 -- | Allow graceful shutdown. Release all opened files/handlers/etc.
 removeAllHandlers :: MonadIO m => m ()
@@ -301,10 +300,6 @@ removeAllHandlers = liftIO $
         mapM_ (\(HandlerT h) -> close h) allHandlers
         let newTree = map (lHandlers .~ []) liTree
         return $ LogInternalState newTree liPrefix
-
--- | Lifted alias to 'removeAllHandlers'.
-releaseAllHandlers :: MonadIO m => m ()
-releaseAllHandlers = removeAllHandlers
 
 ----------------------------------------------------------------------------
 -- Retrieving logs ad-hoc

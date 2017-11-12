@@ -1,6 +1,5 @@
 {-# LANGUAGE CPP                       #-}
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE NoImplicitPrelude         #-}
 
 -- |
 -- Module      : System.Wlog.Parser
@@ -32,28 +31,26 @@ module System.Wlog.Launcher
        , setupLogging
        ) where
 
-import           Universum
+import Universum
 
-import           Control.Error.Util            ((?:))
-import           Control.Exception             (throwIO)
-import qualified Data.HashMap.Strict           as HM hiding (HashMap)
-import           Data.Time                     (UTCTime)
-import           Data.Yaml                     (decodeFileEither)
-import           System.Directory              (createDirectoryIfMissing)
-import           System.FilePath               ((</>))
+import Control.Error.Util ((?:))
+import Control.Exception (throwIO)
+import Data.Time (UTCTime)
+import Data.Yaml (decodeFileEither)
+import System.Directory (createDirectoryIfMissing)
+import System.FilePath ((</>))
 
-import           System.Wlog.Formatter         (centiUtcTimeF, stdoutFormatter,
-                                                stdoutFormatterTimeRounded)
-import           System.Wlog.IOLogger          (addHandler, setPrefix, setSeveritiesMaybe,
-                                                updateGlobalLogger)
-import           System.Wlog.LoggerConfig      (HandlerWrap (..), LoggerConfig (..),
-                                                LoggerTree (..))
-import           System.Wlog.LoggerName        (LoggerName (..))
-import           System.Wlog.LogHandler        (LogHandler (setFormatter))
-import           System.Wlog.LogHandler.Roller (rotationFileHandler)
-import           System.Wlog.LogHandler.Simple (fileHandler)
-import           System.Wlog.Severity          (Severities, debugPlus, severityPlus)
-import           System.Wlog.Terminal          (initTerminalLogging)
+import System.Wlog.Formatter (centiUtcTimeF, stdoutFormatter, stdoutFormatterTimeRounded)
+import System.Wlog.IOLogger (addHandler, setPrefix, setSeveritiesMaybe, updateGlobalLogger)
+import System.Wlog.LoggerConfig (HandlerWrap (..), LoggerConfig (..), LoggerTree (..))
+import System.Wlog.LoggerName (LoggerName (..))
+import System.Wlog.LogHandler (LogHandler (setFormatter))
+import System.Wlog.LogHandler.Roller (rotationFileHandler)
+import System.Wlog.LogHandler.Simple (fileHandler)
+import System.Wlog.Severity (Severities, debugPlus, severityPlus)
+import System.Wlog.Terminal (initTerminalLogging)
+
+import qualified Data.HashMap.Strict as HM hiding (HashMap)
 
 data HandlerFabric
     = forall h . LogHandler h => HandlerFabric (FilePath -> Severities -> IO h)

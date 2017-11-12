@@ -1,6 +1,5 @@
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies     #-}
 
 {- |
    Module     : System.Log.LogHandler
@@ -27,14 +26,15 @@ module System.Wlog.LogHandler
        , LogHandler(..)
        ) where
 
-import           Universum
+import Universum
 
-import qualified Data.Set               as Set
-import           Data.Text.Lazy.Builder as B
+import Data.Text.Lazy.Builder as B
 
-import           System.Wlog.Formatter  (LogFormatter, nullFormatter)
-import           System.Wlog.LoggerName (LoggerName (..))
-import           System.Wlog.Severity   (LogRecord (..), Severities)
+import System.Wlog.Formatter (LogFormatter, nullFormatter)
+import System.Wlog.LoggerName (LoggerName (..))
+import System.Wlog.Severity (LogRecord (..), Severities)
+
+import qualified Data.Set as Set
 
 -- | Tag identifying handlers.
 data LogHandlerTag
@@ -63,8 +63,8 @@ class LogHandler a where
 
     -- | Logs an event if it meets the requirements
     -- given by the most recent call to 'setLevel'.
-    handle :: MonadIO m => a -> LogRecord -> LoggerName -> m ()
-    handle h lr@(LR pri _) logname =
+    logHandlerMessage :: MonadIO m => a -> LogRecord -> LoggerName -> m ()
+    logHandlerMessage h lr@(LR pri _) logname =
         when (pri `Set.member` (getLevel h)) $ do
             let lName = getLoggerName logname
             formattedMsg <- liftIO $ (getFormatter h) h lr lName

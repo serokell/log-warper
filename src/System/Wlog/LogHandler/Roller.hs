@@ -1,5 +1,3 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-
 -- | Custom implementation of 'LogHandler' with log rotation support.
 
 module System.Wlog.LogHandler.Roller
@@ -9,26 +7,25 @@ module System.Wlog.LogHandler.Roller
        , rotationFileHandler
        ) where
 
-import           Universum
+import Universum
 
-import           Control.Concurrent            (modifyMVar, modifyMVar_, withMVar)
-import qualified Data.Text                     as T
-import qualified Data.Text.IO                  as TIO
-import           Data.Text.Lazy.Builder        as B
-import           Formatting                    (sformat, shown, (%))
+import Control.Concurrent (modifyMVar, modifyMVar_, withMVar)
+import Data.Text.Lazy.Builder as B
+import Formatting (sformat, shown, (%))
 
-import           System.Directory              (removeFile, renameFile)
-import           System.FilePath               ((<.>))
-import           System.IO                     (Handle, IOMode (ReadWriteMode),
-                                                SeekMode (AbsoluteSeek, SeekFromEnd),
-                                                hClose, hFileSize, hFlush, hSeek)
-import           System.Wlog.FileUtils         (whenExist)
-import           System.Wlog.Formatter         (LogFormatter, nullFormatter)
-import           System.Wlog.LoggerConfig      (RotationParameters (..), isValidRotation)
-import           System.Wlog.LogHandler        (LogHandler (..),
-                                                LogHandlerTag (HandlerFilelike))
-import           System.Wlog.LogHandler.Simple (GenericHandler (..), fileHandler)
-import           System.Wlog.Severity          (Severities)
+import System.Directory (removeFile, renameFile)
+import System.FilePath ((<.>))
+import System.IO (Handle, IOMode (ReadWriteMode), SeekMode (AbsoluteSeek, SeekFromEnd), hClose,
+                  hFileSize, hFlush, hSeek)
+import System.Wlog.FileUtils (whenExist)
+import System.Wlog.Formatter (LogFormatter, nullFormatter)
+import System.Wlog.LoggerConfig (RotationParameters (..), isValidRotation)
+import System.Wlog.LogHandler (LogHandler (..), LogHandlerTag (HandlerFilelike))
+import System.Wlog.LogHandler.Simple (GenericHandler (..), fileHandler)
+import System.Wlog.Severity (Severities)
+
+import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 
 -- | Similar to 'GenericHandler'. But holds file 'Handle' inside
 -- mutable variable ('MVar') to be able to rotate loggers.

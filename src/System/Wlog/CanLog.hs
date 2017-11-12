@@ -2,7 +2,6 @@
 {-# LANGUAGE DefaultSignatures     #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NoImplicitPrelude     #-}
 {-# LANGUAGE OverloadedLists       #-}
 {-# LANGUAGE Rank2Types            #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -22,19 +21,20 @@ module System.Wlog.CanLog
        , logMessage
        ) where
 
-import           Universum
+import Universum
 
-import           Control.Monad.Except      (ExceptT)
-import qualified Control.Monad.RWS         as RWSLazy
-import qualified Control.Monad.RWS.Strict  as RWSStrict
-import qualified Control.Monad.State.Lazy  as StateLazy
-import           Control.Monad.Trans       (MonadTrans (lift))
+import Control.Monad.Except (ExceptT)
+import Control.Monad.Trans (MonadTrans (lift))
 
-import           System.Wlog.HasLoggerName (HasLoggerName (..))
-import           System.Wlog.IOLogger      (logM)
-import           System.Wlog.LoggerName    (LoggerName (..))
-import           System.Wlog.LoggerNameBox (LoggerNameBox (..))
-import           System.Wlog.Severity      (Severity (..))
+import System.Wlog.HasLoggerName (HasLoggerName (..))
+import System.Wlog.IOLogger (logM)
+import System.Wlog.LoggerName (LoggerName (..))
+import System.Wlog.LoggerNameBox (LoggerNameBox (..))
+import System.Wlog.Severity (Severity (..))
+
+import qualified Control.Monad.RWS as RWSLazy
+import qualified Control.Monad.RWS.Strict as RWSStrict
+import qualified Control.Monad.State.Lazy as StateLazy
 
 
 -- | Type alias for constraints 'CanLog' and 'HasLoggerName'.
@@ -56,7 +56,7 @@ class Monad m => CanLog m where
     dispatchMessage name sev t = lift $ dispatchMessage name sev t
 
 instance CanLog IO where
-    dispatchMessage name prior msg = logM name prior msg
+    dispatchMessage = logM
 
 instance CanLog m => CanLog (LoggerNameBox m)
 instance CanLog m => CanLog (ReaderT r m)

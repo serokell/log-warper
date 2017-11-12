@@ -1,6 +1,5 @@
-{-# LANGUAGE CPP               #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE CPP          #-}
+{-# LANGUAGE TypeFamilies #-}
 
 {- |
    Module     : System.Log.LogHandler.Syslog
@@ -45,32 +44,31 @@ module System.Wlog.LogHandler.Syslog
        , Option(..)
        ) where
 
-import           Universum                 hiding (Option, identity)
+import Universum hiding (Option, identity)
 
-import qualified Control.Exception         as E
-import           Control.Monad             (void, when)
-import           Data.Bits                 (shiftL, (.|.))
-import qualified Data.Set                  as Set
-import qualified Data.Text                 as T
-import qualified Data.Text.Encoding        as TE
-import           Data.Text.Lazy.Builder    as B
-import           Network.BSD               (getHostByName, hostAddresses)
-import           Network.Socket            (Family, Family (..), HostName, PortNumber,
-                                            SockAddr (..), Socket,
-                                            SocketType (Datagram, Stream), connect,
-                                            socket)
-import qualified Network.Socket            as S
-import qualified Network.Socket.ByteString as NBS
+import Control.Monad (void, when)
+import Data.Bits (shiftL, (.|.))
+import Data.Text.Lazy.Builder as B
+import Network.BSD (getHostByName, hostAddresses)
+import Network.Socket (Family, Family (..), HostName, PortNumber, SockAddr (..), Socket,
+                       SocketType (Datagram, Stream), connect, socket)
 #ifndef mingw32_HOST_OS
-import           System.Posix.Process      (getProcessID)
+import System.Posix.Process (getProcessID)
 #endif
-import qualified Data.Text.Lazy.IO         as TIO
-import           System.IO                 ()
+import System.IO ()
 
-import           System.Wlog.Formatter     (LogFormatter, varFormatter)
-import           System.Wlog.LogHandler    (LogHandler (..), LogHandlerTag (HandlerOther))
-import           System.Wlog.Severity      (Severities, Severity (..))
+import System.Wlog.Formatter (LogFormatter, varFormatter)
+import System.Wlog.LogHandler (LogHandler (..), LogHandlerTag (HandlerOther))
+import System.Wlog.Severity (Severities, Severity (..))
 
+
+import qualified Control.Exception as E
+import qualified Data.Set as Set
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
+import qualified Data.Text.Lazy.IO as TIO
+import qualified Network.Socket as S
+import qualified Network.Socket.ByteString as NBS
 
 code_of_sev :: Severities -> Int
 code_of_sev sevs =

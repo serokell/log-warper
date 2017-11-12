@@ -1,5 +1,3 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-
 -- | Custom wrapper around @hslogger.Priority@.
 
 module System.Wlog.Severity
@@ -19,12 +17,13 @@ module System.Wlog.Severity
 
        ) where
 
-import           Universum
+import Universum
 
-import qualified Data.Set      as Set
-import           Data.Typeable (Typeable)
-import           Data.Yaml     (FromJSON, ToJSON)
-import           GHC.Generics  (Generic)
+import Data.Typeable (Typeable)
+import Data.Yaml (FromJSON, ToJSON)
+import GHC.Generics (Generic)
+
+import qualified Data.Set as Set
 
 -- | Severity is level of log message importance. It uniquely
 -- determines which messages to print.

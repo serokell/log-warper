@@ -1,6 +1,5 @@
-{-# LANGUAGE CPP               #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE CPP          #-}
+{-# LANGUAGE TypeFamilies #-}
 
 {- |
    Module     : System.Log.Handler.Simple
@@ -25,23 +24,23 @@ module System.Wlog.LogHandler.Simple
        , streamHandler
        ) where
 
-import           Universum
+import Universum
 
-import           Control.Concurrent      (modifyMVar_, withMVar)
-import           Control.Exception       (SomeException)
-import qualified Data.Text.IO            as TIO
-import           Data.Text.Lazy.Builder  as B
-import           Data.Typeable           (Typeable)
-import           System.Directory        (createDirectoryIfMissing)
-import           System.FilePath         (takeDirectory)
-import           System.IO               (Handle, IOMode (ReadWriteMode),
-                                          SeekMode (SeekFromEnd), hClose, hFlush, hSeek)
+import Control.Concurrent (modifyMVar_, withMVar)
+import Control.Exception (SomeException)
+import Data.Text.Lazy.Builder as B
+import Data.Typeable (Typeable)
+import System.Directory (createDirectoryIfMissing)
+import System.FilePath (takeDirectory)
+import System.IO (Handle, IOMode (ReadWriteMode), SeekMode (SeekFromEnd), hClose, hFlush, hSeek)
 
-import           System.Wlog.Formatter   (LogFormatter, nullFormatter)
-import           System.Wlog.LogHandler  (LogHandler (..), LogHandlerTag (..))
-import           System.Wlog.MemoryQueue (MemoryQueue)
-import           System.Wlog.MemoryQueue as MQ
-import           System.Wlog.Severity    (Severities)
+import System.Wlog.Formatter (LogFormatter, nullFormatter)
+import System.Wlog.LogHandler (LogHandler (..), LogHandlerTag (..))
+import System.Wlog.MemoryQueue (MemoryQueue)
+import System.Wlog.MemoryQueue as MQ
+import System.Wlog.Severity (Severities)
+
+import qualified Data.Text.IO as TIO
 
 -- | A helper data type.
 data GenericHandler a = GenericHandler

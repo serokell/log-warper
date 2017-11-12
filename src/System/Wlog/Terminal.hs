@@ -1,5 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE ViewPatterns      #-}
+{-# LANGUAGE ViewPatterns #-}
 
 -- |
 -- Module      : System.Wlog.Terminal
@@ -17,18 +16,17 @@ module System.Wlog.Terminal
        ( initTerminalLogging
        ) where
 
-import           Universum
+import Universum
 
-import           Data.Time                     (UTCTime)
-import           System.IO                     (Handle, stderr, stdout)
+import Data.Time (UTCTime)
+import System.IO (Handle, stderr, stdout)
 
-import           System.Wlog.Formatter         (stderrFormatter, stdoutFormatter)
-import           System.Wlog.IOLogger          (rootLoggerName, setHandlers, setLevel,
-                                                updateGlobalLogger)
-import           System.Wlog.LogHandler        (LogHandler (setFormatter))
-import           System.Wlog.LogHandler.Simple (streamHandler)
-import           System.Wlog.Severity          (Severities, errorPlus, excludeError,
-                                                warningPlusWoError)
+import System.Wlog.Formatter (stderrFormatter, stdoutFormatter)
+import System.Wlog.IOLogger (rootLoggerName, setHandlers, setLevel, updateGlobalLogger)
+import System.Wlog.LogHandler (LogHandler (setFormatter))
+import System.Wlog.LogHandler.Simple (streamHandler)
+import System.Wlog.Severity (Severities, errorPlus, excludeError, warningPlusWoError)
+
 
 -- | This function initializes global logging system for terminal output.
 -- At high level, it sets severity which will be used by all loggers by default,

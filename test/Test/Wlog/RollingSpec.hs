@@ -4,29 +4,26 @@ module Test.Wlog.RollingSpec
        ( spec
        ) where
 
-import           Universum
+import Universum
 
-import           Control.Concurrent.Async (mapConcurrently)
-import           Control.Lens             (zoom, (.=), (?=))
-import qualified Prelude                  (read)
-import           System.Directory         (doesFileExist, removeFile)
-import           System.FilePath          (takeExtension)
-import           System.IO                (hFileSize)
+import Control.Concurrent.Async (mapConcurrently)
+import Control.Lens (zoom, (.=), (?=))
+import qualified Prelude (read)
+import System.Directory (doesFileExist, removeFile)
+import System.FilePath (takeExtension)
+import System.IO (hFileSize)
 
-import           Test.Hspec               (Spec, describe, it, shouldThrow)
-import           Test.Hspec.QuickCheck    (modifyMaxSuccess, prop)
-import           Test.HUnit.Base          (assert)
-import           Test.QuickCheck          (Arbitrary (..), Property, choose, (==>))
-import           Test.QuickCheck.Monadic  (PropertyM, monadicIO, run)
+import Test.Hspec (Spec, describe, it, shouldThrow)
+import Test.Hspec.QuickCheck (modifyMaxSuccess, prop)
+import Test.HUnit.Base (assert)
+import Test.QuickCheck (Arbitrary (..), Property, choose, (==>))
+import Test.QuickCheck.Monadic (PropertyM, monadicIO, run)
 
-import           System.Wlog              (HandlerWrap (..), InvalidRotation (..),
-                                           LoggerConfig (..), RotationParameters (..),
-                                           Severity (..), fromScratch, isValidRotation,
-                                           lcFilePrefix, lcRotation, lcTree, logDebug,
-                                           logIndex, ltFiles, ltSeverity,
-                                           releaseAllHandlers, rotationFileHandler,
-                                           setupLogging, usingLoggerName, whenExist,
-                                           zoomLogger)
+import System.Wlog (HandlerWrap (..), InvalidRotation (..), LoggerConfig (..),
+                    RotationParameters (..), Severity (..), fromScratch, isValidRotation,
+                    lcFilePrefix, lcRotation, lcTree, logDebug, logIndex, ltFiles, ltSeverity,
+                    removeAllHandlers, rotationFileHandler, setupLogging, usingLoggerName,
+                    whenExist, zoomLogger)
 
 spec :: Spec
 spec = do
@@ -84,7 +81,7 @@ writeConcurrentLogs :: RotationParameters -> LinesToLog -> IO ()
 writeConcurrentLogs rp@RotationParameters{..} (getNumberOfLinesToLog -> linesNum) =
     bracket_
         (setupLogging Nothing $ testLoggerConfig rp)
-        releaseAllHandlers
+        removeAllHandlers
         concurrentWriting
   where
     LoggerConfig{..}  = testLoggerConfig rp

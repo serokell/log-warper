@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE NoImplicitPrelude   #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
@@ -55,27 +54,26 @@ module System.Wlog.LoggerConfig
        , termSeverityB
        ) where
 
-import           Universum
+import Universum
 
-import           Control.Lens                  (at, makeLenses, zoom, _Just)
-import           Control.Monad.State           (put)
-import           Data.Aeson                    (withObject)
-import qualified Data.HashMap.Strict           as HM hiding (HashMap)
-import           Data.Monoid                   (Any (..))
-import           Data.Text                     (Text)
-import qualified Data.Text.Buildable           as Buildable
-import           Data.Traversable              (for)
-import           Data.Word                     (Word64)
-import           Data.Yaml                     (FromJSON (..), ToJSON (..),
-                                                Value (Object), object, (.!=), (.:),
-                                                (.:?), (.=))
-import           Formatting                    (bprint, shown)
-import           GHC.Generics                  (Generic)
-import           System.FilePath               (normalise)
+import Control.Lens (at, makeLenses, zoom, _Just)
+import Control.Monad.State (put)
+import Data.Aeson (withObject)
+import Data.Monoid (Any (..))
+import Data.Text (Text)
+import Data.Traversable (for)
+import Data.Word (Word64)
+import Data.Yaml (FromJSON (..), ToJSON (..), Value (Object), object, (.!=), (.:), (.:?), (.=))
+import Formatting (bprint, shown)
+import GHC.Generics (Generic)
+import System.FilePath (normalise)
 
-import           System.Wlog.LoggerName        (LoggerName)
-import           System.Wlog.LogHandler.Simple (defaultHandleAction)
-import           System.Wlog.Severity          (Severity)
+import System.Wlog.LoggerName (LoggerName)
+import System.Wlog.LogHandler.Simple (defaultHandleAction)
+import System.Wlog.Severity (Severity)
+
+import qualified Data.HashMap.Strict as HM hiding (HashMap)
+import qualified Data.Text.Buildable as Buildable
 
 ----------------------------------------------------------------------------
 -- Utilites & helpers
