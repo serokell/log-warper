@@ -25,7 +25,7 @@ import System.Wlog.Formatter (stderrFormatter, stdoutFormatter)
 import System.Wlog.IOLogger (rootLoggerName, setHandlers, setLevel, updateGlobalLogger)
 import System.Wlog.LogHandler (LogHandler (setFormatter))
 import System.Wlog.LogHandler.Simple (streamHandler)
-import System.Wlog.Severity (Severities, errorPlus, excludeError, warningPlusWoError)
+import System.Wlog.Severity (Severities, errorPlus, excludeError, warningPlus)
 
 
 -- | This function initializes global logging system for terminal output.
@@ -56,7 +56,7 @@ initTerminalLogging
     customConsoleAction
     isShowTime
     isShowTid
-    (fromMaybe (warningPlusWoError) -> defaultSeverity)
+    (fromMaybe (warningPlus) -> defaultSeverity)
   = liftIO $ do
     lock <- liftIO $ newMVar ()
     stdoutHandler <- setStdoutFormatter <$>

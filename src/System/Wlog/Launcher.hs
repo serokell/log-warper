@@ -67,7 +67,7 @@ setupLogging mTimeFunction LoggerConfig{..} = do
                             customTerminalAction
                             isShowTime
                             isShowTid
-                            (_lcTermSeverity >>= pure . severityPlus)
+                            (severityPlus <$> _lcTermSeverity)
 
     liftIO $ setPrefix _lcFilePrefix
     processLoggers mempty _lcTree
@@ -88,10 +88,10 @@ setupLogging mTimeFunction LoggerConfig{..} = do
     processLoggers parent LoggerTree{..} = do
         -- This prevents logger output to appear in terminal
         unless (parent == mempty && isNothing consoleAction) $
-            setSeveritiesMaybe parent (_ltSeverity >>= pure . severityPlus)
+            setSeveritiesMaybe parent (severityPlus <$> _ltSeverity)
 
         forM_ _ltFiles $ \HandlerWrap{..} -> liftIO $ do
-            let fileSeverities   = (_ltSeverity >>= pure . severityPlus) ?: debugPlus
+            let fileSeverities   = (severityPlus <$> _ltSeverity) ?: debugPlus
             let handlerPath    = handlerPrefix </> _hwFilePath
             case handlerFabric of
                 HandlerFabric fabric -> do

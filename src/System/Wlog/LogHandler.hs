@@ -24,6 +24,7 @@ module System.Wlog.LogHandler
        ( -- * Basic Types
          LogHandlerTag(..)
        , LogHandler(..)
+       , logHandlerMessage
        ) where
 
 import Universum
@@ -35,6 +36,16 @@ import System.Wlog.LoggerName (LoggerName (..))
 import System.Wlog.Severity (LogRecord (..), Severities)
 
 import qualified Data.Set as Set
+
+
+-- | Logs an event if it meets the requirements
+-- given by the most recent call to 'setLevel'.
+logHandlerMessage :: (MonadIO m, LogHandler a) => a -> LogRecord -> LoggerName -> m ()
+logHandlerMessage h lr@(LR pri _) logname =
+    when (pri `Set.member` (getLevel h)) $ do
+        let lName = getLoggerName logname
+        formattedMsg <- liftIO $ (getFormatter h) h lr lName
+        emit h formattedMsg lName
 
 -- | Tag identifying handlers.
 data LogHandlerTag
@@ -60,15 +71,6 @@ class LogHandler a where
     setFormatter :: a -> LogFormatter a -> a
     getFormatter :: a -> LogFormatter a
     getFormatter _h = nullFormatter
-
-    -- | Logs an event if it meets the requirements
-    -- given by the most recent call to 'setLevel'.
-    logHandlerMessage :: MonadIO m => a -> LogRecord -> LoggerName -> m ()
-    logHandlerMessage h lr@(LR pri _) logname =
-        when (pri `Set.member` (getLevel h)) $ do
-            let lName = getLoggerName logname
-            formattedMsg <- liftIO $ (getFormatter h) h lr lName
-            emit h formattedMsg lName
 
     -- | Forces an event to be logged regardless of
     -- the configured level.
