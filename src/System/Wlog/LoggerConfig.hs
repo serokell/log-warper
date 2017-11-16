@@ -73,11 +73,12 @@ import System.FilePath (normalise)
 
 import System.Wlog.LoggerName (LoggerName)
 import System.Wlog.LogHandler.Simple (defaultHandleAction)
-import System.Wlog.Severity (Severities, Severity, allSeverities, debugPlus, errorPlus, infoPlus,
-                             noticePlus, warningPlus)
+import System.Wlog.Severity (Severities, allSeverities, debugPlus, errorPlus, infoPlus, noticePlus,
+                             warningPlus)
 
 import qualified Data.HashMap.Strict as HM hiding (HashMap)
 import qualified Data.Set as Set
+import qualified Data.Text as T
 import qualified Data.Text.Buildable as Buildable
 import qualified Data.Vector as Vector
 
@@ -87,6 +88,22 @@ import qualified Data.Vector as Vector
 
 filterObject :: [Text] -> HashMap Text a -> HashMap Text a
 filterObject excluded = HM.filterWithKey $ \k _ -> k `notElem` excluded
+
+parseSeverities :: Object -> Text -> Parser (Maybe Severities)
+parseSeverities o term = do
+    case HM.lookup term o of
+        Just value -> case value of
+            String word -> case word of
+                "All"      -> pure $ Just allSeverities
+                "Debug+"   -> pure $ Just debugPlus
+                "Info+"    -> pure $ Just infoPlus
+                "Notice+"  -> pure $ Just noticePlus
+                "Warning+" -> pure $ Just warningPlus
+                "Error+"   -> pure $ Just errorPlus
+                _          -> fail $ T.unpack $ "Unknown severity: " <> word
+            Array sevs  -> Just . Set.fromList . Vector.toList <$> Vector.mapM parseJSON sevs
+            _           -> fail "Incorrect severities format"
+        Nothing    -> pure $ Nothing
 
 ----------------------------------------------------------------------------
 -- LoggerTree
@@ -108,7 +125,7 @@ type LoggerMap = HashMap Text LoggerTree
 data LoggerTree = LoggerTree
     { _ltSubloggers :: !LoggerMap
     , _ltFiles      :: ![HandlerWrap]
-    , _ltSeverity   :: !(Maybe Severity)
+    , _ltSeverity   :: !(Maybe Severities)
     } deriving (Generic, Show)
 
 makeLenses ''LoggerTree
@@ -148,7 +165,7 @@ instance FromJSON LoggerTree where
                 map (\fp -> HandlerWrap fp Nothing) $
                 maybe [] (:[]) singleFile ++ manyFiles
         let _ltFiles = fileHandlers <> handlers
-        _ltSeverity   <- o .:? "severity"
+        _ltSeverity   <- parseSeverities o "severity"
         _ltSubloggers <- for (filterObject nonLoggers o) parseJSON
         return LoggerTree{..}
 
@@ -283,22 +300,6 @@ instance FromJSON LoggerConfig where
         let _lcConsoleAction = Last $ bool Nothing (Just defaultHandleAction) printConsoleFlag
         let _lcMapper        = mempty
         return LoggerConfig{..}
-          where
-            parseSeverities :: Object -> Text -> Parser (Maybe Severities)
-            parseSeverities o term = do
-                case HM.lookup term o of
-                    Just value -> case value of
-                        String word -> pure $ case word of
-                            "All"      -> Just allSeverities
-                            "Debug+"   -> Just debugPlus
-                            "Info+"    -> Just infoPlus
-                            "Notice+"  -> Just noticePlus
-                            "Warning+" -> Just warningPlus
-                            "Error+"   -> Just errorPlus
-                            _          -> Nothing
-                        Array sevs  -> Just . Set.fromList . Vector.toList <$> Vector.mapM parseJSON sevs
-                        _           -> pure Nothing
-                    Nothing    -> pure $ Nothing
 
 -- | This instances violates @fromJSON . toJSON = identity@ rule but doesn't matter
 -- because it is used only for debugging.

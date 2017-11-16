@@ -47,7 +47,7 @@ import System.Wlog.LoggerName (LoggerName (..))
 import System.Wlog.LogHandler (LogHandler (setFormatter))
 import System.Wlog.LogHandler.Roller (rotationFileHandler)
 import System.Wlog.LogHandler.Simple (fileHandler)
-import System.Wlog.Severity (Severities, debugPlus, severityPlus)
+import System.Wlog.Severity (Severities, debugPlus)
 import System.Wlog.Terminal (initTerminalLogging)
 
 import qualified Data.HashMap.Strict as HM hiding (HashMap)
@@ -89,10 +89,10 @@ setupLogging mTimeFunction LoggerConfig{..} = do
     processLoggers parent LoggerTree{..} = do
         -- This prevents logger output to appear in terminal
         unless (parent == mempty && isNothing consoleAction) $
-            setSeveritiesMaybe parent (severityPlus <$> _ltSeverity)
+            setSeveritiesMaybe parent (_ltSeverity)
 
         forM_ _ltFiles $ \HandlerWrap{..} -> liftIO $ do
-            let fileSeverities   = (severityPlus <$> _ltSeverity) ?: debugPlus
+            let fileSeverities   = (_ltSeverity) ?: debugPlus
             let handlerPath    = handlerPrefix </> _hwFilePath
             case handlerFabric of
                 HandlerFabric fabric -> do
