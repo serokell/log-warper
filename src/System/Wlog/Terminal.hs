@@ -25,8 +25,7 @@ import System.Wlog.Formatter (stdoutFormatter)
 import System.Wlog.IOLogger (rootLoggerName, setHandlers, setLevel, updateGlobalLogger)
 import System.Wlog.LogHandler (LogHandler (setFormatter))
 import System.Wlog.LogHandler.Simple (streamHandler)
-import System.Wlog.Severity (Severities, debugPlus, emptySeverities, errorPlus, excludeError,
-                             unionSeverities)
+import System.Wlog.Severity (Severities, debugPlus, errorPlus, excludeError)
 
 
 -- | This function initializes global logging system for terminal output.
@@ -65,8 +64,8 @@ initTerminalLogging
     let (severitiesOut, severitiesErr) =
           case (maybeSevOut, maybeSevErr) of
               (Nothing, Nothing)   -> (excludeError debugPlus, errorPlus)
-              (Just out, Nothing)  -> (out, emptySeverities)
-              (Nothing, Just err)  -> (emptySeverities, err)
+              (Just out, Nothing)  -> (out, mempty)
+              (Nothing, Just err)  -> (mempty, err)
               (Just out, Just err) -> (out, err)
     stdoutHandler <- setStdoutFormatter <$>
         streamHandler stdout customConsoleAction lock severitiesOut
@@ -75,7 +74,7 @@ initTerminalLogging
     updateGlobalLogger rootLoggerName $
         setHandlers [stderrHandler, stdoutHandler]
     updateGlobalLogger rootLoggerName $
-        setLevel $ unionSeverities severitiesOut severitiesErr
+        setLevel $ severitiesOut <> severitiesErr
   where
     setStdoutFormatter = (`setFormatter` stdoutFormatter timeF isShowTime isShowTid)
     setStderrFormatter = (`setFormatter` stdoutFormatter timeF True isShowTid)

@@ -65,18 +65,21 @@ import Data.Monoid (Any (..))
 import Data.Text (Text)
 import Data.Traversable (for)
 import Data.Word (Word64)
-import Data.Yaml (FromJSON (..), ToJSON (..), Value (Object), object, (.!=), (.:), (.:?), (.=))
+import Data.Yaml (FromJSON (..), Object, Parser, ToJSON (..), Value (..), object, (.!=), (.:),
+                  (.:?), (.=))
 import Formatting (bprint, shown)
 import GHC.Generics (Generic)
 import System.FilePath (normalise)
 
 import System.Wlog.LoggerName (LoggerName)
 import System.Wlog.LogHandler.Simple (defaultHandleAction)
-import System.Wlog.Severity (Severities, Severity)
+import System.Wlog.Severity (Severities, Severity, allSeverities, debugPlus, errorPlus, infoPlus,
+                             noticePlus, warningPlus)
 
 import qualified Data.HashMap.Strict as HM hiding (HashMap)
 import qualified Data.Set as Set
 import qualified Data.Text.Buildable as Buildable
+import qualified Data.Vector as Vector
 
 ----------------------------------------------------------------------------
 -- Utilites & helpers
@@ -268,19 +271,34 @@ topLevelParams =
 
 instance FromJSON LoggerConfig where
     parseJSON = withObject "rotation params" $ \o -> do
-        _lcRotation        <-                         o .:? "rotation"
-        -- TODO: Support word "All" which will include all severities at once
-        _lcTermSeverityOut <- (fmap Set.fromList) <$> o .:? "termSeveritiesOut"
-        _lcTermSeverityErr <- (fmap Set.fromList) <$> o .:? "termSeveritiesErr"
-        _lcShowTime        <-                 Any <$> o .:? "showTime"    .!= False
-        _lcShowTid         <-                 Any <$> o .:? "showTid"     .!= False
-        _lcFilePrefix      <-                         o .:? "filePrefix"
+        _lcRotation        <-         o .:? "rotation"
+        _lcTermSeverityOut <- parseSeverities o "termSeveritiesOut"
+        _lcTermSeverityErr <- parseSeverities o "termSeveritiesErr"
+        _lcShowTime        <- Any <$> o .:? "showTime"    .!= False
+        _lcShowTid         <- Any <$> o .:? "showTid"     .!= False
+        _lcFilePrefix      <-         o .:? "filePrefix"
         _lcTree            <- parseJSON $ Object $ filterObject topLevelParams o
 
         printConsoleFlag    <- o .:? "printOutput" .!= False
         let _lcConsoleAction = Last $ bool Nothing (Just defaultHandleAction) printConsoleFlag
         let _lcMapper        = mempty
         return LoggerConfig{..}
+          where
+            parseSeverities :: Object -> Text -> Parser (Maybe Severities)
+            parseSeverities o term = do
+                case HM.lookup term o of
+                    Just value -> case value of
+                        String word -> pure $ case word of
+                            "All"      -> Just allSeverities
+                            "Debug+"   -> Just debugPlus
+                            "Info+"    -> Just infoPlus
+                            "Notice+"  -> Just noticePlus
+                            "Warning+" -> Just warningPlus
+                            "Error+"   -> Just errorPlus
+                            _          -> Nothing
+                        Array sevs  -> Just . Set.fromList . Vector.toList <$> Vector.mapM parseJSON sevs
+                        _           -> pure Nothing
+                    Nothing    -> pure $ Nothing
 
 -- | This instances violates @fromJSON . toJSON = identity@ rule but doesn't matter
 -- because it is used only for debugging.

@@ -2,6 +2,8 @@ rotation:                # parameters for logger rotation
     logLimit: 256        # size of file in bytes
     keepFiles: 3         # max number of files to keep
 severity: Warning        # severity for «root» logger
+termSeveritiesOut : [Debug, Info, Notice]
+termSeveritiesErr : Warning+
 node:                    # logger named «node»
     severity: Debug      # severity for logger «node»
     file: skovoroda.log  # messages for «node» will be sent to skovoroda.log
