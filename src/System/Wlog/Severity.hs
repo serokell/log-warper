@@ -6,11 +6,14 @@ module System.Wlog.Severity
        , LogRecord(..)
          -- * Severity utilities
        , allSeverities
+       , emptySeverities
        , severityPlus
        , debugPlus, infoPlus
        , noticePlus
        , warningPlus, errorPlus
        , excludeError
+
+       , unionSeverities
        ) where
 
 import Universum
@@ -44,6 +47,10 @@ data LogRecord = LR !Severity !Text deriving Show
 allSeverities :: Set Severity
 allSeverities = Set.fromAscList [minBound .. maxBound]
 
+-- | Empty 'Set' of 'Severity'.
+emptySeverities :: Severities
+emptySeverities = Set.empty
+
 -- | Returns the 'Set' of 'Severity's of elements greater or equal to the given value.
 severityPlus :: Severity -> Set Severity
 severityPlus s = Set.fromAscList [s .. maxBound]
@@ -71,3 +78,6 @@ errorPlus = Set.singleton Error
 -- | Excludes 'Error' from the 'Set' of 'Severity's.
 excludeError :: Set Severity -> Set Severity
 excludeError = Set.delete Error
+
+unionSeverities :: Severities -> Severities -> Severities
+unionSeverities = Set.union

@@ -38,7 +38,8 @@ module System.Wlog.LoggerConfig
        , lcRotation
        , lcShowTime
        , lcShowTid
-       , lcTermSeverity
+       , lcTermSeverityOut
+       , lcTermSeverityErr
        , lcTree
        , zoomLogger
 
@@ -51,7 +52,8 @@ module System.Wlog.LoggerConfig
        , productionB
        , showTidB
        , showTimeB
-       , termSeverityB
+       , termSeveritiesOutB
+       , termSeveritiesErrB
        ) where
 
 import Universum
@@ -70,9 +72,10 @@ import System.FilePath (normalise)
 
 import System.Wlog.LoggerName (LoggerName)
 import System.Wlog.LogHandler.Simple (defaultHandleAction)
-import System.Wlog.Severity (Severity)
+import System.Wlog.Severity (Severities, Severity)
 
 import qualified Data.HashMap.Strict as HM hiding (HashMap)
+import qualified Data.Set as Set
 import qualified Data.Text.Buildable as Buildable
 
 ----------------------------------------------------------------------------
@@ -189,29 +192,35 @@ isValidRotation RotationParameters{..} = rpLogLimit > 0 && rpKeepFiles > 0
 -- | Logger configuration which keeps 'RotationParameters' and 'LoggerTree'.
 data LoggerConfig = LoggerConfig
     { -- | Rotation parameters for logger config. See 'System.Wlog.Roller'.
-      _lcRotation      :: Maybe RotationParameters
+      _lcRotation        :: Maybe RotationParameters
 
-      -- | Severity for terminal output. If @Nothing@ then 'Warning' is used.
-    , _lcTermSeverity  :: Maybe Severity
+      -- | Severity for terminal `stdout` output. If @Nothing@ along
+      --   with '_lcTermSeverityErr' then 'Warning' and greater
+      --   excluding 'Error' are used.
+    , _lcTermSeverityOut :: Maybe Severities
+
+      -- | Severity for terminal `stderr` output. If @Nothing@ along
+      --   with '_lcTermSeverityOut' then 'Error' is used.
+    , _lcTermSeverityErr :: Maybe Severities
 
       -- | Show time for non-error messages.
       -- Note that error messages always have timestamp.
-    , _lcShowTime      :: Any
+    , _lcShowTime        :: Any
 
       -- | Show 'ThreadId' for current logging thread.
-    , _lcShowTid       :: Any
+    , _lcShowTid         :: Any
 
       -- | Specifies action for printing to console.
-    , _lcConsoleAction :: Last (Handle -> Text -> IO ())
+    , _lcConsoleAction   :: Last (Handle -> Text -> IO ())
 
       -- | Defines how to transform logger names in config.
-    , _lcMapper        :: Endo LoggerName
+    , _lcMapper          :: Endo LoggerName
 
       -- | Path prefix to add for each logger file
-    , _lcFilePrefix    :: Maybe FilePath
+    , _lcFilePrefix      :: Maybe FilePath
 
       -- | Hierarchical tree of loggers.
-    , _lcTree          :: LoggerTree
+    , _lcTree            :: LoggerTree
     }
 
 makeLenses ''LoggerConfig
@@ -219,25 +228,27 @@ makeLenses ''LoggerConfig
 -- TODO: QuickCheck tests on monoid laws
 instance Monoid LoggerConfig where
     mempty = LoggerConfig
-        { _lcRotation      = Nothing
-        , _lcTermSeverity  = Nothing
-        , _lcShowTime      = mempty
-        , _lcShowTid       = mempty
-        , _lcConsoleAction = mempty
-        , _lcMapper        = mempty
-        , _lcFilePrefix    = Nothing
-        , _lcTree          = mempty
+        { _lcRotation        = Nothing
+        , _lcTermSeverityOut = Nothing
+        , _lcTermSeverityErr = Nothing
+        , _lcShowTime        = mempty
+        , _lcShowTid         = mempty
+        , _lcConsoleAction   = mempty
+        , _lcMapper          = mempty
+        , _lcFilePrefix      = Nothing
+        , _lcTree            = mempty
         }
 
     lc1 `mappend` lc2 = LoggerConfig
-        { _lcRotation      = orCombiner  _lcRotation
-        , _lcTermSeverity  = orCombiner  _lcTermSeverity
-        , _lcShowTime      = andCombiner _lcShowTime
-        , _lcShowTid       = andCombiner _lcShowTid
-        , _lcConsoleAction = andCombiner _lcConsoleAction
-        , _lcMapper        = andCombiner _lcMapper
-        , _lcFilePrefix    = orCombiner  _lcFilePrefix
-        , _lcTree          = andCombiner _lcTree
+        { _lcRotation        = orCombiner  _lcRotation
+        , _lcTermSeverityOut = orCombiner  _lcTermSeverityOut
+        , _lcTermSeverityErr = orCombiner  _lcTermSeverityErr
+        , _lcShowTime        = andCombiner _lcShowTime
+        , _lcShowTid         = andCombiner _lcShowTid
+        , _lcConsoleAction   = andCombiner _lcConsoleAction
+        , _lcMapper          = andCombiner _lcMapper
+        , _lcFilePrefix      = orCombiner  _lcFilePrefix
+        , _lcTree            = andCombiner _lcTree
         }
       where
         orCombiner  field = field lc1 <|> field lc2
@@ -247,7 +258,8 @@ instance Monoid LoggerConfig where
 topLevelParams :: [Text]
 topLevelParams =
     [ "rotation"
-    , "termSeverity"
+    , "termSeveritiesOut"
+    , "termSeveritiesErr"
     , "showTime"
     , "showTid"
     , "printOutput"
@@ -256,12 +268,14 @@ topLevelParams =
 
 instance FromJSON LoggerConfig where
     parseJSON = withObject "rotation params" $ \o -> do
-        _lcRotation      <-         o .:? "rotation"
-        _lcTermSeverity  <-         o .:? "termSeverity"
-        _lcShowTime      <- Any <$> o .:? "showTime"    .!= False
-        _lcShowTid       <- Any <$> o .:? "showTid"     .!= False
-        _lcFilePrefix    <-         o .:? "filePrefix"
-        _lcTree          <- parseJSON $ Object $ filterObject topLevelParams o
+        _lcRotation        <-                         o .:? "rotation"
+        -- TODO: Support word "All" which will include all severities at once
+        _lcTermSeverityOut <- (fmap Set.fromList) <$> o .:? "termSeveritiesOut"
+        _lcTermSeverityErr <- (fmap Set.fromList) <$> o .:? "termSeveritiesErr"
+        _lcShowTime        <-                 Any <$> o .:? "showTime"    .!= False
+        _lcShowTid         <-                 Any <$> o .:? "showTid"     .!= False
+        _lcFilePrefix      <-                         o .:? "filePrefix"
+        _lcTree            <- parseJSON $ Object $ filterObject topLevelParams o
 
         printConsoleFlag    <- o .:? "printOutput" .!= False
         let _lcConsoleAction = Last $ bool Nothing (Just defaultHandleAction) printConsoleFlag
@@ -272,12 +286,13 @@ instance FromJSON LoggerConfig where
 -- because it is used only for debugging.
 instance ToJSON LoggerConfig where
     toJSON LoggerConfig{..} = object
-            [ "rotation"     .= _lcRotation
-            , "termSeverity" .= _lcTermSeverity
-            , "showTime"     .= getAny _lcShowTime
-            , "showTid"      .= getAny _lcShowTid
-            , "printOutput"  .= maybe False (const True) (getLast _lcConsoleAction)
-            , "filePrefix"   .= _lcFilePrefix
+            [ "rotation"          .= _lcRotation
+            , "termSeveritiesOut" .= _lcTermSeverityOut
+            , "termSeveritiesErr" .= _lcTermSeverityErr
+            , "showTime"          .= getAny _lcShowTime
+            , "showTid"           .= getAny _lcShowTid
+            , "printOutput"       .= maybe False (const True) (getLast _lcConsoleAction)
+            , "filePrefix"        .= _lcFilePrefix
             , ("logTree", toJSON _lcTree)
             ]
 ----------------------------------------------------------------------------
@@ -285,8 +300,12 @@ instance ToJSON LoggerConfig where
 ----------------------------------------------------------------------------
 
 -- | Setup 'lcTermSeverity' to specified severity inside 'LoggerConfig'.
-termSeverityB :: Severity -> LoggerConfig
-termSeverityB severity = mempty { _lcTermSeverity = Just severity }
+termSeveritiesOutB :: Severities -> LoggerConfig
+termSeveritiesOutB severities = mempty { _lcTermSeverityOut = Just severities }
+
+-- | Setup 'lcTermSeverity' to specified severity inside 'LoggerConfig'.
+termSeveritiesErrB :: Severities -> LoggerConfig
+termSeveritiesErrB severities = mempty { _lcTermSeverityErr = Just severities }
 
 -- | Setup 'lcShowTime' to 'True' inside 'LoggerConfig'.
 showTimeB :: LoggerConfig

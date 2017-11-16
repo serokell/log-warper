@@ -15,7 +15,6 @@
 -- logging system.
 module System.Wlog.Formatter
        ( stdoutFormatter
-       , stderrFormatter
        , stdoutFormatterTimeRounded
        , centiUtcTimeF
        , getRoundedTime
@@ -49,7 +48,7 @@ import System.Locale (defaultTimeLocale)
 #endif
 
 import System.Wlog.Color (colorizer)
-import System.Wlog.Severity (LogRecord (..), Severity (..))
+import System.Wlog.Severity (LogRecord (..))
 
 import qualified Data.Text as T
 
@@ -183,11 +182,6 @@ stdoutFormatter :: (UTCTime -> Text) -> Bool -> Bool -> LogFormatter a
 stdoutFormatter timeF isShowTime isShowTid handle record message = do
     time <- getCurrentTime
     createLogFormatter isShowTime isShowTid timeF time handle record message
-
-stderrFormatter :: (UTCTime -> Text) -> Bool -> LogFormatter a
-stderrFormatter timeF isShowTid handle (LR _ x) message = do
-    time <- getCurrentTime
-    createLogFormatter True isShowTid timeF time handle (LR Error x) message
 
 stdoutFormatterTimeRounded :: (UTCTime -> Text) -> Int -> LogFormatter a
 stdoutFormatterTimeRounded timeF roundN handle record message = do

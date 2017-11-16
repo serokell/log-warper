@@ -21,11 +21,12 @@ import Universum
 import Data.Time (UTCTime)
 import System.IO (Handle, stderr, stdout)
 
-import System.Wlog.Formatter (stderrFormatter, stdoutFormatter)
+import System.Wlog.Formatter (stdoutFormatter)
 import System.Wlog.IOLogger (rootLoggerName, setHandlers, setLevel, updateGlobalLogger)
 import System.Wlog.LogHandler (LogHandler (setFormatter))
 import System.Wlog.LogHandler.Simple (streamHandler)
-import System.Wlog.Severity (Severities, errorPlus, excludeError, warningPlus)
+import System.Wlog.Severity (Severities, debugPlus, emptySeverities, errorPlus, excludeError,
+                             unionSeverities)
 
 
 -- | This function initializes global logging system for terminal output.
@@ -50,23 +51,31 @@ initTerminalLogging :: MonadIO m
                     -> Bool  -- ^ Show time?
                     -> Bool  -- ^ Show ThreadId?
                     -> Maybe Severities
+                    -> Maybe Severities
                     -> m ()
 initTerminalLogging
     timeF
     customConsoleAction
     isShowTime
     isShowTid
-    (fromMaybe (warningPlus) -> defaultSeverity)
+    maybeSevOut
+    maybeSevErr
   = liftIO $ do
     lock <- liftIO $ newMVar ()
+    let (severitiesOut, severitiesErr) =
+          case (maybeSevOut, maybeSevErr) of
+              (Nothing, Nothing)   -> (excludeError debugPlus, errorPlus)
+              (Just out, Nothing)  -> (out, emptySeverities)
+              (Nothing, Just err)  -> (emptySeverities, err)
+              (Just out, Just err) -> (out, err)
     stdoutHandler <- setStdoutFormatter <$>
-        streamHandler stdout customConsoleAction lock (excludeError defaultSeverity)
+        streamHandler stdout customConsoleAction lock severitiesOut
     stderrHandler <- setStderrFormatter <$>
-        streamHandler stderr customConsoleAction lock errorPlus
+        streamHandler stderr customConsoleAction lock severitiesErr
     updateGlobalLogger rootLoggerName $
         setHandlers [stderrHandler, stdoutHandler]
     updateGlobalLogger rootLoggerName $
-        setLevel defaultSeverity
+        setLevel $ unionSeverities severitiesOut severitiesErr
   where
     setStdoutFormatter = (`setFormatter` stdoutFormatter timeF isShowTime isShowTid)
-    setStderrFormatter = (`setFormatter` stderrFormatter timeF isShowTid)
+    setStderrFormatter = (`setFormatter` stdoutFormatter timeF True isShowTid)

@@ -67,7 +67,8 @@ setupLogging mTimeFunction LoggerConfig{..} = do
                             customTerminalAction
                             isShowTime
                             isShowTid
-                            (severityPlus <$> _lcTermSeverity)
+                            _lcTermSeverityOut
+                            _lcTermSeverityErr
 
     liftIO $ setPrefix _lcFilePrefix
     processLoggers mempty _lcTree
