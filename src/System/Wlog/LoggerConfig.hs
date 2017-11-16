@@ -274,18 +274,6 @@ instance Monoid LoggerConfig where
         orCombiner  field = field lc1 <|> field lc2
         andCombiner field = field lc1  <> field lc2
 
-
-topLevelParams :: [Text]
-topLevelParams =
-    [ "rotation"
-    , "termSeveritiesOut"
-    , "termSeveritiesErr"
-    , "showTime"
-    , "showTid"
-    , "printOutput"
-    , "filePrefix"
-    ]
-
 instance FromJSON LoggerConfig where
     parseJSON = withObject "rotation params" $ \o -> do
         _lcRotation        <-         o .:? "rotation"
@@ -294,7 +282,7 @@ instance FromJSON LoggerConfig where
         _lcShowTime        <- Any <$> o .:? "showTime"    .!= False
         _lcShowTid         <- Any <$> o .:? "showTid"     .!= False
         _lcFilePrefix      <-         o .:? "filePrefix"
-        _lcTree            <- parseJSON $ Object $ filterObject topLevelParams o
+        _lcTree            <-         o .:? "loggerTree"  .!= mempty
 
         printConsoleFlag    <- o .:? "printOutput" .!= False
         let _lcConsoleAction = Last $ bool Nothing (Just defaultHandleAction) printConsoleFlag

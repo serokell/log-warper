@@ -4,7 +4,8 @@ rotation:                                 # parameters for logger rotation
 severity: Warning+                        # severities for «root» logger
 termSeveritiesOut : [Debug, Info, Notice] # severities which go to `stdout`
 termSeveritiesErr : Warning+              # severities which go to `stderr`
-node:                                     # logger named «node»
+loggerTree:
+  node:                                   # logger named «node»
     severity: Debug+                      # severities for logger «node»
     file: skovoroda.log                   # messages for «node» will be sent to skovoroda.log
     comm:                                 # logger named «node.comm»
