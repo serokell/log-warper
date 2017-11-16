@@ -11,6 +11,7 @@
 module System.Wlog.CanLog
        ( CanLog (..)
        , WithLogger
+       , WithLoggerIO
 
        -- * Logging functions
        , logDebug
@@ -41,6 +42,10 @@ import qualified Control.Monad.State.Lazy as StateLazy
 -- We need two different type classes to support more flexible interface
 -- but in practice we usually use them both.
 type WithLogger m = (CanLog m, HasLoggerName m)
+
+-- | Type alias for constraints 'WithLogger' and 'MonadIO'.
+-- It is a very common situation to use both of them together.
+type WithLoggerIO m = (MonadIO m, WithLogger m)
 
 -- | Instances of this class should explain how they add messages to their log.
 class Monad m => CanLog m where
