@@ -1,10 +1,13 @@
-rotation:                # parameters for logger rotation
-    logLimit: 256        # size of file in bytes
-    keepFiles: 3         # max number of files to keep
-severity: Warning        # severity for «root» logger
-node:                    # logger named «node»
-    severity: Debug      # severity for logger «node»
-    file: skovoroda.log  # messages for «node» will be sent to skovoroda.log
-    comm:                # logger named «node.comm»
-        severity: Info   # severity for logger «node.comm»
-                         # messages won't be printed to any file
+rotation:                                 # parameters for logger rotation
+    logLimit: 256                         # size of file in bytes
+    keepFiles: 3                          # max number of files to keep
+severity: Warning+                        # severities for «root» logger
+termSeveritiesOut : [Debug, Info, Notice] # severities which go to `stdout`
+termSeveritiesErr : Warning+              # severities which go to `stderr`
+loggerTree:
+  node:                                   # logger named «node»
+    severity: Debug+                      # severities for logger «node»
+    file: skovoroda.log                   # messages for «node» will be sent to skovoroda.log
+    comm:                                 # logger named «node.comm»
+        severity: Info+                   # severities for logger «node.comm»
+                                          # messages won't be printed to any file

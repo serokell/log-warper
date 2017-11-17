@@ -20,10 +20,9 @@ import Test.QuickCheck (Arbitrary (..), Property, choose, (==>))
 import Test.QuickCheck.Monadic (PropertyM, monadicIO, run)
 
 import System.Wlog (HandlerWrap (..), InvalidRotation (..), LoggerConfig (..),
-                    RotationParameters (..), Severity (..), fromScratch, isValidRotation,
-                    lcFilePrefix, lcRotation, lcTree, logDebug, logIndex, ltFiles, ltSeverity,
-                    removeAllHandlers, rotationFileHandler, setupLogging, usingLoggerName,
-                    whenExist, zoomLogger)
+                    RotationParameters (..), debugPlus, fromScratch, isValidRotation, lcFilePrefix,
+                    lcRotation, lcTree, logDebug, logIndex, ltFiles, ltSeverity, removeAllHandlers,
+                    rotationFileHandler, setupLogging, usingLoggerName, whenExist, zoomLogger)
 
 spec :: Spec
 spec = do
@@ -69,7 +68,7 @@ testLoggerConfig rotParam = fromScratch $ do
     lcRotation   ?= rotParam
     lcFilePrefix ?= "logs"
     zoom lcTree $ do
-        ltSeverity ?= Debug
+        ltSeverity ?= debugPlus
         zoomLogger "test" $
             ltFiles .= [HandlerWrap testLogFile Nothing]
 

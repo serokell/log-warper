@@ -7,10 +7,9 @@ import Universum
 import Data.Monoid ((<>))
 import Data.Yaml.Pretty (defConfig, encodePretty)
 
-import System.Wlog (CanLog, Severity (Debug), buildAndSetupYamlLogging, dispatchEvents, logDebug,
-                    logError, logInfo, logNotice, logWarning, modifyLoggerName, parseLoggerConfig,
-                    prefixB, productionB, removeAllHandlers, runPureLog, termSeverityB,
-                    usingLoggerName)
+import System.Wlog (CanLog, buildAndSetupYamlLogging, dispatchEvents, logDebug, logError, logInfo,
+                    logNotice, logWarning, modifyLoggerName, parseLoggerConfig, prefixB,
+                    productionB, removeAllHandlers, runPureLog, usingLoggerName)
 
 testLoggerConfigPath :: FilePath
 testLoggerConfigPath = "logger-config-example.yaml"
@@ -45,7 +44,7 @@ showPureLog = do
 main :: IO ()
 main = do
     testToJsonConfigOutput
-    let config = (productionB <> prefixB "logs" <> termSeverityB Debug)
+    let config = (productionB <> prefixB "logs")
     bracket_
         (buildAndSetupYamlLogging config testLoggerConfigPath)
         removeAllHandlers

@@ -1,5 +1,5 @@
 name:                log-warper
-version:             1.6.0
+version:             1.7.0
 synopsis:            Flexible, configurable, monadic and pretty logging
 homepage:            https://github.com/serokell/log-warper
 license:             MIT
@@ -64,6 +64,7 @@ library
                      , transformers-base    >= 0.4.4
                      , universum            >= 0.7
                      , unordered-containers >= 0.2.7.1
+                     , vector               >= 0.12
                      , yaml                 >= 0.8.20
   if !os(windows)
     build-depends:     unix
