@@ -1,3 +1,20 @@
+1.7.0
+=====
+
+* [#48](https://github.com/serokell/log-warper/issues/48):
+  Output for severities is now configured in config file with `termSeveritiesOut`
+  and `termSeveritiesErr` for writing into `stdout` and `stderr` accordingly.
+  Default behavior: `Errors` into `stderr`, all other into `stdout`.
+* In yaml config file added new keywords for dealing with `Severities`:
+  'All' -- all severities, 'X+' -- severities greater or equal to X.
+* Changed .yaml format: logger severity receives set of severities (`Severities`).
+* [#32](https://github.com/serokell/log-warper/issues/32):
+  Changed .yaml format: `LoggerTree` should be written under 'loggerTree:'.
+* [#49](https://github.com/serokell/log-warper/issues/49):
+  Add `WithLoggerIO` constraint.
+* [#50](https://github.com/serokell/log-warper/issues/50):
+  Add `liftLogIO` function into `CanLog` module.
+
 1.6.0
 =====
 
