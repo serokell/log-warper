@@ -1,5 +1,5 @@
 name:                log-warper
-version:             1.7.0
+version:             1.7.1
 synopsis:            Flexible, configurable, monadic and pretty logging
 homepage:            https://github.com/serokell/log-warper
 license:             MIT
@@ -40,7 +40,7 @@ library
   build-depends:       aeson                >= 0.11.2.1
                      , ansi-terminal        >= 0.6.2.3
                      , base                 >= 4.7 && < 5
-                     , containers           >= 0.5.7.0
+                     , containers           >= 0.5.10
                      , deepseq              >= 1.2.0.0
                      , directory            >= 1.2.6.2
                      , dlist                >= 0.8.0.2

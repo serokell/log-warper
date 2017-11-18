@@ -1,3 +1,8 @@
+1.7.1
+=====
+
+* Bump `containers` to version `0.5.10`.
+
 1.7.0
 =====
 
