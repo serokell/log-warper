@@ -1,0 +1,4 @@
+loggerTree:
+  severity: Warning+   # severities for «root» logger
+  new-logger:          # logger named «new-logger»
+    severity: Debug+   # severities for logger «new-logger»

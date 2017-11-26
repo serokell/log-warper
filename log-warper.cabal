@@ -8,7 +8,7 @@ author:              @serokell
 maintainer:          Serokell <hi@serokell.io>
 copyright:           2016-2017 Serokell
 category:            Logging
-extra-source-files:  CHANGES.md
+extra-source-files:  CHANGES.md, examples/HowTo.md, examples/HowTo.lhs
 stability:           experimental
 build-type:          Simple
 cabal-version:       >=1.18
@@ -94,7 +94,8 @@ executable play-log
 
   hs-source-dirs:      examples
   default-language:    Haskell2010
-  ghc-options:         -threaded -Wall -fno-warn-orphans
+  ghc-options:         -threaded -Wall
+                       -fno-warn-orphans
 
   default-extensions:  GeneralizedNewtypeDeriving
                        DeriveDataTypeable
@@ -103,6 +104,20 @@ executable play-log
                        OverloadedStrings
                        TypeApplications
                        RecordWildCards
+
+executable how-to
+  main-is:             HowTo.lhs
+
+  build-depends:       base           >= 4.7 && < 5
+                     , log-warper
+                     , markdown-unlit >= 0.4.0
+                     , text           >= 1.2.2.1
+
+  hs-source-dirs:      examples
+  default-language:    Haskell2010
+  ghc-options:         -threaded -Wall
+                       -fno-warn-orphans
+                       -pgmL markdown-unlit
 
 test-suite log-test
   type:                exitcode-stdio-1.0
