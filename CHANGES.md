@@ -1,3 +1,9 @@
+1.7.2
+=====
+
+* [#57](https://github.com/serokell/log-warper/issues/57):
+  Add `Exception` module with `logException` and `catchLog` functions.
+
 1.7.1
 =====
 
