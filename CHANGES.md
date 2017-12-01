@@ -3,6 +3,8 @@
 
 * [#57](https://github.com/serokell/log-warper/issues/57):
   Add `Exception` module with `logException` and `catchLog` functions.
+* [#60](https://github.com/serokell/log-warper/issues/60):
+  Fix documentation for `termSeveritiesOut` and `termSeveritiesErr`.
 
 1.7.1
 =====

@@ -306,11 +306,11 @@ instance ToJSON LoggerConfig where
 -- Builders for 'LoggerConfig'.
 ----------------------------------------------------------------------------
 
--- | Setup 'lcTermSeverity' to specified severity inside 'LoggerConfig'.
+-- | Setup 'lcTermSeverityOut' to specified severity inside 'LoggerConfig'.
 termSeveritiesOutB :: Severities -> LoggerConfig
 termSeveritiesOutB severities = mempty { _lcTermSeverityOut = Just severities }
 
--- | Setup 'lcTermSeverity' to specified severity inside 'LoggerConfig'.
+-- | Setup 'lcTermSeverityErr' to specified severity inside 'LoggerConfig'.
 termSeveritiesErrB :: Severities -> LoggerConfig
 termSeveritiesErrB severities = mempty { _lcTermSeverityErr = Just severities }
 
