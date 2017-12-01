@@ -33,7 +33,7 @@ import Control.Concurrent (myThreadId)
 import Data.Monoid (mconcat)
 import Data.Text.Lazy.Builder as B
 import Data.Time (formatTime, getCurrentTime, getZonedTime)
-import Data.Time.Clock (UTCTime (..))
+import Data.Time.Clock (UTCTime (..), diffTimeToPicoseconds, picosecondsToDiffTime)
 import Data.Time.Format (FormatTime)
 import Fmt (fmt, padRightF, (+|), (|+), (|++|))
 import Fmt.Time (dateDashF, hmsF, subsecondF, tzNameF)
@@ -169,14 +169,19 @@ centiUtcTimeF t =
   where
     centiSecondF = padRightF 3 '0' . T.take 3 . fmt . subsecondF
 
+-- | Get the current time rounded to 10^n picoseconds.
+-- n = 3 rounds to the nearest nanosecond.
+-- n = 6 rounds to the nearest microsecond.
+-- n = 9 will round to the nearest millisecond.
+-- n = 12 will round to the nearest second.
 getRoundedTime :: Int -> IO UTCTime
-getRoundedTime roundN = do
-    UTCTime{..} <- liftIO $ getCurrentTime
-    let newSec = fromIntegral $ roundBy (round $ toRational utctDayTime :: Int)
-    pure $ UTCTime { utctDayTime = newSec, .. }
-  where
-    roundBy :: (Num a, Integral a) => a -> a
-    roundBy x = let y = x `div` fromIntegral roundN in y * fromIntegral roundN
+getRoundedTime n = do
+    UTCTime{..} <- getCurrentTime
+    let m = if n < 0 then 0 else (fromIntegral n :: Integer)
+        multiplier = 10 ^ m
+        picoseconds = diffTimeToPicoseconds utctDayTime
+        roundedPicoseconds = (picoseconds `div` multiplier) * multiplier
+    pure $ UTCTime { utctDayTime = picosecondsToDiffTime roundedPicoseconds, .. }
 
 stdoutFormatter :: (UTCTime -> Text) -> Bool -> Bool -> LogFormatter a
 stdoutFormatter timeF isShowTime isShowTid handle record message = do
@@ -184,8 +189,8 @@ stdoutFormatter timeF isShowTime isShowTid handle record message = do
     createLogFormatter isShowTime isShowTid timeF time handle record message
 
 stdoutFormatterTimeRounded :: (UTCTime -> Text) -> Int -> LogFormatter a
-stdoutFormatterTimeRounded timeF roundN handle record message = do
-    time <- getRoundedTime roundN
+stdoutFormatterTimeRounded timeF n handle record message = do
+    time <- getRoundedTime n
     createLogFormatter True True timeF time handle record message
 
 createLogFormatter

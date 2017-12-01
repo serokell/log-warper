@@ -114,7 +114,9 @@ data HandlerWrap = HandlerWrap
     { _hwFilePath :: !FilePath
       -- ^ Path to the file to be handled.
     , _hwRounding :: !(Maybe Int)
-      -- ^ Amount of seconds to round time on (if set).
+      -- ^ Round timestamps to this power of 10 picoseconds.
+      -- Just 3 would round to nanoseconds.
+      -- Just 12 would round to seconds.
     } deriving (Generic,Show)
 
 makeLenses ''HandlerWrap
