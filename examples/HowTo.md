@@ -28,8 +28,7 @@ module Main (main) where
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Semigroup ((<>))
 import Data.Text (Text)
-import System.Wlog (WithLoggerIO, buildAndSetupYamlLogging, logError,
-                    logInfo, productionB, usingLoggerName)
+import System.Wlog (WithLoggerIO, runLoggingWithFile, logError, logInfo)
 
 import qualified Data.Text as Text
 import qualified Data.Text.IO as TextIO
@@ -90,9 +89,8 @@ So to make it possible we should transform this function to the following:
 
 ```haskell
 mainWithLogging :: IO ()
-mainWithLogging = do
-    buildAndSetupYamlLogging productionB "examples/how-to-log-config.yaml"
-    usingLoggerName "new-logger" inputLengthWithLog
+mainWithLogging =
+    runLoggingWithFile "examples/how-to-log-config.yaml" "new-logger" inputLengthWithLog
 ```
 where we set up the config from the file and run `inputLengthWithLog` under the logger with name `new-logger`.
 Note that we use `inputLengthWithLog` now instead of `inputLength` because we can not just add logging

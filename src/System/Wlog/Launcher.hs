@@ -28,6 +28,8 @@ module System.Wlog.Launcher
        ( buildAndSetupYamlLogging
        , initLoggingFromYaml
        , parseLoggerConfig
+       , runLoggingWithFile
+       , runDefaultLogging
        , setupLogging
        ) where
 
@@ -42,12 +44,13 @@ import System.FilePath ((</>))
 
 import System.Wlog.Formatter (centiUtcTimeF, stdoutFormatter, stdoutFormatterTimeRounded)
 import System.Wlog.IOLogger (addHandler, setPrefix, setSeveritiesMaybe, updateGlobalLogger)
-import System.Wlog.LoggerConfig (HandlerWrap (..), LoggerConfig (..), LoggerTree (..))
+import System.Wlog.LoggerConfig (HandlerWrap (..), LoggerConfig (..), LoggerTree (..), productionB)
 import System.Wlog.LoggerName (LoggerName (..))
+import System.Wlog.LoggerNameBox (LoggerNameBox, usingLoggerName)
 import System.Wlog.LogHandler (LogHandler (setFormatter))
 import System.Wlog.LogHandler.Roller (rotationFileHandler)
 import System.Wlog.LogHandler.Simple (fileHandler)
-import System.Wlog.Severity (Severities, debugPlus)
+import System.Wlog.Severity (Severities, debugPlus, warningPlus)
 import System.Wlog.Terminal (initTerminalLogging)
 
 import qualified Data.HashMap.Strict as HM hiding (HashMap)
@@ -56,7 +59,7 @@ data HandlerFabric
     = forall h . LogHandler h => HandlerFabric (FilePath -> Severities -> IO h)
 
 -- | This function traverses 'LoggerConfig' initializing all subloggers
--- with 'Severity' and redirecting output in file handlers.
+-- with 'Severities' and redirecting output in file handlers.
 -- See 'LoggerConfig' for more details.
 setupLogging :: MonadIO m => Maybe (UTCTime -> Text) -> LoggerConfig -> m ()
 setupLogging mTimeFunction LoggerConfig{..} = do
@@ -124,3 +127,42 @@ buildAndSetupYamlLogging configBuilder loggerConfigPath = do
 -- See this module description.
 initLoggingFromYaml :: MonadIO m => FilePath -> m ()
 initLoggingFromYaml = buildAndSetupYamlLogging mempty
+
+-- | Initializes logging using given 'FilePath' to logger configurations,
+-- runs the action with the given 'LoggerName'.
+runLoggingWithFile :: MonadIO m => FilePath -> LoggerName -> LoggerNameBox m a -> m a
+runLoggingWithFile filename logName f = do
+    buildAndSetupYamlLogging productionB filename
+    usingLoggerName logName f
+
+-- | Default logging configuration with the "node" logger.
+defaultConfig :: LoggerConfig
+defaultConfig = LoggerConfig
+    { _lcRotation        = Nothing
+    , _lcTermSeverityOut = Nothing    -- default will be used
+    , _lcTermSeverityErr = Nothing    -- default will be used
+    , _lcShowTime        = Any True
+    , _lcShowTid         = Any False
+    , _lcConsoleAction   = mempty
+    , _lcMapper          = mempty
+    , _lcFilePrefix      = Nothing
+    , _lcTree            = LoggerTree
+        { _ltSubloggers = HM.fromList     -- logger "node" with severities Debug+
+            [ ( "node"
+              , LoggerTree
+                    { _ltSubloggers = mempty
+                    , _ltFiles      = []
+                    , _ltSeverity   = Just debugPlus
+                    }
+              )
+            ]
+        , _ltFiles      = []
+        , _ltSeverity   = Just warningPlus   -- root severities are Warning+
+        }
+    }
+
+-- | Set ups the logging with default configurations and runs the action with the given 'LoggerName'.
+runDefaultLogging :: MonadIO m => LoggerName -> LoggerNameBox m a -> m a
+runDefaultLogging logName f = do
+    setupLogging Nothing defaultConfig
+    usingLoggerName logName f

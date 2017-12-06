@@ -1,3 +1,9 @@
+1.7.3
+=====
+
+* [#61](https://github.com/serokell/log-warper/issues/61):
+  Add `runLoggingWithFile` and `runDefaultLogging` functions.
+
 1.7.2
 =====
 
