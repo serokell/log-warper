@@ -50,7 +50,7 @@ import Control.Monad (void, when)
 import Data.Bits (shiftL, (.|.))
 import Data.Text.Lazy.Builder as B
 import Network.BSD (getHostByName, hostAddresses)
-import Network.Socket (Family, Family (..), HostName, PortNumber, SockAddr (..), Socket,
+import Network.Socket (Family (..), HostName, PortNumber, SockAddr (..), Socket,
                        SocketType (Datagram, Stream), connect, socket)
 #ifndef mingw32_HOST_OS
 import System.Posix.Process (getProcessID)
@@ -72,7 +72,7 @@ import qualified Network.Socket.ByteString as NBS
 
 code_of_sev :: Severities -> Int
 code_of_sev sevs =
-    case fromMaybe Debug (Set.lookupMin sevs) of
+    case fromMaybe Debug (fst <$> Set.minView sevs) of
         Error   -> 3
         Warning -> 4
         Notice  -> 5

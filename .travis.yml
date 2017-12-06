@@ -1,29 +1,55 @@
-language: c
+sudo: true
+language: haskell
+
+git:
+  depth: 5
 
 cache:
   directories:
   - "$HOME/.stack"
   - "$HOME/build/serokell/log-warper/.stack-work"
 
+
+matrix:
+  include:
+
+  - ghc: 8.0.2
+    env: GHCVER='8.0.2' STACK_YAML="$HOME/build/serokell/log-warper/stack.yaml"
+
+  - ghc: 8.2.2
+    env: GHCVER='8.2.2' STACK_YAML="$HOME/build/serokell/log-warper/stack-$GHCVER.yaml"
+
+
 addons:
   apt:
+    sources:
+      - sourceline: 'ppa:hvr/ghc'
     packages:
-    - libgmp-dev
+      - libgmp-dev
+      - cabal-install-2.0
+
 
 before_install:
-  # Download and unpack the stack executable
+
   - mkdir -p ~/.local/bin
-  - export PATH=$HOME/.local/bin:$PATH
-  - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+  - export PATH="$HOME/.local/bin:$PATH"
+  - travis_retry curl -L 'https://www.stackage.org/stack/linux-x86_64' | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+  - stack --version
+
 
 install:
-  - stack --version
-  - stack -j 2 setup --no-terminal
+
+  - travis_wait 30 stack setup --no-terminal
   - stack ghc -- --version
-  - stack -j 2 build --test --bench --only-snapshot --no-terminal --ghc-options="-Werror"
+
+  - travis_wait 40 stack build --only-dependencies --no-terminal
+  - travis_wait 40 stack build --test --bench --no-run-tests --no-run-benchmarks --no-terminal
+
 
 script:
-  - stack --jobs=4 build --test --bench --no-run-benchmarks --no-terminal --ghc-options="-Werror"
+
+  - travis_wait 40 stack build --test --no-terminal
+
 
 notifications:
   email: false

@@ -1,3 +1,9 @@
+1.7.5
+=====
+
+* Relax `containers` package dependency from `>= 0.5.10.2` to `>= 0.5.7.1`.
+  Also use stable LTS for building package.
+
 1.7.4
 =====
 
