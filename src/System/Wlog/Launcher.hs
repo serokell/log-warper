@@ -12,24 +12,26 @@
 -- Parser for configuring and initializing logger from YAML file.
 -- Logger configuration should look like this:
 --
--- > rotation:                # [optional] parameters for logging rotation
--- >     logLimit: 1024       # max size of log file in bytes
--- >     keepFiles: 3         # number of files with logs to keep including current one
--- > node:                    # logger named «node»
--- >     severity: Warning    # severity for logger «node»
--- >     comm:                # logger named «node.comm»
--- >         severity: Info   # severity for logger «node.comm»
--- >         file: patak.jpg  # messages will be also printed to patak.jpg
+-- > rotation:                    # [optional] parameters for logging rotation
+-- >     logLimit: 1024           # max size of log file in bytes
+-- >     keepFiles: 3             # number of files with logs to keep including current one
+-- > loggerTree:
+-- >     severity: Warning+       # severities for «root» logger
+-- >     node:                    # logger named «node»
+-- >         severity: Warning+   # severities for logger «node»
+-- >         comm:                # logger named «node.comm»
+-- >             severity: Info+  # severity for logger «node.comm»
+-- >             file: patak.jpg  # messages will be also printed to patak.jpg
 --
 -- And this configuration corresponds two loggers with 'LoggerName'`s
 -- @node@ and @node.comm@.
 
 module System.Wlog.Launcher
        ( buildAndSetupYamlLogging
-       , initLoggingFromYaml
+       , defaultConfig
+       , launchFromFile
+       , launchSimpleLogging
        , parseLoggerConfig
-       , runLoggingWithFile
-       , runDefaultLogging
        , setupLogging
        ) where
 
@@ -37,19 +39,23 @@ import Universum
 
 import Control.Error.Util ((?:))
 import Control.Exception (throwIO)
+import Control.Lens (zoom, (.=), (?=))
 import Data.Time (UTCTime)
 import Data.Yaml (decodeFileEither)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath ((</>))
 
 import System.Wlog.Formatter (centiUtcTimeF, stdoutFormatter, stdoutFormatterTimeRounded)
-import System.Wlog.IOLogger (addHandler, setPrefix, setSeveritiesMaybe, updateGlobalLogger)
-import System.Wlog.LoggerConfig (HandlerWrap (..), LoggerConfig (..), LoggerTree (..), productionB)
+import System.Wlog.IOLogger (addHandler, removeAllHandlers, setPrefix, setSeveritiesMaybe,
+                             updateGlobalLogger)
+import System.Wlog.LoggerConfig (HandlerWrap (..), LoggerConfig (..), LoggerTree (..), fromScratch,
+                                 lcConsoleAction, lcShowTime, lcTree, ltSeverity, productionB,
+                                 zoomLogger)
 import System.Wlog.LoggerName (LoggerName (..))
 import System.Wlog.LoggerNameBox (LoggerNameBox, usingLoggerName)
 import System.Wlog.LogHandler (LogHandler (setFormatter))
 import System.Wlog.LogHandler.Roller (rotationFileHandler)
-import System.Wlog.LogHandler.Simple (fileHandler)
+import System.Wlog.LogHandler.Simple (defaultHandleAction, fileHandler)
 import System.Wlog.Severity (Severities, debugPlus, warningPlus)
 import System.Wlog.Terminal (initTerminalLogging)
 
@@ -123,46 +129,40 @@ buildAndSetupYamlLogging configBuilder loggerConfigPath = do
     let builtConfig       = cfg <> configBuilder
     setupLogging Nothing builtConfig
 
--- | Initialize logger hierarchy from configuration file.
--- See this module description.
-initLoggingFromYaml :: MonadIO m => FilePath -> m ()
-initLoggingFromYaml = buildAndSetupYamlLogging mempty
-
 -- | Initializes logging using given 'FilePath' to logger configurations,
 -- runs the action with the given 'LoggerName'.
-runLoggingWithFile :: MonadIO m => FilePath -> LoggerName -> LoggerNameBox m a -> m a
-runLoggingWithFile filename logName f = do
-    buildAndSetupYamlLogging productionB filename
-    usingLoggerName logName f
+launchFromFile :: (MonadIO m, MonadMask m)
+               => FilePath
+               -> LoggerName
+               -> LoggerNameBox m a
+               -> m a
+launchFromFile filename loggerName action =
+    bracket_
+        (buildAndSetupYamlLogging productionB filename)
+        removeAllHandlers
+        (usingLoggerName loggerName action)
 
--- | Default logging configuration with the "node" logger.
-defaultConfig :: LoggerConfig
-defaultConfig = LoggerConfig
-    { _lcRotation        = Nothing
-    , _lcTermSeverityOut = Nothing    -- default will be used
-    , _lcTermSeverityErr = Nothing    -- default will be used
-    , _lcShowTime        = Any True
-    , _lcShowTid         = Any False
-    , _lcConsoleAction   = mempty
-    , _lcMapper          = mempty
-    , _lcFilePrefix      = Nothing
-    , _lcTree            = LoggerTree
-        { _ltSubloggers = HM.fromList     -- logger "node" with severities Debug+
-            [ ( "node"
-              , LoggerTree
-                    { _ltSubloggers = mempty
-                    , _ltFiles      = []
-                    , _ltSeverity   = Just debugPlus
-                    }
-              )
-            ]
-        , _ltFiles      = []
-        , _ltSeverity   = Just warningPlus   -- root severities are Warning+
-        }
-    }
+-- | Default logging configuration with the given 'LoggerName'.
+-- The root logger is set up with severity 'System.Wlog.Severity.Warning' and upper, the severity
+-- for given logger is set to 'System.Wlog.Severity.Debug' and upper, also time is shown in the log messages,
+-- and console output is on.
+defaultConfig :: LoggerName -> LoggerConfig
+defaultConfig loggerName = fromScratch $ do
+    lcShowTime      .= Any True
+    lcConsoleAction .= Last (Just defaultHandleAction)
+    zoom lcTree $ do
+        ltSeverity ?= warningPlus
+        zoomLogger (getLoggerName loggerName) $ do
+            ltSeverity ?= debugPlus
 
--- | Set ups the logging with default configurations and runs the action with the given 'LoggerName'.
-runDefaultLogging :: MonadIO m => LoggerName -> LoggerNameBox m a -> m a
-runDefaultLogging logName f = do
-    setupLogging Nothing defaultConfig
-    usingLoggerName logName f
+
+-- | Set ups the logging with 'defaultConfig' and runs the action with the given 'LoggerName'.
+launchSimpleLogging :: (MonadIO m, MonadMask m)
+                    => LoggerName
+                    -> LoggerNameBox m a
+                    -> m a
+launchSimpleLogging loggerName f =
+    bracket_
+        (setupLogging Nothing $ defaultConfig loggerName)
+        removeAllHandlers
+        (usingLoggerName loggerName f)

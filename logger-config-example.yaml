@@ -7,7 +7,7 @@ loggerTree:
   severity: Warning+                      # severities for «root» logger
   node:                                   # logger named «node»
     severity: Debug+                      # severities for logger «node»
-    file: skovoroda.log                   # messages for «node» will be sent to skovoroda.log
+    file: logs/skovoroda.log              # messages for «node» will be sent to skovoroda.log
     comm:                                 # logger named «node.comm»
         severity: Info+                   # severities for logger «node.comm»
                                           # messages won't be printed to any file

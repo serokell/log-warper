@@ -8,8 +8,8 @@ import Data.Monoid ((<>))
 import Data.Yaml.Pretty (defConfig, encodePretty)
 
 import System.Wlog (CanLog, buildAndSetupYamlLogging, logDebug, logError, logInfo, logNotice,
-                    logWarning, modifyLoggerName, parseLoggerConfig, prefixB, productionB,
-                    removeAllHandlers, usingLoggerName)
+                    logWarning, modifyLoggerName, parseLoggerConfig, productionB, removeAllHandlers,
+                    usingLoggerName)
 
 testLoggerConfigPath :: FilePath
 testLoggerConfigPath = "logger-config-example.yaml"
@@ -17,7 +17,7 @@ testLoggerConfigPath = "logger-config-example.yaml"
 testToJsonConfigOutput :: MonadIO m => m ()
 testToJsonConfigOutput = do
     cfg             <- parseLoggerConfig testLoggerConfigPath
-    let builtConfig  = cfg <> productionB <> prefixB "logs"
+    let builtConfig  = cfg <> productionB
     putStrLn $ encodePretty defConfig builtConfig
 
 testLogging :: (CanLog m) => m ()
@@ -43,8 +43,7 @@ showSomeLog = do
 main :: IO ()
 main = do
     testToJsonConfigOutput
-    let config = (productionB <> prefixB "logs")
     bracket_
-        (buildAndSetupYamlLogging config testLoggerConfigPath)
+        (buildAndSetupYamlLogging productionB testLoggerConfigPath)
         removeAllHandlers
         (testLogging >> showSomeLog)
