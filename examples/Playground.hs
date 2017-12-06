@@ -7,9 +7,9 @@ import Universum
 import Data.Monoid ((<>))
 import Data.Yaml.Pretty (defConfig, encodePretty)
 
-import System.Wlog (CanLog, buildAndSetupYamlLogging, dispatchEvents, logDebug, logError, logInfo,
-                    logNotice, logWarning, modifyLoggerName, parseLoggerConfig, prefixB,
-                    productionB, removeAllHandlers, runPureLog, usingLoggerName)
+import System.Wlog (CanLog, buildAndSetupYamlLogging, logDebug, logError, logInfo, logNotice,
+                    logWarning, modifyLoggerName, parseLoggerConfig, prefixB, productionB,
+                    removeAllHandlers, usingLoggerName)
 
 testLoggerConfigPath :: FilePath
 testLoggerConfigPath = "logger-config-example.yaml"
@@ -33,13 +33,12 @@ testLogging = usingLoggerName "node" $ do
 
     logError   "BARDAQ"
 
-showPureLog :: IO ()
-showPureLog = do
-    (res, pureLog) <- runPureLog testLogging
-    putText "Pure log:"
+showSomeLog :: IO ()
+showSomeLog = do
+    putText "Other log:"
     usingLoggerName "naked" $ do
-        logWarning $ "Pure log for result = " <> show res <> ":"
-        dispatchEvents pureLog
+        logWarning "Some warning"
+        logDebug   "Some debug"
 
 main :: IO ()
 main = do
@@ -48,4 +47,4 @@ main = do
     bracket_
         (buildAndSetupYamlLogging config testLoggerConfigPath)
         removeAllHandlers
-        (testLogging >> showPureLog)
+        (testLogging >> showSomeLog)
