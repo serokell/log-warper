@@ -1,3 +1,9 @@
+1.7.4
+=====
+
+* [#55](https://github.com/serokell/log-warper/issues/55):
+  Remove `lcFilePrefix` field from `LoggerConfig`.
+
 1.7.3
 =====
 
