@@ -1,3 +1,9 @@
+1.7.3
+=====
+
+* [#61](https://github.com/serokell/log-warper/issues/61):
+  Add `launchFromFile`, `defaultConfig` and `launchSimpleLogging` functions.
+
 1.7.2
 =====
 
