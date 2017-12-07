@@ -20,8 +20,8 @@ import Test.QuickCheck (Arbitrary (..), Property, choose, (==>))
 import Test.QuickCheck.Monadic (PropertyM, monadicIO, run)
 
 import System.Wlog (HandlerWrap (..), InvalidRotation (..), LoggerConfig (..),
-                    RotationParameters (..), debugPlus, fromScratch, isValidRotation, lcFilePrefix,
-                    lcRotation, lcTree, logDebug, logIndex, ltFiles, ltSeverity, removeAllHandlers,
+                    RotationParameters (..), debugPlus, fromScratch, isValidRotation, lcRotation,
+                    lcTree, logDebug, logIndex, ltFiles, ltSeverity, removeAllHandlers,
                     rotationFileHandler, setupLogging, usingLoggerName, whenExist, zoomLogger)
 
 spec :: Spec
@@ -61,12 +61,11 @@ instance Arbitrary LinesToLog where
     arbitrary = LinesToLog <$> choose (1, 500)
 
 testLogFile :: FilePath
-testLogFile = "patak.log"
+testLogFile = "logs/patak.log"
 
 testLoggerConfig :: RotationParameters -> LoggerConfig
 testLoggerConfig rotParam = fromScratch $ do
     lcRotation   ?= rotParam
-    lcFilePrefix ?= "logs"
     zoom lcTree $ do
         ltSeverity ?= debugPlus
         zoomLogger "test" $

@@ -42,12 +42,9 @@ import Control.Exception (throwIO)
 import Control.Lens (zoom, (.=), (?=))
 import Data.Time (UTCTime)
 import Data.Yaml (decodeFileEither)
-import System.Directory (createDirectoryIfMissing)
-import System.FilePath ((</>))
 
 import System.Wlog.Formatter (centiUtcTimeF, stdoutFormatter, stdoutFormatterTimeRounded)
-import System.Wlog.IOLogger (addHandler, removeAllHandlers, setPrefix, setSeveritiesMaybe,
-                             updateGlobalLogger)
+import System.Wlog.IOLogger (addHandler, removeAllHandlers, setSeveritiesMaybe, updateGlobalLogger)
 import System.Wlog.LoggerConfig (HandlerWrap (..), LoggerConfig (..), LoggerTree (..), fromScratch,
                                  lcConsoleAction, lcShowTime, lcTree, ltSeverity, productionB,
                                  zoomLogger)
@@ -69,8 +66,6 @@ data HandlerFabric
 -- See 'LoggerConfig' for more details.
 setupLogging :: MonadIO m => Maybe (UTCTime -> Text) -> LoggerConfig -> m ()
 setupLogging mTimeFunction LoggerConfig{..} = do
-    liftIO $ createDirectoryIfMissing True handlerPrefix
-
     whenJust consoleAction $ \customTerminalAction ->
         initTerminalLogging timeF
                             customTerminalAction
@@ -79,10 +74,8 @@ setupLogging mTimeFunction LoggerConfig{..} = do
                             _lcTermSeverityOut
                             _lcTermSeverityErr
 
-    liftIO $ setPrefix _lcFilePrefix
     processLoggers mempty _lcTree
   where
-    handlerPrefix = _lcFilePrefix ?: "."
     logMapper     = appEndo _lcMapper
     timeF         = fromMaybe centiUtcTimeF mTimeFunction
     isShowTime    = getAny _lcShowTime
@@ -102,7 +95,7 @@ setupLogging mTimeFunction LoggerConfig{..} = do
 
         forM_ _ltFiles $ \HandlerWrap{..} -> liftIO $ do
             let fileSeverities   = (_ltSeverity) ?: debugPlus
-            let handlerPath    = handlerPrefix </> _hwFilePath
+            let handlerPath      = _hwFilePath
             case handlerFabric of
                 HandlerFabric fabric -> do
                     let handlerCreator = fabric handlerPath fileSeverities
@@ -176,7 +169,6 @@ logTree:
   - Error
   _ltFiles: []
 termSeveritiesOut: null
-filePrefix: null
 termSeveritiesErr: null
 @
 
@@ -195,15 +187,17 @@ defaultConfig loggerName = fromScratch $ do
 ==== __/Example/__
 Here we can see very simple working example of logging:
 
->>> :{
->>> launchSimpleLogging "app" $ do
->>>    logDebug "Debug message"
->>>    putStrLn "Usual printing"
->>>    logInfo "Job's done!"
->>> :}
+@
+ghci> __:{__
+ghci| __launchSimpleLogging "app" $ do__
+ghci|     __logDebug "Debug message"__
+ghci|     __putStrLn "Usual printing"__
+ghci|     __logInfo "Job's done!"__
+ghci| __:}__
 [app:DEBUG] [2017-12-07 11:25:06.47 UTC] Debug message
 Usual printing
 [app:INFO] [2017-12-07 11:25:06.47 UTC] Job's done!
+@
 
 -}
 launchSimpleLogging :: (MonadIO m, MonadMask m)
