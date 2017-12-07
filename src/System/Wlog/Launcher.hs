@@ -142,10 +142,45 @@ launchFromFile filename loggerName action =
         removeAllHandlers
         (usingLoggerName loggerName action)
 
--- | Default logging configuration with the given 'LoggerName'.
--- The root logger is set up with severity 'System.Wlog.Severity.Warning' and upper, the severity
--- for given logger is set to 'System.Wlog.Severity.Debug' and upper, also time is shown in the log messages,
--- and console output is on.
+{- | Default logging configuration with the given 'LoggerName'.
+
+Enabled flags:
+
+  - 'ltSeverity' of the root logger is set to 'warningPlus'
+    ('System.Wlog.Severity.Warning' and upper)
+  - 'ltSeverity' for the given logger is set to 'debugPlus' ('System.Wlog.Severity.Debug' and upper)
+  - 'lcShowTime' is set to 'Any True' which means that time is shown in the log messages.
+  - 'lcConsoleAction' is set to 'defaultHandleAction' which turns the console output on.
+
+==== __/Example/__
+@ defaultConfig "example"@ will produce such configurations:
+
+@
+rotation: null
+showTid: false
+showTime: true
+printOutput: true
+logTree:
+  _ltSubloggers:
+    example:
+      _ltSubloggers: {}
+      _ltSeverity:
+      - Debug
+      - Info
+      - Notice
+      - Warning
+      - Error
+      _ltFiles: []
+  _ltSeverity:
+  - Warning
+  - Error
+  _ltFiles: []
+termSeveritiesOut: null
+filePrefix: null
+termSeveritiesErr: null
+@
+
+-}
 defaultConfig :: LoggerName -> LoggerConfig
 defaultConfig loggerName = fromScratch $ do
     lcShowTime      .= Any True
@@ -155,14 +190,28 @@ defaultConfig loggerName = fromScratch $ do
         zoomLogger (getLoggerName loggerName) $ do
             ltSeverity ?= debugPlus
 
+{- | Set ups the logging with 'defaultConfig' and runs the action with the given 'LoggerName'.
 
--- | Set ups the logging with 'defaultConfig' and runs the action with the given 'LoggerName'.
+==== __/Example/__
+Here we can see very simple working example of logging:
+
+>>> :{
+>>> launchSimpleLogging "app" $ do
+>>>    logDebug "Debug message"
+>>>    putStrLn "Usual printing"
+>>>    logInfo "Job's done!"
+>>> :}
+[app:DEBUG] [2017-12-07 11:25:06.47 UTC] Debug message
+Usual printing
+[app:INFO] [2017-12-07 11:25:06.47 UTC] Job's done!
+
+-}
 launchSimpleLogging :: (MonadIO m, MonadMask m)
                     => LoggerName
                     -> LoggerNameBox m a
                     -> m a
-launchSimpleLogging loggerName f =
+launchSimpleLogging loggerName action =
     bracket_
         (setupLogging Nothing $ defaultConfig loggerName)
         removeAllHandlers
-        (usingLoggerName loggerName f)
+        (usingLoggerName loggerName action)
