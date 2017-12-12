@@ -1,5 +1,5 @@
 name:                log-warper
-version:             1.7.4
+version:             1.7.5
 synopsis:            Flexible, configurable, monadic and pretty logging
 homepage:            https://github.com/serokell/log-warper
 license:             MIT
@@ -12,8 +12,9 @@ extra-source-files:  CHANGES.md, examples/HowTo.md, examples/HowTo.lhs
 stability:           experimental
 build-type:          Simple
 cabal-version:       >=1.18
-description:
-    This package implements nice and featureful wrapper around hslogger library.
+description:         This package implements nice and featureful wrapper around hslogger library.
+tested-with:         GHC == 8.0.2
+                   , GHC == 8.2.1
 
 library
   exposed-modules:     System.Wlog
@@ -41,7 +42,7 @@ library
   build-depends:       aeson                >= 0.11.2.1
                      , ansi-terminal        >= 0.6.2.3
                      , base                 >= 4.7 && < 5
-                     , containers           >= 0.5.10
+                     , containers           >= 0.5.7.1
                      , deepseq              >= 1.2.0.0
                      , directory            >= 1.2.6.2
                      , dlist                >= 0.8.0.2
