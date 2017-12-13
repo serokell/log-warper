@@ -129,6 +129,13 @@ data LoggerTree = LoggerTree
 
 makeLenses ''LoggerTree
 
+instance Semigroup LoggerTree where
+    lt1 <> lt2 = LoggerTree
+        { _ltFiles      = _ltFiles      lt1 <>  _ltFiles      lt2
+        , _ltSeverity   = _ltSeverity   lt1 <|> _ltSeverity   lt2
+        , _ltSubloggers = _ltSubloggers lt1 <>  _ltSubloggers lt2
+        }
+
 -- TODO: QuickCheck tests on monoid laws
 instance Monoid LoggerTree where
     mempty = LoggerTree
@@ -137,11 +144,7 @@ instance Monoid LoggerTree where
         , _ltSubloggers = mempty
         }
 
-    lt1 `mappend` lt2 = LoggerTree
-        { _ltFiles      = _ltFiles      lt1 <>  _ltFiles      lt2
-        , _ltSeverity   = _ltSeverity   lt1 <|> _ltSeverity   lt2
-        , _ltSubloggers = _ltSubloggers lt1 <>  _ltSubloggers lt2
-        }
+    mappend = (<>)
 
 instance ToJSON HandlerWrap
 instance FromJSON HandlerWrap where
@@ -241,6 +244,22 @@ data LoggerConfig = LoggerConfig
 
 makeLenses ''LoggerConfig
 
+instance Semigroup LoggerConfig where
+    lc1 <> lc2 = LoggerConfig
+        { _lcRotation        = orCombiner  _lcRotation
+        , _lcTermSeverityOut = orCombiner  _lcTermSeverityOut
+        , _lcTermSeverityErr = orCombiner  _lcTermSeverityErr
+        , _lcShowTime        = andCombiner _lcShowTime
+        , _lcShowTid         = andCombiner _lcShowTid
+        , _lcConsoleAction   = andCombiner _lcConsoleAction
+        , _lcMapper          = andCombiner _lcMapper
+        , _lcTree            = andCombiner _lcTree
+        }
+      where
+        orCombiner  field = field lc1 <|> field lc2
+        andCombiner field = field lc1  <> field lc2
+
+
 -- TODO: QuickCheck tests on monoid laws
 instance Monoid LoggerConfig where
     mempty = LoggerConfig
@@ -254,19 +273,7 @@ instance Monoid LoggerConfig where
         , _lcTree            = mempty
         }
 
-    lc1 `mappend` lc2 = LoggerConfig
-        { _lcRotation        = orCombiner  _lcRotation
-        , _lcTermSeverityOut = orCombiner  _lcTermSeverityOut
-        , _lcTermSeverityErr = orCombiner  _lcTermSeverityErr
-        , _lcShowTime        = andCombiner _lcShowTime
-        , _lcShowTid         = andCombiner _lcShowTid
-        , _lcConsoleAction   = andCombiner _lcConsoleAction
-        , _lcMapper          = andCombiner _lcMapper
-        , _lcTree            = andCombiner _lcTree
-        }
-      where
-        orCombiner  field = field lc1 <|> field lc2
-        andCombiner field = field lc1  <> field lc2
+    mappend = (<>)
 
 instance FromJSON LoggerConfig where
     parseJSON = withObject "rotation params" $ \o -> do
