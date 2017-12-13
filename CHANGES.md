@@ -1,3 +1,8 @@
+1.7.6
+=====
+
+* Upgrade `universum` to version `0.9.1`. Add `Semigroup` instances.
+
 1.7.5
 =====
 

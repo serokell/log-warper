@@ -4,7 +4,6 @@ module Main where
 
 import Universum
 
-import Data.Monoid ((<>))
 import Data.Yaml.Pretty (defConfig, encodePretty)
 
 import System.Wlog (CanLog, defaultConfig, launchFromFile, launchSimpleLogging, logDebug, logError,
