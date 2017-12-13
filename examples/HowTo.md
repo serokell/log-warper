@@ -57,16 +57,16 @@ that you need to have the logger with the name `new-logger` in your project.
 There are two ways of configuring the logger you creating. One option
 is to configure everything directly in the code, which will make the process
 of writing code less convenient. Here we will use another configuration possibility
-— we will write configurations in special `.yaml` file.
+-- we will write configurations in special `.yaml` file.
 In our example we will use very simple one with the minimal settings needed for the file to work.
 You can have a look at [`how-to-log-config.yaml`](https://github.com/serokell/log-warper/blob/master/examples/how-to-log-config.yaml),
 it contains the following lines:
 
 ```yaml
 loggerTree:
-    severity: Warning+    # severities for «root» logger
-    new-logger:           # logger named «new-logger»
-        severity: Debug+  # severities for logger «new-logger»
+    severity: Warning+    # severities for "root" logger
+    new-logger:           # logger named "new-logger"
+        severity: Debug+  # severities for logger "new-logger"
 ```
 You don't need to worry about root logger for now. This part is explained in section devoted to hierarchical logging.
 
