@@ -131,10 +131,13 @@ makeLenses ''LoggerTree
 
 instance Semigroup LoggerTree where
     lt1 <> lt2 = LoggerTree
-        { _ltFiles      = _ltFiles      lt1 <>  _ltFiles      lt2
-        , _ltSeverity   = _ltSeverity   lt1 <|> _ltSeverity   lt2
-        , _ltSubloggers = _ltSubloggers lt1 <>  _ltSubloggers lt2
+        { _ltFiles      = andCombiner _ltFiles
+        , _ltSeverity   = orCombiner  _ltSeverity
+        , _ltSubloggers = andCombiner _ltSubloggers
         }
+      where
+        orCombiner  field = field lt1 <|> field lt2
+        andCombiner field = field lt1  <> field lt2
 
 -- TODO: QuickCheck tests on monoid laws
 instance Monoid LoggerTree where
