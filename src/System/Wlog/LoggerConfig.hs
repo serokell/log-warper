@@ -33,6 +33,7 @@ module System.Wlog.LoggerConfig
 
          -- ** Lenses
        , lcConsoleAction
+       , lcLogsDirectory
        , lcMapper
        , lcRotation
        , lcShowTime
@@ -46,6 +47,8 @@ module System.Wlog.LoggerConfig
        , consoleActionB
        , customConsoleActionB
        , mapperB
+       , maybeLogsDirB
+       , logsDirB
        , productionB
        , showTidB
        , showTimeB
@@ -241,6 +244,11 @@ data LoggerConfig = LoggerConfig
       -- | Defines how to transform logger names in config.
     , _lcMapper          :: Endo LoggerName
 
+      -- | Specifies directory for log files. This can be useful to avoid
+      -- prefixes if you have a lot of loggers. Another use case: different logger
+     -- directories on different platforms.
+    , _lcLogsDirectory   :: Maybe FilePath
+
       -- | Hierarchical tree of loggers.
     , _lcTree            :: LoggerTree
     }
@@ -256,6 +264,7 @@ instance Semigroup LoggerConfig where
         , _lcShowTid         = andCombiner _lcShowTid
         , _lcConsoleAction   = andCombiner _lcConsoleAction
         , _lcMapper          = andCombiner _lcMapper
+        , _lcLogsDirectory   = orCombiner  _lcLogsDirectory
         , _lcTree            = andCombiner _lcTree
         }
       where
@@ -273,6 +282,7 @@ instance Monoid LoggerConfig where
         , _lcShowTid         = mempty
         , _lcConsoleAction   = mempty
         , _lcMapper          = mempty
+        , _lcLogsDirectory   = Nothing
         , _lcTree            = mempty
         }
 
@@ -285,6 +295,7 @@ instance FromJSON LoggerConfig where
         _lcTermSeverityErr <- parseSeverities o "termSeveritiesErr"
         _lcShowTime        <- Any <$> o .:? "showTime"    .!= False
         _lcShowTid         <- Any <$> o .:? "showTid"     .!= False
+        _lcLogsDirectory   <-         o .:? "filePrefix"  -- TODO: this field should be named "logsDirectory" but we keep previous name for backwards compatibility
         _lcTree            <-         o .:? "loggerTree"  .!= mempty
 
         printConsoleFlag    <- o .:? "printOutput" .!= False
@@ -302,6 +313,7 @@ instance ToJSON LoggerConfig where
             , "showTime"          .= getAny _lcShowTime
             , "showTid"           .= getAny _lcShowTid
             , "printOutput"       .= maybe False (const True) (getLast _lcConsoleAction)
+            , "filePrefix"        .= _lcLogsDirectory
             , ("logTree", toJSON _lcTree)
             ]
 ----------------------------------------------------------------------------
@@ -338,3 +350,11 @@ productionB = showTimeB <> customConsoleActionB (Just defaultHandleAction)
 -- | Setup 'lcMapper' inside 'LoggerConfig'.
 mapperB :: (LoggerName -> LoggerName) -> LoggerConfig
 mapperB loggerNameMapper = mempty { _lcMapper = Endo loggerNameMapper }
+
+-- | Setup 'lcLogsDirectory' inside 'LoggerConfig' to optional prefix.
+maybeLogsDirB :: Maybe FilePath -> LoggerConfig
+maybeLogsDirB prefix = mempty { _lcLogsDirectory = prefix }
+
+-- | Setup 'lcLogsDirectory' inside 'LoggerConfig' to specific prefix.
+logsDirB :: FilePath -> LoggerConfig
+logsDirB = maybeLogsDirB . Just

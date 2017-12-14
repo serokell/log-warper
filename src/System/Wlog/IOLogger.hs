@@ -46,6 +46,7 @@ module System.Wlog.IOLogger
          -- ** Saving Your Changes
        , saveGlobalLogger
        , updateGlobalLogger
+       , setPrefix
        , retrieveLogContent
        ) where
 
@@ -54,6 +55,7 @@ import Universum
 import Control.Concurrent.MVar (modifyMVar, modifyMVar_, withMVar)
 import Control.Lens (makeLenses)
 import Data.Maybe (fromJust)
+import System.FilePath ((</>))
 import System.IO.Unsafe (unsafePerformIO)
 
 import System.Wlog.LoggerName (LoggerName (..))
@@ -85,8 +87,9 @@ makeLenses ''Logger
 
 type LogTree = Map LoggerName Logger
 
-newtype LogInternalState = LogInternalState
+data LogInternalState = LogInternalState
     { liTree   :: LogTree
+    , liPrefix :: Maybe FilePath
     } deriving (Generic)
 
 ---------------------------------------------------------------------------
@@ -111,6 +114,7 @@ logInternalState = unsafePerformIO $ do
                  Logger { _lLevel = Just warningPlus
                         , _lName = ""
                         , _lHandlers = []}
+        liPrefix = Nothing
     newMVar $ LogInternalState {..}
 
 {- | Given a name, return all components of it, starting from the root.
@@ -163,7 +167,7 @@ getLogger lname = liftIO $ modifyMVar logInternalState $ \lt@LogInternalState{..
           -- Add logger(s).  Then call myself to retrieve it.
           let newlt = createLoggers (componentsOfName lname) liTree
           let result = fromJust $ M.lookup lname newlt
-          return (LogInternalState newlt, result)
+          return (LogInternalState newlt liPrefix, result)
   where
     createLoggers :: [LoggerName] -> LogTree -> LogTree
     createLoggers [] lt = lt -- No names to add; return tree unmodified
@@ -208,6 +212,12 @@ handle l lrecord@(LR sev _) handlerFilter = do
     callHandler lr loggername (HandlerT x) =
         when (handlerFilter $ getTag x) $
             System.Wlog.LogHandler.logHandlerMessage x lr loggername
+
+-- | Sets file prefix to 'LogInternalState'.
+setPrefix :: MonadIO m => Maybe FilePath -> m ()
+setPrefix p = liftIO
+            $ modifyMVar_ logInternalState
+            $ \li -> pure $ li { liPrefix = p }
 
 -- | Add handler to 'Logger'.  Returns a new 'Logger'.
 addHandler :: LogHandler a => a -> Logger -> Logger
@@ -265,7 +275,7 @@ setSeveritiesMaybe n    (Just x) = setSeverities n x
 saveGlobalLogger :: MonadIO m => Logger -> m ()
 saveGlobalLogger l = liftIO $
     modifyMVar_ logInternalState $ \LogInternalState{..} ->
-    pure $ LogInternalState (M.insert (view lName l) l liTree)
+    pure $ LogInternalState (M.insert (view lName l) l liTree) liPrefix
 
 -- | Helps you make changes on the given logger.  Takes a function
 -- that makes changes and writes those changes back to the global
@@ -289,14 +299,15 @@ removeAllHandlers = liftIO $
         let allHandlers = M.foldr (\l r -> concat [r, view lHandlers l]) [] liTree
         mapM_ (\(HandlerT h) -> close h) allHandlers
         let newTree = map (lHandlers .~ []) liTree
-        return $ LogInternalState newTree
+        return $ LogInternalState newTree liPrefix
 
 ----------------------------------------------------------------------------
 -- Retrieving logs ad-hoc
 ----------------------------------------------------------------------------
 
--- | Retrieves content of log file(s) given path. Example: there's @component.log@
--- in config, but this function will return @[component.log.122,
+-- | Retrieves content of log file(s) given path (w/o '_lcFilePrefix',
+-- as specified in your config). Example: there's @component.log@ in
+-- config, but this function will return @[component.log.122,
 -- component.log.123]@ if you want to. Content is file lines newest
 -- first.
 --
@@ -306,13 +317,14 @@ removeAllHandlers = liftIO $
 retrieveLogContent :: (MonadIO m) => FilePath -> Maybe Int -> m [Text]
 retrieveLogContent filePath linesNum =
     liftIO $ withMVar logInternalState $ \LogInternalState{..} -> do
+        let filePathFull = fromMaybe "" liPrefix </> filePath
         let appropriateHandlers =
-                filter (\(HandlerT h) -> getTag h == HandlerFilelike filePath) $
+                filter (\(HandlerT h) -> getTag h == HandlerFilelike filePathFull) $
                 concatMap _lHandlers $
                 M.elems liTree
         let takeMaybe = maybe identity take linesNum
         case appropriateHandlers of
             [HandlerT h] -> liftIO $ readBack h 12345 -- all of them
-            []  -> takeMaybe . reverse . T.lines <$> TIO.readFile filePath
+            []  -> takeMaybe . reverse . T.lines <$> TIO.readFile filePathFull
             xs  -> error $ "Found more than one (" <> show (length xs) <>
                            "handle with the same filePath tag, impossible."

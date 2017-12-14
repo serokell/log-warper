@@ -1,3 +1,9 @@
+1.8.0
+=====
+
+* [#55](https://github.com/serokell/log-warper/issues/55):
+  Return back `lcFilePrefix` field in `LoggerConfig`, rename to `lcLogsDirectory`.
+
 1.7.6
 =====
 
