@@ -1,3 +1,9 @@
+1.8.1
+=====
+
+* [#75](https://github.com/serokell/log-warper/issues/55):
+  Bump up `universum` lower bound.
+
 1.8.0
 =====
 
