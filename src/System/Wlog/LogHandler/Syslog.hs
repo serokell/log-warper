@@ -232,7 +232,7 @@ openlog_remote fam hostname port ident options fac sevs =
     he <- getHostByName hostname
     s <- socket fam Datagram 0
     let addr = SockAddrInet port (fromMaybe (error "head in openlog_remote") $
-                                             head (hostAddresses he))
+                                             safeHead (hostAddresses he))
     openlog_generic s addr Datagram ident options fac sevs
 
 {- | The most powerful initialization mechanism.  Takes an open datagram

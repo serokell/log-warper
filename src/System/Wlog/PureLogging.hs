@@ -29,14 +29,13 @@ import Universum
 import Control.Monad.Morph (MFunctor (..))
 import Control.Monad.State.Strict (modify')
 import Control.Monad.Trans (MonadTrans (lift))
+import Data.Sequence ((|>))
 
 import System.Wlog.CanLog (CanLog (..), WithLogger)
 import System.Wlog.HasLoggerName (HasLoggerName (..))
 import System.Wlog.LoggerName (LoggerName (..))
 import System.Wlog.LoggerNameBox (LoggerNameBox (..), usingLoggerName)
 import System.Wlog.Severity (Severity (..))
-
-import qualified Data.DList as DL (DList, snoc)
 
 -- | Holds all required information for 'dispatchLoggerName' function.
 data LogEvent = LogEvent
@@ -53,19 +52,19 @@ data LogEvent = LogEvent
 -- TODO: Should we use some @Data.Tree@-like structure to observe message only
 -- by chosen logger names?
 newtype PureLogger m a = PureLogger
-    { runPureLogger :: StateT (DL.DList LogEvent) m a
-    } deriving (Functor, Applicative, Monad, MonadTrans, MonadState (DL.DList LogEvent),
+    { runPureLogger :: StateT (Seq LogEvent) m a
+    } deriving (Functor, Applicative, Monad, MonadTrans, MonadState (Seq LogEvent),
                 MonadThrow, HasLoggerName)
 
 instance Monad m => CanLog (PureLogger m) where
-    dispatchMessage leLoggerName leSeverity leMessage = modify' (flip DL.snoc LogEvent{..})
+    dispatchMessage leLoggerName leSeverity leMessage = modify' (|> LogEvent{..})
 
 instance MFunctor PureLogger where
     hoist f = PureLogger . hoist f . runPureLogger
 
 -- | Return log of pure logging action as list of 'LogEvent'.
 runPureLog :: Functor m => PureLogger m a -> m (a, [LogEvent])
-runPureLog = fmap (second toList) . flip runStateT mempty . runPureLogger
+runPureLog = fmap (second toList) . usingStateT mempty . runPureLogger
 
 -- | Logs all 'LogEvent'`s from given list. This function supposed to
 -- be used after 'runPureLog'.
@@ -95,7 +94,7 @@ launchPureLog hoist' action = do
 
 newtype NamedPureLogger m a = NamedPureLogger
     { runNamedPureLogger :: PureLogger (LoggerNameBox m) a
-    } deriving (Functor, Applicative, Monad, MonadState (DL.DList LogEvent),
+    } deriving (Functor, Applicative, Monad, MonadState (Seq LogEvent),
                 MonadThrow, HasLoggerName)
 
 instance MonadTrans NamedPureLogger where
