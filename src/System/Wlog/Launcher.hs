@@ -37,11 +37,10 @@ module System.Wlog.Launcher
 
 import Universum
 
-import Control.Error.Util ((?:))
 import Control.Exception (throwIO)
-import Control.Lens (zoom, (.=), (?=))
 import Data.Time (UTCTime)
 import Data.Yaml (decodeFileEither)
+import Lens.Micro.Platform (zoom, (.=), (?=))
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath ((</>))
 
@@ -51,7 +50,7 @@ import System.Wlog.IOLogger (addHandler, removeAllHandlers, setPrefix, setSeveri
 import System.Wlog.LoggerConfig (HandlerWrap (..), LoggerConfig (..), LoggerTree (..), fromScratch,
                                  lcConsoleAction, lcShowTime, lcTree, ltSeverity, productionB,
                                  zoomLogger)
-import System.Wlog.LoggerName (LoggerName (..))
+import System.Wlog.LoggerName (LoggerName)
 import System.Wlog.LoggerNameBox (LoggerNameBox, usingLoggerName)
 import System.Wlog.LogHandler (LogHandler (setFormatter))
 import System.Wlog.LogHandler.Roller (rotationFileHandler)
@@ -82,7 +81,7 @@ setupLogging mTimeFunction LoggerConfig{..} = do
     liftIO $ setPrefix _lcLogsDirectory
     processLoggers mempty _lcTree
   where
-    handlerPrefix = _lcLogsDirectory ?: "."
+    handlerPrefix = fromMaybe "." _lcLogsDirectory
     logMapper     = appEndo _lcMapper
     timeF         = fromMaybe centiUtcTimeF mTimeFunction
     isShowTime    = getAny _lcShowTime
@@ -98,10 +97,10 @@ setupLogging mTimeFunction LoggerConfig{..} = do
     processLoggers parent LoggerTree{..} = do
         -- This prevents logger output to appear in terminal
         unless (parent == mempty && isNothing consoleAction) $
-            setSeveritiesMaybe parent (_ltSeverity)
+            setSeveritiesMaybe parent _ltSeverity
 
         forM_ _ltFiles $ \HandlerWrap{..} -> liftIO $ do
-            let fileSeverities   = (_ltSeverity) ?: debugPlus
+            let fileSeverities   = fromMaybe debugPlus _ltSeverity
             let handlerPath    = handlerPrefix </> _hwFilePath
             case handlerFabric of
                 HandlerFabric fabric -> do
@@ -112,9 +111,8 @@ setupLogging mTimeFunction LoggerConfig{..} = do
                     thisLoggerHandler <- fmt <$> handlerCreator
                     updateGlobalLogger parent $ addHandler thisLoggerHandler
 
-        for_ (HM.toList _ltSubloggers) $ \(name, loggerConfig) -> do
-            let thisLoggerName = LoggerName name
-            let thisLogger     = parent <> logMapper thisLoggerName
+        for_ (HM.toList _ltSubloggers) $ \(loggerName, loggerConfig) -> do
+            let thisLogger     = parent <> logMapper loggerName
             processLoggers thisLogger loggerConfig
 
 -- | Parses logger config from given file path.
@@ -187,7 +185,7 @@ defaultConfig loggerName = fromScratch $ do
     lcConsoleAction .= Last (Just defaultHandleAction)
     zoom lcTree $ do
         ltSeverity ?= warningPlus
-        zoomLogger (getLoggerName loggerName) $ do
+        zoomLogger loggerName $
             ltSeverity ?= debugPlus
 
 {- | Set ups the logging with 'defaultConfig' and runs the action with the given 'LoggerName'.

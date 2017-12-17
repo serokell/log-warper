@@ -58,39 +58,32 @@ module System.Wlog.LoggerConfig
 
 import Universum
 
-import Control.Lens (at, makeLenses, zoom, _Just)
-import Control.Monad.State (put)
 import Data.Aeson (withObject)
-import Data.Monoid (Any (..))
-import Data.Text (Text)
 import Data.Traversable (for)
-import Data.Word (Word64)
 import Data.Yaml (FromJSON (..), Object, Parser, ToJSON (..), Value (..), object, (.!=), (.:),
                   (.:?), (.=))
-import Formatting (bprint, shown)
-import GHC.Generics (Generic)
+import Fmt (build, (||+))
+import Lens.Micro.Platform (at, makeLenses, zoom, _Just)
 import System.FilePath (normalise)
 
-import System.Wlog.LoggerName (LoggerName)
+import System.Wlog.LoggerName (LoggerName (..))
 import System.Wlog.LogHandler.Simple (defaultHandleAction)
 import System.Wlog.Severity (Severities, allSeverities, debugPlus, errorPlus, infoPlus, noticePlus,
                              warningPlus)
 
 import qualified Data.HashMap.Strict as HM hiding (HashMap)
 import qualified Data.Set as Set
-import qualified Data.Text as T
-import qualified Data.Text.Buildable as Buildable
 import qualified Data.Vector as Vector
 
 ----------------------------------------------------------------------------
 -- Utilites & helpers
 ----------------------------------------------------------------------------
 
-filterObject :: [Text] -> HashMap Text a -> HashMap Text a
-filterObject excluded = HM.filterWithKey $ \k _ -> k `notElem` excluded
+filterObject :: [Text] -> HashMap Text a -> HashMap LoggerName a
+filterObject excluded = HM.fromList . map (first LoggerName) . HM.toList . HM.filterWithKey (\k _ -> k `notElem` excluded)
 
 parseSeverities :: Object -> Text -> Parser (Maybe Severities)
-parseSeverities o term = do
+parseSeverities o term =
     case HM.lookup term o of
         Just value -> case value of
             String word -> case word of
@@ -100,10 +93,10 @@ parseSeverities o term = do
                 "Notice+"  -> pure $ Just noticePlus
                 "Warning+" -> pure $ Just warningPlus
                 "Error+"   -> pure $ Just errorPlus
-                _          -> fail $ T.unpack $ "Unknown severity: " <> word
+                _          -> fail $ toString $ "Unknown severity: " <> word
             Array sevs  -> Just . Set.fromList . Vector.toList <$> Vector.mapM parseJSON sevs
             _           -> fail "Incorrect severities format"
-        Nothing    -> pure $ Nothing
+        Nothing    -> pure Nothing
 
 ----------------------------------------------------------------------------
 -- LoggerTree
@@ -121,7 +114,7 @@ data HandlerWrap = HandlerWrap
 
 makeLenses ''HandlerWrap
 
-type LoggerMap = HashMap Text LoggerTree
+type LoggerMap = HashMap LoggerName LoggerTree
 
 -- | Stores configuration for hierarchical loggers.
 data LoggerTree = LoggerTree
@@ -170,8 +163,8 @@ instance FromJSON LoggerTree where
         (manyFiles :: [FilePath]) <- map normalise <$> (o .:? "files" .!= [])
         handlers <- o .:? "handlers" .!= []
         let fileHandlers =
-                map (\fp -> HandlerWrap fp Nothing) $
-                maybe [] (:[]) singleFile ++ manyFiles
+                map (`HandlerWrap` Nothing) $
+                maybeToList singleFile ++ manyFiles
         let _ltFiles = fileHandlers <> handlers
         _ltSeverity   <- parseSeverities o "severity"
         _ltSubloggers <- for (filterObject nonLoggers o) parseJSON
@@ -183,13 +176,13 @@ fromScratch :: Monoid m => State m a -> m
 fromScratch = executingState mempty
 
 -- | Zooming into logger name with putting specific key.
-zoomLogger :: Text -> State LoggerTree () -> State LoggerTree ()
+zoomLogger :: LoggerName -> State LoggerTree () -> State LoggerTree ()
 zoomLogger loggerName initializer = zoom (ltSubloggers.at loggerName) $ do
     put $ Just mempty
     zoom _Just initializer
 
 ----------------------------------------------------------------------------
--- Logger rotattion
+-- Logger rotation
 ----------------------------------------------------------------------------
 
 -- | Parameters for logging rotation.
@@ -198,8 +191,8 @@ data RotationParameters = RotationParameters
     , rpKeepFiles :: !Word    -- ^ number of files to keep
     } deriving (Generic, Show)
 
-instance Buildable.Buildable RotationParameters where
-    build = bprint shown
+instance Buildable RotationParameters where
+    build x = x||+""
 
 instance ToJSON RotationParameters
 
@@ -312,7 +305,7 @@ instance ToJSON LoggerConfig where
             , "termSeveritiesErr" .= _lcTermSeverityErr
             , "showTime"          .= getAny _lcShowTime
             , "showTid"           .= getAny _lcShowTid
-            , "printOutput"       .= maybe False (const True) (getLast _lcConsoleAction)
+            , "printOutput"       .= isJust (getLast _lcConsoleAction)
             , "filePrefix"        .= _lcLogsDirectory
             , ("logTree", toJSON _lcTree)
             ]

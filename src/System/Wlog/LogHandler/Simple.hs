@@ -27,7 +27,6 @@ module System.Wlog.LogHandler.Simple
 import Universum
 
 import Control.Concurrent (modifyMVar_, withMVar)
-import Control.Exception (SomeException)
 import Data.Text.Lazy.Builder as B
 import Data.Typeable (Typeable)
 import System.Directory (createDirectoryIfMissing)
@@ -36,8 +35,7 @@ import System.IO (Handle, IOMode (ReadWriteMode), SeekMode (SeekFromEnd), hClose
 
 import System.Wlog.Formatter (LogFormatter, nullFormatter)
 import System.Wlog.LogHandler (LogHandler (..), LogHandlerTag (..))
-import System.Wlog.MemoryQueue (MemoryQueue)
-import System.Wlog.MemoryQueue as MQ
+import System.Wlog.MemoryQueue (MemoryQueue, newMemoryQueue, pushFront, queueToList)
 import System.Wlog.Severity (Severities)
 
 import qualified Data.Text.IO as TIO
@@ -56,12 +54,12 @@ data GenericHandler a = GenericHandler
 instance Typeable a => LogHandler (GenericHandler a) where
     getTag = ghTag
     setLevel sh s = sh {severities = s}
-    getLevel sh = severities sh
+    getLevel = severities
     setFormatter sh f = sh{formatter = f}
-    getFormatter sh = formatter sh
-    readBack sh i = liftIO $ withMVar (readBackBuffer sh) $ \mq' -> pure $! take i . MQ.toList $ mq'
-    emit sh bldr _ = liftIO $ (writeFunc sh) (privData sh) (toText . B.toLazyText $ bldr)
-    close sh = liftIO $ (closeFunc sh) (privData sh)
+    getFormatter = formatter
+    readBack sh i = liftIO $ withMVar (readBackBuffer sh) $ \mq' -> pure $! take i . queueToList $ mq'
+    emit sh bldr _ = liftIO $ writeFunc sh (privData sh) (toText . B.toLazyText $ bldr)
+    close sh = liftIO $ closeFunc sh (privData sh)
 
 -- | Default action which just prints to handle using given message.
 defaultHandleAction :: Handle -> Text -> IO ()
@@ -83,7 +81,7 @@ createWriteFuncWrapper
           , MVar (MemoryQueue Text)
           )
 createWriteFuncWrapper action lock = do
-    memoryQueue <- newMVar $ MQ.newMemoryQueue $ 2 * 1024 * 1024 -- 2 MB
+    memoryQueue <- newMVar $ newMemoryQueue $ 2 * 1024 * 1024 -- 2 MB
 
     let customWriteFunc :: Handle -> Text -> IO ()
         customWriteFunc hdl msg = withMVar lock $ const $ do

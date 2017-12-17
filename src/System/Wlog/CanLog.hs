@@ -26,9 +26,6 @@ module System.Wlog.CanLog
 
 import Universum
 
-import Control.Monad.Except (ExceptT)
-import Control.Monad.Trans (MonadTrans (lift))
-
 import System.Wlog.HasLoggerName (HasLoggerName (..))
 import System.Wlog.IOLogger (logM)
 import System.Wlog.LoggerName (LoggerName (..))
@@ -151,4 +148,4 @@ clientStart hostName .. = do
 liftLogIO :: WithLoggerIO m => (IO a -> IO b) -> LoggerNameBox IO a -> m b
 liftLogIO ioFunc action = do
     logName <- askLoggerName
-    liftIO $ ioFunc $ usingLoggerName logName $ action
+    liftIO $ ioFunc $ usingLoggerName logName action

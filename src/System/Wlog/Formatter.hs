@@ -30,7 +30,6 @@ module System.Wlog.Formatter
 import Universum
 
 import Control.Concurrent (myThreadId)
-import Data.Monoid (mconcat)
 import Data.Text.Lazy.Builder as B
 import Data.Time (formatTime, getCurrentTime, getZonedTime)
 import Data.Time.Clock (UTCTime (..), diffTimeToPicoseconds, picosecondsToDiffTime)
@@ -151,8 +150,7 @@ tfLogFormatter timeFormat format = \h kv loggername -> do
 --
 --    * @$utcTime@ - The current time in UTC Time
 simpleLogFormatter :: Text -> LogFormatter a
-simpleLogFormatter format h logRecord loggername =
-    tfLogFormatter "%F %X %Z" format h logRecord loggername
+simpleLogFormatter = tfLogFormatter "%F %X %Z"
 
 ----------------------------------------------------------------------------
 -- Log-warper functionality
@@ -181,7 +179,7 @@ getRoundedTime n = do
         multiplier = 10 ^ m
         picoseconds = diffTimeToPicoseconds utctDayTime
         roundedPicoseconds = (picoseconds `div` multiplier) * multiplier
-    pure $ UTCTime { utctDayTime = picosecondsToDiffTime roundedPicoseconds, .. }
+    pure UTCTime { utctDayTime = picosecondsToDiffTime roundedPicoseconds, .. }
 
 stdoutFormatter :: (UTCTime -> Text) -> Bool -> Bool -> LogFormatter a
 stdoutFormatter timeF isShowTime isShowTid handle record message = do
@@ -209,7 +207,7 @@ createLogFormatter
   =
     simpleLogFormatter format handle record
   where
-    format = mconcat $!
+    format = mconcat
         [ colorizer priority $ "[$loggername:$prio" <> tidShower <> "] "
         , timeShower
         , "$msg"

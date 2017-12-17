@@ -31,7 +31,6 @@ library
                        System.Wlog.LogHandler
                            System.Wlog.LogHandler.Roller
                            System.Wlog.LogHandler.Simple
-                           System.Wlog.LogHandler.Syslog
                        System.Wlog.PureLogging
                        System.Wlog.Severity
                        System.Wlog.Terminal
@@ -45,21 +44,14 @@ library
                      , containers           >= 0.5.7.1
                      , deepseq              >= 1.2.0.0
                      , directory            >= 1.2.6.2
-                     , errors               >= 2.1.2
-                     , exceptions           >= 0.8.3
-                     , extra                >= 1.4.10
                      , filepath             >= 1.4.1
                      , fmt                  >= 0.5.0.0
-                     , formatting           >= 6.2.2
-                     , hashable             >= 1.2.4.0
-                     , lens                 >= 4.14
+                     , microlens-platform   >= 0.3.9
                      , monad-control        >= 1.0.1.0
                      , monad-loops          >= 0.4.3
                      , mmorph               >= 1.0.9
                      , mtl                  >= 2.2.1
-                     , network              >= 2.6.3.1
                      , text                 >= 1.2.2.0
-                     , text-format          >= 0.3.1.1
                      , time                 >= 1.6.0.1
                      , transformers         >= 0.5.2
                      , transformers-base    >= 0.4.4
@@ -86,10 +78,7 @@ library
 executable play-log
   main-is:             Playground.hs
 
-  build-depends:       base       >= 4.7 && < 5
-                     , exceptions >= 0.8.2.1
-                     , log-warper
-                     , text       >= 1.2.2.1
+  build-depends:       log-warper
                      , universum  >= 0.3
                      , yaml       >= 0.8.20
 
@@ -134,7 +123,7 @@ test-suite log-test
                      , filepath
                      , hspec
                      , HUnit
-                     , lens
+                     , microlens-mtl
                      , log-warper
                      , QuickCheck
                      , universum

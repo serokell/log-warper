@@ -28,7 +28,6 @@ import Universum
 
 import Control.Monad.Morph (MFunctor (..))
 import Control.Monad.State.Strict (modify')
-import Control.Monad.Trans (MonadTrans (lift))
 import Data.Sequence ((|>))
 
 import System.Wlog.CanLog (CanLog (..), WithLogger)

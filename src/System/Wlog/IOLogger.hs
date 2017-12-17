@@ -53,8 +53,8 @@ module System.Wlog.IOLogger
 import Universum
 
 import Control.Concurrent.MVar (modifyMVar, modifyMVar_, withMVar)
-import Control.Lens (makeLenses)
 import Data.Maybe (fromJust)
+import Lens.Micro.Platform (makeLenses)
 import System.FilePath ((</>))
 import System.IO.Unsafe (unsafePerformIO)
 
@@ -110,12 +110,12 @@ rootLoggerName = mempty
 logInternalState :: MVar LogInternalState
 -- note: only kick up tree if handled locally
 logInternalState = unsafePerformIO $ do
-    let liTree = M.singleton rootLoggerName $
+    let liTree = M.singleton rootLoggerName
                  Logger { _lLevel = Just warningPlus
                         , _lName = ""
                         , _lHandlers = []}
         liPrefix = Nothing
-    newMVar $ LogInternalState {..}
+    newMVar LogInternalState {..}
 
 {- | Given a name, return all components of it, starting from the root.
 Example return value:
@@ -125,7 +125,7 @@ Example return value:
 -}
 componentsOfName :: LoggerName -> [LoggerName]
 componentsOfName (LoggerName name) =
-    rootLoggerName : (LoggerName <$> (joinComp (T.splitOn "." name) ""))
+    rootLoggerName : (LoggerName <$> joinComp (T.splitOn "." name) "")
   where
     joinComp [] _ = []
     joinComp (x:xs) "" = x : joinComp xs x
@@ -170,12 +170,13 @@ getLogger lname = liftIO $ modifyMVar logInternalState $ \lt@LogInternalState{..
           return (LogInternalState newlt liPrefix, result)
   where
     createLoggers :: [LoggerName] -> LogTree -> LogTree
-    createLoggers [] lt = lt -- No names to add; return tree unmodified
-    createLoggers (x:xs) lt = -- Add logger to tree
-        createLoggers xs $
-            if M.member x lt
-               then lt
-               else M.insert x (defaultLogger & lName .~ x) lt
+    createLoggers xs lt = foldl' addLoggerToTree lt xs -- Add logger to tree
+
+    addLoggerToTree :: LogTree -> LoggerName -> LogTree
+    addLoggerToTree lt x =
+        if M.member x lt
+            then lt
+            else M.insert x (defaultLogger & lName .~ x) lt
 
     defaultLogger :: Logger
     defaultLogger = Logger Nothing [] (error "log-warper has some strange code") -- ???!??!
@@ -204,7 +205,7 @@ handle l lrecord@(LR sev _) handlerFilter = do
     getLoggerSeverities :: MonadIO m => LoggerName -> m Severities
     getLoggerSeverities name = do
         pl <- parentLoggers name
-        case catMaybes . map (view lLevel) $ (l : pl) of
+        case mapMaybe (view lLevel) (l : pl) of
             []    -> pure debugPlus
             (x:_) -> pure x
 
@@ -296,7 +297,7 @@ updateGlobalLogger ln func = do
 removeAllHandlers :: MonadIO m => m ()
 removeAllHandlers = liftIO $
     modifyMVar_ logInternalState $ \LogInternalState{..} -> do
-        let allHandlers = M.foldr (\l r -> concat [r, view lHandlers l]) [] liTree
+        let allHandlers = M.foldr (\l r -> r ++ view lHandlers l) [] liTree
         mapM_ (\(HandlerT h) -> close h) allHandlers
         let newTree = map (lHandlers .~ []) liTree
         return $ LogInternalState newTree liPrefix

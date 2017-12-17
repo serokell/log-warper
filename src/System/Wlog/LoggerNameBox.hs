@@ -11,20 +11,16 @@ module System.Wlog.LoggerNameBox
        , usingLoggerName
        ) where
 
-import           Universum
+import Universum
 
-import           Control.Monad.Base          (MonadBase)
-import           Control.Monad.Catch         (MonadCatch, MonadMask, MonadThrow)
-import           Control.Monad.Except        (MonadError)
-import           Control.Monad.Fix           (MonadFix)
-import           Control.Monad.Morph         (MFunctor (..))
-import           Control.Monad.Reader        (MonadReader (..), ReaderT, runReaderT)
-import           Control.Monad.State.Strict  (MonadState)
-import           Control.Monad.Trans         (MonadIO, MonadTrans, lift)
-import           Control.Monad.Trans.Control (MonadBaseControl (..))
+import Control.Monad.Base (MonadBase)
+import Control.Monad.Except (MonadError)
+import Control.Monad.Fix (MonadFix)
+import Control.Monad.Morph (MFunctor (..))
+import Control.Monad.Trans.Control (MonadBaseControl (..))
 
-import           System.Wlog.HasLoggerName   (HasLoggerName (..))
-import           System.Wlog.LoggerName      (LoggerName)
+import System.Wlog.HasLoggerName (HasLoggerName (..))
+import System.Wlog.LoggerName (LoggerName)
 
 -- | Default implementation of `WithNamedLogger`.
 newtype LoggerNameBox m a = LoggerNameBox

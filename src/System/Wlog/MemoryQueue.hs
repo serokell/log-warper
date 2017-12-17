@@ -1,5 +1,4 @@
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE BangPatterns #-}
 
 -- | Queue for in-memory logs. Rolls out old logging if size of queue
 -- is bigger than predefined limit.
@@ -10,19 +9,18 @@ module System.Wlog.MemoryQueue
        , newMemoryQueue
        , popLast
        , pushFront
-       , toList
+       , queueToList
        -- * Useful lenses
        , mqMemSize
        , mqLimit
        ) where
 
-import           Control.Lens        (to)
-import           Data.Sequence       (Seq, ViewR (..), viewr, (<|))
-import           Universum           hiding (toList)
-import qualified Universum           as U
-import qualified Data.Text           as T
+import Universum
 
-import           Control.Lens        (makeLenses)
+import Data.Sequence (ViewR (..), viewr, (<|))
+import Lens.Micro.Platform (makeLenses)
+
+import qualified Data.Text as T
 
 -- | Class for objects that have size. Implementations can take size
 -- as amount of memory items take, as amount of items in container,
@@ -72,10 +70,10 @@ pushFront msg oldQueue =
     -- Resize the queue so that the inner @Seq@ won't contain more than mqLimit
     -- elements.
     resize :: Sized a => MemoryQueue a -> MemoryQueue a
-    resize theQueue = case _mqMemSize theQueue > _mqLimit theQueue of
-        False -> theQueue
-        True  -> let (_, q') = popLast theQueue in resize $! q'
+    resize theQueue = if _mqMemSize theQueue > _mqLimit theQueue
+        then (let (_, q') = popLast theQueue in resize $! q')
+        else theQueue
 
 -- | Converts queue to list of messages.
-toList :: (Sized a) => MemoryQueue a -> [a]
-toList = view $ mqQueue . to U.toList
+queueToList :: (Sized a) => MemoryQueue a -> [a]
+queueToList = toList . view mqQueue

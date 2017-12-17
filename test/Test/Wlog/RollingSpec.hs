@@ -7,8 +7,7 @@ module Test.Wlog.RollingSpec
 import Universum
 
 import Control.Concurrent.Async (mapConcurrently)
-import Control.Lens (zoom, (.=), (?=))
-import qualified Prelude (read)
+import Lens.Micro.Mtl (zoom, (.=), (?=))
 import System.Directory (doesFileExist, removeFile)
 import System.FilePath (takeExtension)
 import System.IO (hFileSize)
@@ -25,11 +24,13 @@ import System.Wlog (HandlerWrap (..), InvalidRotation (..), LoggerConfig (..),
                     removeAllHandlers, rotationFileHandler, setupLogging, usingLoggerName,
                     whenExist, zoomLogger)
 
+import qualified Prelude (read)
+
 spec :: Spec
 spec = do
     let smaller = modifyMaxSuccess $ const 30
     describe "System.Wlog.Roller" $ do
-      describe "Exception" $ do
+      describe "Exception" $
           it "throws exception in case of invalid roller params" $ do
               let wrongRP1 = RotationParameters 0 1
               let wrongRP2 = RotationParameters 1 0
@@ -103,7 +104,7 @@ verifyLoggerRotation rp@RotationParameters{..} linesNum = isValidRotation rp ==>
     run $ writeConcurrentLogs rp linesNum
     checkFilesNumber
     checkFilesSize
-    run $ cleanupFiles
+    run cleanupFiles
   where
     testLogPath  = "logs/patak.log"
 

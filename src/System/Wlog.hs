@@ -23,7 +23,6 @@ module System.Wlog
        , module System.Wlog.LoggerNameBox
        , module System.Wlog.LogHandler.Roller
        , module System.Wlog.LogHandler.Simple
-       , module System.Wlog.LogHandler.Syslog
        , module System.Wlog.PureLogging
        , module System.Wlog.Severity
        , module System.Wlog.Terminal
@@ -40,7 +39,6 @@ import System.Wlog.LoggerName
 import System.Wlog.LoggerNameBox
 import System.Wlog.LogHandler.Roller
 import System.Wlog.LogHandler.Simple
-import System.Wlog.LogHandler.Syslog
 import System.Wlog.PureLogging
 import System.Wlog.Severity
 import System.Wlog.Terminal
