@@ -58,16 +58,11 @@ module System.Wlog.LoggerConfig
 
 import Universum
 
-import Control.Monad.State (put)
 import Data.Aeson (withObject)
-import Data.Monoid (Any (..))
-import Data.Text (Text)
 import Data.Traversable (for)
-import Data.Word (Word64)
 import Data.Yaml (FromJSON (..), Object, Parser, ToJSON (..), Value (..), object, (.!=), (.:),
                   (.:?), (.=))
-import Fmt (Buildable (..), (||+))
-import GHC.Generics (Generic)
+import Fmt (build, (||+))
 import Lens.Micro.Platform (at, makeLenses, zoom, _Just)
 import System.FilePath (normalise)
 
@@ -78,7 +73,6 @@ import System.Wlog.Severity (Severities, allSeverities, debugPlus, errorPlus, in
 
 import qualified Data.HashMap.Strict as HM hiding (HashMap)
 import qualified Data.Set as Set
-import qualified Data.Text as T
 import qualified Data.Vector as Vector
 
 ----------------------------------------------------------------------------
@@ -99,7 +93,7 @@ parseSeverities o term = do
                 "Notice+"  -> pure $ Just noticePlus
                 "Warning+" -> pure $ Just warningPlus
                 "Error+"   -> pure $ Just errorPlus
-                _          -> fail $ T.unpack $ "Unknown severity: " <> word
+                _          -> fail $ toString $ "Unknown severity: " <> word
             Array sevs  -> Just . Set.fromList . Vector.toList <$> Vector.mapM parseJSON sevs
             _           -> fail "Incorrect severities format"
         Nothing    -> pure $ Nothing

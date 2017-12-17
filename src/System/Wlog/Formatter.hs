@@ -30,7 +30,6 @@ module System.Wlog.Formatter
 import Universum
 
 import Control.Concurrent (myThreadId)
-import Data.Monoid (mconcat)
 import Data.Text.Lazy.Builder as B
 import Data.Time (formatTime, getCurrentTime, getZonedTime)
 import Data.Time.Clock (UTCTime (..), diffTimeToPicoseconds, picosecondsToDiffTime)

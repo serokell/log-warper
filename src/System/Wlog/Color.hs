@@ -14,15 +14,13 @@ module System.Wlog.Color
        , colorizerBuilder
        ) where
 
-import qualified Data.Text              as T
-import           Data.Text.Lazy.Builder as B
-import           System.Console.ANSI    (Color (Blue, Green, Magenta, Red, Yellow),
-                                         ColorIntensity (Vivid),
-                                         ConsoleLayer (Foreground),
-                                         SGR (Reset, SetColor), setSGRCode)
-import           Universum
+import Universum
 
-import           System.Wlog.Severity   (Severity (..))
+import Data.Text.Lazy.Builder as B
+import System.Console.ANSI (Color (Blue, Green, Magenta, Red, Yellow), ColorIntensity (Vivid),
+                            ConsoleLayer (Foreground), SGR (Reset, SetColor), setSGRCode)
+
+import System.Wlog.Severity (Severity (..))
 
 -- | Defines pre- and post-printed characters for printing colorized text.
 table :: Severity -> (String, String)
@@ -39,8 +37,8 @@ table severity = case severity of
 -- | Colorizes "Text".
 colorizer :: Severity -> Text -> Text
 colorizer pr s =
-    let (before, after) = table pr in T.pack before <> s <> T.pack after
+    let (before, after) = table pr in toText before <> s <> toText after
 
 colorizerBuilder :: Severity -> Builder -> Builder
 colorizerBuilder pr s =
-    let (before, after) = table pr in B.fromText (T.pack before) <> s <> B.fromText (T.pack after)
+    let (before, after) = table pr in B.fromText (toText before) <> s <> B.fromText (toText after)

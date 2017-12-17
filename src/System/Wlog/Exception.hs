@@ -11,8 +11,6 @@ module System.Wlog.Exception
 
 import Universum
 
-import Control.Exception.Base (Exception)
-
 import System.Wlog.CanLog (WithLogger, WithLoggerIO, logError)
 
 -- | Logs exception's description with ''System.Wlog.Severity.Error' 'System.Wlog.Severity.Severity'

@@ -7,11 +7,7 @@ module System.Wlog.LoggerName
 import Universum
 
 import Data.Aeson.Types (ToJSON, ToJSONKey (..), toJSONKeyText)
-import Data.Semigroup (Semigroup)
-import Data.String (IsString)
-import Fmt (Buildable (..))
-
-import qualified Data.Semigroup as Semigroup
+import Fmt (build)
 
 -- | Logger name to keep in context.
 newtype LoggerName = LoggerName
@@ -28,7 +24,7 @@ instance Semigroup LoggerName where
 
 instance Monoid LoggerName where
     mempty = ""
-    mappend = (Semigroup.<>)
+    mappend = (<>)
 
 instance Buildable LoggerName where
     build = build . getLoggerName

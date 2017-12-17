@@ -17,7 +17,7 @@ module System.Wlog.MemoryQueue
 
 import Universum
 
-import Data.Sequence (Seq, ViewR (..), viewr, (<|))
+import Data.Sequence (ViewR (..), viewr, (<|))
 import Lens.Micro.Platform (makeLenses)
 
 import qualified Data.Text as T

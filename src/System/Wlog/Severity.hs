@@ -17,7 +17,6 @@ import Universum
 
 import Data.Typeable (Typeable)
 import Data.Yaml (FromJSON, ToJSON)
-import GHC.Generics (Generic)
 
 import qualified Data.Set as Set
 

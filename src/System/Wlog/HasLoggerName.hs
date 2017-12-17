@@ -13,19 +13,17 @@ module System.Wlog.HasLoggerName
        , withSublogger
        ) where
 
-import           Universum
+import Universum
 
-import           Control.Monad.Except       (ExceptT (..))
-import           Control.Monad.Morph        (MFunctor (..))
-import qualified Control.Monad.RWS          as RWSLazy
-import qualified Control.Monad.RWS.Strict   as RWSStrict
-import qualified Control.Monad.State        as StateLazy (StateT)
-import           Control.Monad.State.Strict (StateT)
-import           Control.Monad.Trans        (MonadTrans, lift)
-import           Control.Monad.Trans.Cont   (ContT, mapContT)
-import           Control.Monad.Writer       (WriterT (..))
+import Control.Monad.Morph (MFunctor (..))
+import Control.Monad.Trans.Cont (ContT, mapContT)
+import Control.Monad.Writer (WriterT (..))
 
-import           System.Wlog.LoggerName     (LoggerName)
+import System.Wlog.LoggerName (LoggerName)
+
+import qualified Control.Monad.RWS as RWSLazy
+import qualified Control.Monad.RWS.Strict as RWSStrict
+import qualified Control.Monad.State as StateLazy (StateT)
 
 -- | This type class exists to remove boilerplate logging
 -- by adding the logger's name to the context in each module.

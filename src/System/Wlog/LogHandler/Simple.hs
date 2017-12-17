@@ -27,7 +27,6 @@ module System.Wlog.LogHandler.Simple
 import Universum
 
 import Control.Concurrent (modifyMVar_, withMVar)
-import Control.Exception (SomeException)
 import Data.Text.Lazy.Builder as B
 import Data.Typeable (Typeable)
 import System.Directory (createDirectoryIfMissing)

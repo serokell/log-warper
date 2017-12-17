@@ -26,9 +26,6 @@ module System.Wlog.CanLog
 
 import Universum
 
-import Control.Monad.Except (ExceptT)
-import Control.Monad.Trans (MonadTrans (lift))
-
 import System.Wlog.HasLoggerName (HasLoggerName (..))
 import System.Wlog.IOLogger (logM)
 import System.Wlog.LoggerName (LoggerName (..))
