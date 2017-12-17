@@ -78,10 +78,7 @@ library
 executable play-log
   main-is:             Playground.hs
 
-  build-depends:       base       >= 4.7 && < 5
-                     , exceptions >= 0.8.2.1
-                     , log-warper
-                     , text       >= 1.2.2.1
+  build-depends:       log-warper
                      , universum  >= 0.3
                      , yaml       >= 0.8.20
 
