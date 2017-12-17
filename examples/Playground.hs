@@ -34,7 +34,7 @@ testLogging = usingLoggerName "node" $ do
 
 showSomeLog :: (CanLog m, MonadIO m) => m ()
 showSomeLog = do
-    putText "Other log:"
+    putTextLn "Other log:"
     usingLoggerName "naked" $ do
         logWarning "Some warning"
         logDebug   "Some debug"
@@ -45,8 +45,8 @@ main = do
     let runPlayLog = testLogging >> showSomeLog
 
     putStrLn $ encodePretty defConfig $ defaultConfig "example"
-    putText "Default configurations.."
+    putTextLn "Default configurations.."
     launchSimpleLogging "node" runPlayLog
 
-    putText "\nFrom file configurations.."
+    putTextLn "\nFrom file configurations.."
     launchFromFile testLoggerConfigPath "node" runPlayLog
