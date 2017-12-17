@@ -7,7 +7,8 @@
   `LoggerMap` is now has field `LoggerName` instead of `Text`.
   `zoomLogger` is now work with `LoggerName` instead of `Text`.
   Remove `LogHandler.Syslog` module and `network` library.
-  Remove `extra`, `errors`, `exceptions`, `hashable` dependencies.
+  Remove `extra`, `errors`, `exceptions`, `hashable`, `text-format`, `formatting` dependencies.
+  Remove `loggerNameF` function.
 
 1.8.1
 =====

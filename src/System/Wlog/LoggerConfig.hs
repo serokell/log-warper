@@ -66,7 +66,7 @@ import Data.Traversable (for)
 import Data.Word (Word64)
 import Data.Yaml (FromJSON (..), Object, Parser, ToJSON (..), Value (..), object, (.!=), (.:),
                   (.:?), (.=))
-import Formatting (bprint, shown)
+import Fmt (Buildable (..), (||+))
 import GHC.Generics (Generic)
 import Lens.Micro.Platform (at, makeLenses, zoom, _Just)
 import System.FilePath (normalise)
@@ -79,7 +79,6 @@ import System.Wlog.Severity (Severities, allSeverities, debugPlus, errorPlus, in
 import qualified Data.HashMap.Strict as HM hiding (HashMap)
 import qualified Data.Set as Set
 import qualified Data.Text as T
-import qualified Data.Text.Buildable as Buildable
 import qualified Data.Vector as Vector
 
 ----------------------------------------------------------------------------
@@ -198,8 +197,8 @@ data RotationParameters = RotationParameters
     , rpKeepFiles :: !Word    -- ^ number of files to keep
     } deriving (Generic, Show)
 
-instance Buildable.Buildable RotationParameters where
-    build = bprint shown
+instance Buildable RotationParameters where
+    build x = x||+""
 
 instance ToJSON RotationParameters
 

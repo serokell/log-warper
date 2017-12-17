@@ -11,7 +11,7 @@ import Universum
 
 import Control.Concurrent (modifyMVar, modifyMVar_, withMVar)
 import Data.Text.Lazy.Builder as B
-import Formatting (sformat, shown, (%))
+import Fmt ((+||), (||+))
 
 import System.Directory (removeFile, renameFile)
 import System.FilePath ((<.>))
@@ -108,7 +108,7 @@ rotationFileHandler
     -> m RollerHandler
 rotationFileHandler rp@RotationParameters{..} _ _
     | not $ isValidRotation rp = liftIO $ throwM $ InvalidRotation $
-      sformat ("Rotation parameters must be positive: "%shown) rp
+      "Rotation parameters must be positive: "+||rp||+""
 rotationFileHandler rp@RotationParameters{..} handlerPath rhSeverities = liftIO $ do
     GenericHandler{..} <- fileHandler handlerPath rhSeverities
     rhFileHandle       <- newMVar privData

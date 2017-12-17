@@ -2,7 +2,6 @@
 
 module System.Wlog.LoggerName
        ( LoggerName (..)
-       , loggerNameF
        ) where
 
 import Universum
@@ -10,11 +9,9 @@ import Universum
 import Data.Aeson.Types (ToJSON, ToJSONKey (..), toJSONKeyText)
 import Data.Semigroup (Semigroup)
 import Data.String (IsString)
-import Data.Text.Buildable (Buildable)
-import Formatting (Format, bprint, build, stext)
+import Fmt (Buildable (..))
 
 import qualified Data.Semigroup as Semigroup
-import qualified Data.Text.Buildable as Buildable
 
 -- | Logger name to keep in context.
 newtype LoggerName = LoggerName
@@ -34,13 +31,9 @@ instance Monoid LoggerName where
     mappend = (Semigroup.<>)
 
 instance Buildable LoggerName where
-    build = bprint stext . getLoggerName
+    build = build . getLoggerName
 
 instance ToJSON LoggerName
 
 instance ToJSONKey LoggerName where
     toJSONKey = toJSONKeyText getLoggerName
-
--- | 'LoggerName' formatter which restricts type.
-loggerNameF :: Format r (LoggerName -> r)
-loggerNameF = build
