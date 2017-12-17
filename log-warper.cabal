@@ -126,7 +126,7 @@ test-suite log-test
                      , filepath
                      , hspec
                      , HUnit
-                     , lens
+                     , microlens-mtl
                      , log-warper
                      , QuickCheck
                      , universum

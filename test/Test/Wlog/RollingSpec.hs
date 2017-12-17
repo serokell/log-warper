@@ -7,8 +7,7 @@ module Test.Wlog.RollingSpec
 import Universum
 
 import Control.Concurrent.Async (mapConcurrently)
-import Control.Lens (zoom, (.=), (?=))
-import qualified Prelude (read)
+import Lens.Micro.Mtl (zoom, (.=), (?=))
 import System.Directory (doesFileExist, removeFile)
 import System.FilePath (takeExtension)
 import System.IO (hFileSize)
@@ -24,6 +23,8 @@ import System.Wlog (HandlerWrap (..), InvalidRotation (..), LoggerConfig (..),
                     lcLogsDirectory, lcRotation, lcTree, logDebug, logIndex, ltFiles, ltSeverity,
                     removeAllHandlers, rotationFileHandler, setupLogging, usingLoggerName,
                     whenExist, zoomLogger)
+
+import qualified Prelude (read)
 
 spec :: Spec
 spec = do

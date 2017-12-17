@@ -9,6 +9,7 @@
   Remove `LogHandler.Syslog` module and `network` library.
   Remove `extra`, `errors`, `exceptions`, `hashable`, `text-format`, `formatting` dependencies.
   Remove `loggerNameF` function.
+  Change `lens` to `microlens-mtl` in tests.
 
 1.8.1
 =====
