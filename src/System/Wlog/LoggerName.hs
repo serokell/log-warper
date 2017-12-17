@@ -8,7 +8,6 @@ module System.Wlog.LoggerName
 import Universum
 
 import Data.Aeson.Types (ToJSON, ToJSONKey (..), toJSONKeyText)
-import Data.Hashable (Hashable)
 import Data.Semigroup (Semigroup)
 import Data.String (IsString)
 import Data.Text.Buildable (Buildable)

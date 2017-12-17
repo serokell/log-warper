@@ -37,7 +37,6 @@ module System.Wlog.Launcher
 
 import Universum
 
-import Control.Error.Util ((?:))
 import Control.Exception (throwIO)
 import Data.Time (UTCTime)
 import Data.Yaml (decodeFileEither)
@@ -82,7 +81,7 @@ setupLogging mTimeFunction LoggerConfig{..} = do
     liftIO $ setPrefix _lcLogsDirectory
     processLoggers mempty _lcTree
   where
-    handlerPrefix = _lcLogsDirectory ?: "."
+    handlerPrefix = fromMaybe "." _lcLogsDirectory
     logMapper     = appEndo _lcMapper
     timeF         = fromMaybe centiUtcTimeF mTimeFunction
     isShowTime    = getAny _lcShowTime
@@ -101,7 +100,7 @@ setupLogging mTimeFunction LoggerConfig{..} = do
             setSeveritiesMaybe parent (_ltSeverity)
 
         forM_ _ltFiles $ \HandlerWrap{..} -> liftIO $ do
-            let fileSeverities   = (_ltSeverity) ?: debugPlus
+            let fileSeverities   = fromMaybe debugPlus (_ltSeverity)
             let handlerPath    = handlerPrefix </> _hwFilePath
             case handlerFabric of
                 HandlerFabric fabric -> do

@@ -44,13 +44,9 @@ library
                      , containers           >= 0.5.7.1
                      , deepseq              >= 1.2.0.0
                      , directory            >= 1.2.6.2
-                     , errors               >= 2.1.2
-                     , exceptions           >= 0.8.3
-                     , extra                >= 1.4.10
                      , filepath             >= 1.4.1
                      , fmt                  >= 0.5.0.0
                      , formatting           >= 6.2.2
-                     , hashable             >= 1.2.4.0
                      , microlens-platform   >= 0.3.9
                      , monad-control        >= 1.0.1.0
                      , monad-loops          >= 0.4.3
