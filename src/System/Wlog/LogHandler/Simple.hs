@@ -36,8 +36,7 @@ import System.IO (Handle, IOMode (ReadWriteMode), SeekMode (SeekFromEnd), hClose
 
 import System.Wlog.Formatter (LogFormatter, nullFormatter)
 import System.Wlog.LogHandler (LogHandler (..), LogHandlerTag (..))
-import System.Wlog.MemoryQueue (MemoryQueue)
-import System.Wlog.MemoryQueue as MQ
+import System.Wlog.MemoryQueue (MemoryQueue, newMemoryQueue, pushFront, queueToList)
 import System.Wlog.Severity (Severities)
 
 import qualified Data.Text.IO as TIO
@@ -59,7 +58,7 @@ instance Typeable a => LogHandler (GenericHandler a) where
     getLevel sh = severities sh
     setFormatter sh f = sh{formatter = f}
     getFormatter sh = formatter sh
-    readBack sh i = liftIO $ withMVar (readBackBuffer sh) $ \mq' -> pure $! take i . MQ.toList $ mq'
+    readBack sh i = liftIO $ withMVar (readBackBuffer sh) $ \mq' -> pure $! take i . queueToList $ mq'
     emit sh bldr _ = liftIO $ (writeFunc sh) (privData sh) (toText . B.toLazyText $ bldr)
     close sh = liftIO $ (closeFunc sh) (privData sh)
 
@@ -83,7 +82,7 @@ createWriteFuncWrapper
           , MVar (MemoryQueue Text)
           )
 createWriteFuncWrapper action lock = do
-    memoryQueue <- newMVar $ MQ.newMemoryQueue $ 2 * 1024 * 1024 -- 2 MB
+    memoryQueue <- newMVar $ newMemoryQueue $ 2 * 1024 * 1024 -- 2 MB
 
     let customWriteFunc :: Handle -> Text -> IO ()
         customWriteFunc hdl msg = withMVar lock $ const $ do

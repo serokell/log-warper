@@ -58,7 +58,6 @@ module System.Wlog.LoggerConfig
 
 import Universum
 
-import Control.Lens (at, makeLenses, zoom, _Just)
 import Control.Monad.State (put)
 import Data.Aeson (withObject)
 import Data.Monoid (Any (..))
@@ -69,6 +68,7 @@ import Data.Yaml (FromJSON (..), Object, Parser, ToJSON (..), Value (..), object
                   (.:?), (.=))
 import Formatting (bprint, shown)
 import GHC.Generics (Generic)
+import Lens.Micro.Platform (at, makeLenses, zoom, _Just)
 import System.FilePath (normalise)
 
 import System.Wlog.LoggerName (LoggerName)

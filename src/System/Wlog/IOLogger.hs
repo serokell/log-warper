@@ -53,8 +53,8 @@ module System.Wlog.IOLogger
 import Universum
 
 import Control.Concurrent.MVar (modifyMVar, modifyMVar_, withMVar)
-import Control.Lens (makeLenses)
 import Data.Maybe (fromJust)
+import Lens.Micro.Platform (makeLenses)
 import System.FilePath ((</>))
 import System.IO.Unsafe (unsafePerformIO)
 

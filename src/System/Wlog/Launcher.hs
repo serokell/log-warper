@@ -39,9 +39,9 @@ import Universum
 
 import Control.Error.Util ((?:))
 import Control.Exception (throwIO)
-import Control.Lens (zoom, (.=), (?=))
 import Data.Time (UTCTime)
 import Data.Yaml (decodeFileEither)
+import Lens.Micro.Platform (zoom, (.=), (?=))
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath ((</>))
 
