@@ -2,11 +2,16 @@
 =====
 
 * Migrate to `universum-1.0.0`.
+* [#71](https://github.com/serokell/log-warper/issues/71):
+  Use `microlens-platform` instead of `lens`.
+  `LoggerMap` is now has field `LoggerName` instead of `Text`.
+  `zoomLogger` is now work with `LoggerName` instead of `Text`.
+  Remove `LogHandler.Syslog` module and `network` library.
 
 1.8.1
 =====
 
-* [#75](https://github.com/serokell/log-warper/issues/55):
+* [#75](https://github.com/serokell/log-warper/issues/75):
   Bump up `universum` lower bound.
 
 1.8.0
