@@ -42,9 +42,9 @@ import qualified Data.Set as Set
 -- given by the most recent call to 'setLevel'.
 logHandlerMessage :: (MonadIO m, LogHandler a) => a -> LogRecord -> LoggerName -> m ()
 logHandlerMessage h lr@(LR pri _) logname =
-    when (pri `Set.member` (getLevel h)) $ do
+    when (pri `Set.member` getLevel h) $ do
         let lName = getLoggerName logname
-        formattedMsg <- liftIO $ (getFormatter h) h lr lName
+        formattedMsg <- liftIO $ getFormatter h h lr lName
         emit h formattedMsg lName
 
 -- | Tag identifying handlers.

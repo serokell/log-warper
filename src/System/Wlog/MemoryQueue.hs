@@ -70,9 +70,9 @@ pushFront msg oldQueue =
     -- Resize the queue so that the inner @Seq@ won't contain more than mqLimit
     -- elements.
     resize :: Sized a => MemoryQueue a -> MemoryQueue a
-    resize theQueue = case _mqMemSize theQueue > _mqLimit theQueue of
-        False -> theQueue
-        True  -> let (_, q') = popLast theQueue in resize $! q'
+    resize theQueue = if _mqMemSize theQueue > _mqLimit theQueue
+        then (let (_, q') = popLast theQueue in resize $! q')
+        else theQueue
 
 -- | Converts queue to list of messages.
 queueToList :: (Sized a) => MemoryQueue a -> [a]

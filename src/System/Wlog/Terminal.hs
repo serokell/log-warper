@@ -1,5 +1,3 @@
-{-# LANGUAGE ViewPatterns #-}
-
 -- |
 -- Module      : System.Wlog.Terminal
 -- Copyright   : (c) Serokell, 2016

@@ -29,7 +29,7 @@ spec :: Spec
 spec = do
     let smaller = modifyMaxSuccess $ const 30
     describe "System.Wlog.Roller" $ do
-      describe "Exception" $ do
+      describe "Exception" $
           it "throws exception in case of invalid roller params" $ do
               let wrongRP1 = RotationParameters 0 1
               let wrongRP2 = RotationParameters 1 0
@@ -103,7 +103,7 @@ verifyLoggerRotation rp@RotationParameters{..} linesNum = isValidRotation rp ==>
     run $ writeConcurrentLogs rp linesNum
     checkFilesNumber
     checkFilesSize
-    run $ cleanupFiles
+    run cleanupFiles
   where
     testLogPath  = "logs/patak.log"
 

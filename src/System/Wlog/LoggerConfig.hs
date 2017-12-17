@@ -80,10 +80,10 @@ import qualified Data.Vector as Vector
 ----------------------------------------------------------------------------
 
 filterObject :: [Text] -> HashMap Text a -> HashMap LoggerName a
-filterObject excluded = HM.fromList . map (first LoggerName) . HM.toList . (HM.filterWithKey (\k _ -> k `notElem` excluded))
+filterObject excluded = HM.fromList . map (first LoggerName) . HM.toList . HM.filterWithKey (\k _ -> k `notElem` excluded)
 
 parseSeverities :: Object -> Text -> Parser (Maybe Severities)
-parseSeverities o term = do
+parseSeverities o term =
     case HM.lookup term o of
         Just value -> case value of
             String word -> case word of
@@ -96,7 +96,7 @@ parseSeverities o term = do
                 _          -> fail $ toString $ "Unknown severity: " <> word
             Array sevs  -> Just . Set.fromList . Vector.toList <$> Vector.mapM parseJSON sevs
             _           -> fail "Incorrect severities format"
-        Nothing    -> pure $ Nothing
+        Nothing    -> pure Nothing
 
 ----------------------------------------------------------------------------
 -- LoggerTree
@@ -163,8 +163,8 @@ instance FromJSON LoggerTree where
         (manyFiles :: [FilePath]) <- map normalise <$> (o .:? "files" .!= [])
         handlers <- o .:? "handlers" .!= []
         let fileHandlers =
-                map (\fp -> HandlerWrap fp Nothing) $
-                maybe [] (:[]) singleFile ++ manyFiles
+                map (`HandlerWrap` Nothing) $
+                maybeToList singleFile ++ manyFiles
         let _ltFiles = fileHandlers <> handlers
         _ltSeverity   <- parseSeverities o "severity"
         _ltSubloggers <- for (filterObject nonLoggers o) parseJSON
@@ -182,7 +182,7 @@ zoomLogger loggerName initializer = zoom (ltSubloggers.at loggerName) $ do
     zoom _Just initializer
 
 ----------------------------------------------------------------------------
--- Logger rotattion
+-- Logger rotation
 ----------------------------------------------------------------------------
 
 -- | Parameters for logging rotation.
@@ -305,7 +305,7 @@ instance ToJSON LoggerConfig where
             , "termSeveritiesErr" .= _lcTermSeverityErr
             , "showTime"          .= getAny _lcShowTime
             , "showTid"           .= getAny _lcShowTid
-            , "printOutput"       .= maybe False (const True) (getLast _lcConsoleAction)
+            , "printOutput"       .= isJust (getLast _lcConsoleAction)
             , "filePrefix"        .= _lcLogsDirectory
             , ("logTree", toJSON _lcTree)
             ]

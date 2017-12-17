@@ -97,10 +97,10 @@ setupLogging mTimeFunction LoggerConfig{..} = do
     processLoggers parent LoggerTree{..} = do
         -- This prevents logger output to appear in terminal
         unless (parent == mempty && isNothing consoleAction) $
-            setSeveritiesMaybe parent (_ltSeverity)
+            setSeveritiesMaybe parent _ltSeverity
 
         forM_ _ltFiles $ \HandlerWrap{..} -> liftIO $ do
-            let fileSeverities   = fromMaybe debugPlus (_ltSeverity)
+            let fileSeverities   = fromMaybe debugPlus _ltSeverity
             let handlerPath    = handlerPrefix </> _hwFilePath
             case handlerFabric of
                 HandlerFabric fabric -> do
@@ -185,7 +185,7 @@ defaultConfig loggerName = fromScratch $ do
     lcConsoleAction .= Last (Just defaultHandleAction)
     zoom lcTree $ do
         ltSeverity ?= warningPlus
-        zoomLogger loggerName $ do
+        zoomLogger loggerName $
             ltSeverity ?= debugPlus
 
 {- | Set ups the logging with 'defaultConfig' and runs the action with the given 'LoggerName'.

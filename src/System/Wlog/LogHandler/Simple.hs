@@ -54,12 +54,12 @@ data GenericHandler a = GenericHandler
 instance Typeable a => LogHandler (GenericHandler a) where
     getTag = ghTag
     setLevel sh s = sh {severities = s}
-    getLevel sh = severities sh
+    getLevel = severities
     setFormatter sh f = sh{formatter = f}
-    getFormatter sh = formatter sh
+    getFormatter = formatter
     readBack sh i = liftIO $ withMVar (readBackBuffer sh) $ \mq' -> pure $! take i . queueToList $ mq'
-    emit sh bldr _ = liftIO $ (writeFunc sh) (privData sh) (toText . B.toLazyText $ bldr)
-    close sh = liftIO $ (closeFunc sh) (privData sh)
+    emit sh bldr _ = liftIO $ writeFunc sh (privData sh) (toText . B.toLazyText $ bldr)
+    close sh = liftIO $ closeFunc sh (privData sh)
 
 -- | Default action which just prints to handle using given message.
 defaultHandleAction :: Handle -> Text -> IO ()

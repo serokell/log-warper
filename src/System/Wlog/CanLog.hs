@@ -148,4 +148,4 @@ clientStart hostName .. = do
 liftLogIO :: WithLoggerIO m => (IO a -> IO b) -> LoggerNameBox IO a -> m b
 liftLogIO ioFunc action = do
     logName <- askLoggerName
-    liftIO $ ioFunc $ usingLoggerName logName $ action
+    liftIO $ ioFunc $ usingLoggerName logName action

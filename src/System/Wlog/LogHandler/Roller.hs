@@ -50,7 +50,7 @@ instance LogHandler RollerHandler where
     emit rh bldr _    = liftIO $ rhWriteAction rh (error "Handler is used internally") (toText . B.toLazyText $ bldr)
     close RollerHandler{..} = liftIO $ withMVar rhFileHandle rhCloseAction
 
-data InvalidRotation = InvalidRotation !Text
+newtype InvalidRotation = InvalidRotation Text
     deriving (Show, Eq)
 
 instance Exception InvalidRotation
@@ -59,7 +59,7 @@ logIndex :: FilePath -> Int -> FilePath
 logIndex handlerPath i = handlerPath <.> show i
 
 rollerReadback :: MonadIO m => RollerHandler -> Int -> m [Text]
-rollerReadback RollerHandler{..} logsNum = liftIO $ do
+rollerReadback RollerHandler{..} logsNum = liftIO $
     modifyMVar rhFileHandle $ \h -> do
         hFlush h
         hSeek h AbsoluteSeek 0
@@ -91,7 +91,7 @@ rollerWriting RotationParameters{..} handlerPath loggingAction varHandle _ msg =
             for_ [lastIndex - 1,lastIndex - 2 .. 0] $ \i -> do
                 let oldLogFile = logIndex handlerPath i
                 let newLogFile = logIndex handlerPath (i + 1)
-                whenExist oldLogFile $ (`renameFile` newLogFile)
+                whenExist oldLogFile (`renameFile` newLogFile)
             let zeroIndex = logIndex handlerPath 0
             renameFile handlerPath zeroIndex
             let lastLogFile = logIndex handlerPath lastIndex
