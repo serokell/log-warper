@@ -5,20 +5,22 @@ module System.Wlog.LoggerName
        , loggerNameF
        ) where
 
-import           Universum
+import Universum
 
-import           Data.Hashable       (Hashable)
-import           Data.Semigroup      (Semigroup)
-import qualified Data.Semigroup      as Semigroup
-import           Data.String         (IsString)
-import           Data.Text.Buildable (Buildable)
+import Data.Aeson.Types (ToJSON, ToJSONKey (..), toJSONKeyText)
+import Data.Hashable (Hashable)
+import Data.Semigroup (Semigroup)
+import Data.String (IsString)
+import Data.Text.Buildable (Buildable)
+import Formatting (Format, bprint, build, stext)
+
+import qualified Data.Semigroup as Semigroup
 import qualified Data.Text.Buildable as Buildable
-import           Formatting          (Format, bprint, build, stext)
 
 -- | Logger name to keep in context.
 newtype LoggerName = LoggerName
     { getLoggerName :: Text
-    } deriving (Show, IsString, Eq, Ord, Hashable)
+    } deriving (Show, IsString, Eq, Ord, Hashable, Generic)
 
 -- | Defined such that @n1@ is parent for @(n1 <> n2)@
 -- (see <http://hackage.haskell.org/package/hslogger-1.2.10/docs/System-Log-Logger.html hslogger description>).
@@ -34,6 +36,11 @@ instance Monoid LoggerName where
 
 instance Buildable LoggerName where
     build = bprint stext . getLoggerName
+
+instance ToJSON LoggerName
+
+instance ToJSONKey LoggerName where
+    toJSONKey = toJSONKeyText getLoggerName
 
 -- | 'LoggerName' formatter which restricts type.
 loggerNameF :: Format r (LoggerName -> r)

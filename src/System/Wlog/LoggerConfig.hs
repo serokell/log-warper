@@ -71,7 +71,7 @@ import GHC.Generics (Generic)
 import Lens.Micro.Platform (at, makeLenses, zoom, _Just)
 import System.FilePath (normalise)
 
-import System.Wlog.LoggerName (LoggerName)
+import System.Wlog.LoggerName (LoggerName (..))
 import System.Wlog.LogHandler.Simple (defaultHandleAction)
 import System.Wlog.Severity (Severities, allSeverities, debugPlus, errorPlus, infoPlus, noticePlus,
                              warningPlus)
@@ -86,8 +86,8 @@ import qualified Data.Vector as Vector
 -- Utilites & helpers
 ----------------------------------------------------------------------------
 
-filterObject :: [Text] -> HashMap Text a -> HashMap Text a
-filterObject excluded = HM.filterWithKey $ \k _ -> k `notElem` excluded
+filterObject :: [Text] -> HashMap Text a -> HashMap LoggerName a
+filterObject excluded = HM.fromList . map (first LoggerName) . HM.toList . (HM.filterWithKey (\k _ -> k `notElem` excluded))
 
 parseSeverities :: Object -> Text -> Parser (Maybe Severities)
 parseSeverities o term = do
@@ -121,7 +121,7 @@ data HandlerWrap = HandlerWrap
 
 makeLenses ''HandlerWrap
 
-type LoggerMap = HashMap Text LoggerTree
+type LoggerMap = HashMap LoggerName LoggerTree
 
 -- | Stores configuration for hierarchical loggers.
 data LoggerTree = LoggerTree
@@ -183,7 +183,7 @@ fromScratch :: Monoid m => State m a -> m
 fromScratch = executingState mempty
 
 -- | Zooming into logger name with putting specific key.
-zoomLogger :: Text -> State LoggerTree () -> State LoggerTree ()
+zoomLogger :: LoggerName -> State LoggerTree () -> State LoggerTree ()
 zoomLogger loggerName initializer = zoom (ltSubloggers.at loggerName) $ do
     put $ Just mempty
     zoom _Just initializer

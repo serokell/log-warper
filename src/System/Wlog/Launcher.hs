@@ -51,7 +51,7 @@ import System.Wlog.IOLogger (addHandler, removeAllHandlers, setPrefix, setSeveri
 import System.Wlog.LoggerConfig (HandlerWrap (..), LoggerConfig (..), LoggerTree (..), fromScratch,
                                  lcConsoleAction, lcShowTime, lcTree, ltSeverity, productionB,
                                  zoomLogger)
-import System.Wlog.LoggerName (LoggerName (..))
+import System.Wlog.LoggerName (LoggerName)
 import System.Wlog.LoggerNameBox (LoggerNameBox, usingLoggerName)
 import System.Wlog.LogHandler (LogHandler (setFormatter))
 import System.Wlog.LogHandler.Roller (rotationFileHandler)
@@ -112,9 +112,8 @@ setupLogging mTimeFunction LoggerConfig{..} = do
                     thisLoggerHandler <- fmt <$> handlerCreator
                     updateGlobalLogger parent $ addHandler thisLoggerHandler
 
-        for_ (HM.toList _ltSubloggers) $ \(name, loggerConfig) -> do
-            let thisLoggerName = LoggerName name
-            let thisLogger     = parent <> logMapper thisLoggerName
+        for_ (HM.toList _ltSubloggers) $ \(loggerName, loggerConfig) -> do
+            let thisLogger     = parent <> logMapper loggerName
             processLoggers thisLogger loggerConfig
 
 -- | Parses logger config from given file path.
@@ -187,7 +186,7 @@ defaultConfig loggerName = fromScratch $ do
     lcConsoleAction .= Last (Just defaultHandleAction)
     zoom lcTree $ do
         ltSeverity ?= warningPlus
-        zoomLogger (getLoggerName loggerName) $ do
+        zoomLogger loggerName $ do
             ltSeverity ?= debugPlus
 
 {- | Set ups the logging with 'defaultConfig' and runs the action with the given 'LoggerName'.
