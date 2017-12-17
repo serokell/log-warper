@@ -14,7 +14,7 @@ build-type:          Simple
 cabal-version:       >=1.18
 description:         This package implements nice and featureful wrapper around hslogger library.
 tested-with:         GHC == 8.0.2
-                   , GHC == 8.2.1
+                   , GHC == 8.2.2
 
 library
   exposed-modules:     System.Wlog
