@@ -1,3 +1,9 @@
+1.8.3
+=====
+
+* [#79](https://github.com/serokell/log-warper/issues/79):
+  Add `launchWithConfig` to `Launcher` module.
+
 1.8.2
 =====
 
