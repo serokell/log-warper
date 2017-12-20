@@ -8,7 +8,7 @@ author:              @serokell
 maintainer:          Serokell <hi@serokell.io>
 copyright:           2016-2017 Serokell
 category:            Logging
-extra-source-files:  CHANGES.md, examples/HowTo.md, examples/HowTo.lhs
+extra-source-files:  CHANGES.md, README.md, examples/HowTo.md, examples/HowTo.lhs
 stability:           experimental
 build-type:          Simple
 cabal-version:       >=1.18
