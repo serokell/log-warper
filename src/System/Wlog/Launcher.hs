@@ -31,6 +31,7 @@ module System.Wlog.Launcher
        , defaultConfig
        , launchFromFile
        , launchSimpleLogging
+       , launchWithConfig
        , parseLoggerConfig
        , setupLogging
        ) where
@@ -126,6 +127,19 @@ buildAndSetupYamlLogging configBuilder loggerConfigPath = do
     cfg@LoggerConfig{..} <- parseLoggerConfig loggerConfigPath
     let builtConfig       = cfg <> configBuilder
     setupLogging Nothing builtConfig
+
+-- | Sets up given logging configurations,
+-- runs the action with the given 'LoggerName'.
+launchWithConfig :: (MonadIO m, MonadMask m)
+                 => LoggerConfig
+                 -> LoggerName
+                 -> LoggerNameBox m a
+                 -> m a
+launchWithConfig config loggerName action =
+    bracket_
+        (setupLogging Nothing config)
+        removeAllHandlers
+        (usingLoggerName loggerName action)
 
 -- | Initializes logging using given 'FilePath' to logger configurations,
 -- runs the action with the given 'LoggerName'.
