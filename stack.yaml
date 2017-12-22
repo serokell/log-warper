@@ -1,5 +1,6 @@
 resolver: lts-10.3
 extra-deps:
+- time-units-1.0.0
 - universum-1.0.4
 
 nix:

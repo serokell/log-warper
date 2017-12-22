@@ -1,3 +1,9 @@
+1.8.7
+=====
+
+* [#52](https://github.com/serokell/log-warper/issues/52):
+  Add `System.Wlog.Concurrent` module.
+
 1.8.6
 =====
 

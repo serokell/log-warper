@@ -13,6 +13,7 @@
 
 module System.Wlog
        ( module System.Wlog.CanLog
+       , module System.Wlog.Concurrent
        , module System.Wlog.Exception
        , module System.Wlog.FileUtils
        , module System.Wlog.HasLoggerName
@@ -29,6 +30,7 @@ module System.Wlog
        ) where
 
 import System.Wlog.CanLog
+import System.Wlog.Concurrent
 import System.Wlog.Exception
 import System.Wlog.FileUtils
 import System.Wlog.HasLoggerName
