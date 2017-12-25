@@ -224,8 +224,4 @@ launchSimpleLogging :: (MonadIO m, MonadMask m)
                     => LoggerName
                     -> LoggerNameBox m a
                     -> m a
-launchSimpleLogging loggerName action =
-    bracket_
-        (setupLogging Nothing $ defaultConfig loggerName)
-        removeAllHandlers
-        (usingLoggerName loggerName action)
+launchSimpleLogging loggerName = launchWithConfig (defaultConfig loggerName) loggerName
