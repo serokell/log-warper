@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE Rank2Types          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
 
@@ -42,6 +43,7 @@ module System.Wlog.LoggerConfig
        , lcTermSeverityErr
        , lcTree
        , zoomLogger
+       , atLogger
 
          -- ** Builders for 'LoggerConfig'
        , consoleActionB
@@ -73,6 +75,7 @@ import System.Wlog.Severity (Severities, allSeverities, debugPlus, errorPlus, in
 
 import qualified Data.HashMap.Strict as HM hiding (HashMap)
 import qualified Data.Set as Set
+import qualified Data.Text as Text
 import qualified Data.Vector as Vector
 
 ----------------------------------------------------------------------------
@@ -351,3 +354,24 @@ maybeLogsDirB prefix = mempty { _lcLogsDirectory = prefix }
 -- | Setup 'lcLogsDirectory' inside 'LoggerConfig' to specific prefix.
 logsDirB :: FilePath -> LoggerConfig
 logsDirB = maybeLogsDirB . Just
+
+-- | Lens to help to change some particular logger properties.
+--
+-- For example if you want to use default configurations,
+-- but need to change logger's severity to 'warningPlus'
+-- you can do it this way:
+--
+-- @
+-- 'System.Wlog.Launcher.launchWithConfig'
+--     ( defaultConfig "myLogger"
+--     & 'atLogger' "myLogger"
+--     . 'ltSeverity' ?~ 'warningPlus' )
+--     "myLogger"
+-- @
+--
+atLogger :: LoggerName -> Traversal' LoggerConfig LoggerTree
+atLogger logName = lcTree . leveldown (LoggerName <$> Text.splitOn "." (getLoggerName logName))
+  where
+    leveldown []     = error "Logger should be provided"
+    leveldown [x]    = ltSubloggers . at x . _Just
+    leveldown (x:xs) = ltSubloggers . at x . _Just . leveldown xs

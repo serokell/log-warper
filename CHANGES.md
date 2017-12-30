@@ -1,3 +1,9 @@
+1.8.4
+=====
+
+* [#86](https://github.com/serokell/log-warper/issues/86):
+  Add lens for changing properties of the particular logger.
+
 1.8.3
 =====
 
