@@ -172,8 +172,8 @@ getLogger lname = liftIO $ modifyMVar logInternalState $ \lt@LogInternalState{..
     createLoggers :: [LoggerName] -> LogTree -> LogTree
     createLoggers xs lt = foldl' addLoggerToTree lt xs -- Add logger to tree
 
-    addLoggerToTree :: LogTree -> LoggerName -> LogTree
-    addLoggerToTree lt x =
+    addLoggerToTree ::  LoggerName -> LogTree ->LogTree
+    addLoggerToTree x lt =
         if M.member x lt
             then lt
             else M.insert x (defaultLogger & lName .~ x) lt

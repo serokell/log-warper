@@ -1,6 +1,7 @@
-resolver: lts-10.0
+resolver: lts-10.1
 packages: [.]
-extra-deps: []
+extra-deps:
+- universum-1.0.2
 
 nix:
   packages: [git, openssh, gmp, binutils]
