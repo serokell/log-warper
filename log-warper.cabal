@@ -1,5 +1,5 @@
 name:                log-warper
-version:             1.8.3
+version:             1.8.4
 synopsis:            Flexible, configurable, monadic and pretty logging
 homepage:            https://github.com/serokell/log-warper
 license:             MIT
@@ -85,6 +85,7 @@ executable play-log
 
   build-depends:       log-warper
                      , universum  >= 0.3
+                     , microlens  >= 0.4
                      , yaml       >= 0.8.20
 
   hs-source-dirs:      examples

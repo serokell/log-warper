@@ -5,10 +5,11 @@ module Main where
 import Universum
 
 import Data.Yaml.Pretty (defConfig, encodePretty)
+import Lens.Micro ((?~))
 
-import System.Wlog (CanLog, defaultConfig, launchFromFile, launchSimpleLogging, logDebug, logError,
-                    logInfo, logNotice, logWarning, modifyLoggerName, parseLoggerConfig,
-                    productionB, usingLoggerName)
+import System.Wlog (CanLog, atLogger, defaultConfig, infoPlus, launchFromFile, launchWithConfig,
+                    logDebug, logError, logInfo, logNotice, logWarning, ltSeverity,
+                    modifyLoggerName, parseLoggerConfig, productionB, usingLoggerName)
 
 testLoggerConfigPath :: FilePath
 testLoggerConfigPath = "logger-config-example.yaml"
@@ -44,9 +45,10 @@ main = do
     testToJsonConfigOutput
     let runPlayLog = testLogging >> showSomeLog
 
-    putStrLn $ encodePretty defConfig $ defaultConfig "example"
-    putTextLn "Default configurations.."
-    launchSimpleLogging "node" runPlayLog
+    putTextLn "Default configurations with modification.."
+    launchWithConfig (defaultConfig "node" & atLogger "node" . ltSeverity ?~ infoPlus)
+                     "node"
+                     runPlayLog
 
     putTextLn "\nFrom file configurations.."
     launchFromFile testLoggerConfigPath "node" runPlayLog

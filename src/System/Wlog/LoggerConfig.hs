@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE Rank2Types          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
 
@@ -42,6 +43,7 @@ module System.Wlog.LoggerConfig
        , lcTermSeverityErr
        , lcTree
        , zoomLogger
+       , atLogger
 
          -- ** Builders for 'LoggerConfig'
        , consoleActionB
@@ -73,7 +75,9 @@ import System.Wlog.Severity (Severities, allSeverities, debugPlus, errorPlus, in
 
 import qualified Data.HashMap.Strict as HM hiding (HashMap)
 import qualified Data.Set as Set
+import qualified Data.Text as Text
 import qualified Data.Vector as Vector
+import qualified GHC.Show as Show
 
 ----------------------------------------------------------------------------
 -- Utilites & helpers
@@ -351,3 +355,37 @@ maybeLogsDirB prefix = mempty { _lcLogsDirectory = prefix }
 -- | Setup 'lcLogsDirectory' inside 'LoggerConfig' to specific prefix.
 logsDirB :: FilePath -> LoggerConfig
 logsDirB = maybeLogsDirB . Just
+
+-- | Lens to help to change some particular logger properties.
+--
+-- For example if you want to use default configurations,
+-- but need to change logger's severity to 'warningPlus'
+-- you can do it this way:
+--
+-- @
+-- 'System.Wlog.Launcher.launchWithConfig'
+--     ( defaultConfig "myLogger"
+--     & 'atLogger' "myLogger"
+--     . 'ltSeverity' ?~ 'warningPlus' )
+--     "myLogger"
+--     action
+-- @
+--
+atLogger :: LoggerName -> Traversal' LoggerConfig LoggerTree
+atLogger logName = lcTree . leveldown (LoggerName <$> Text.splitOn "." (getLoggerName logName))
+  where
+    leveldown :: [LoggerName] -> Traversal' LoggerTree LoggerTree
+    leveldown []     = bug EmptyLoggerName
+    leveldown [x]    = getSublogger x
+    leveldown (x:xs) = getSublogger x . leveldown xs
+
+    getSublogger :: LoggerName -> Traversal' LoggerTree LoggerTree
+    getSublogger x = ltSubloggers . at x . _Just
+
+-- | Exceptions for handling logger exceptions with lens.
+data LoggerLensException = EmptyLoggerName
+
+instance Exception LoggerLensException
+
+instance Show LoggerLensException where
+    show EmptyLoggerName = "Logger name should be provided"
