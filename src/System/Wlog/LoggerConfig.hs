@@ -77,6 +77,7 @@ import qualified Data.HashMap.Strict as HM hiding (HashMap)
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Data.Vector as Vector
+import qualified GHC.Show as Show
 
 ----------------------------------------------------------------------------
 -- Utilites & helpers
@@ -367,11 +368,24 @@ logsDirB = maybeLogsDirB . Just
 --     & 'atLogger' "myLogger"
 --     . 'ltSeverity' ?~ 'warningPlus' )
 --     "myLogger"
+--     action
 -- @
 --
 atLogger :: LoggerName -> Traversal' LoggerConfig LoggerTree
 atLogger logName = lcTree . leveldown (LoggerName <$> Text.splitOn "." (getLoggerName logName))
   where
-    leveldown []     = error "Logger should be provided"
-    leveldown [x]    = ltSubloggers . at x . _Just
-    leveldown (x:xs) = ltSubloggers . at x . _Just . leveldown xs
+    leveldown :: [LoggerName] -> Traversal' LoggerTree LoggerTree
+    leveldown []     = bug EmptyLoggerName
+    leveldown [x]    = getSublogger x
+    leveldown (x:xs) = getSublogger x . leveldown xs
+
+    getSublogger :: LoggerName -> Traversal' LoggerTree LoggerTree
+    getSublogger x = ltSubloggers . at x . _Just
+
+-- | Exceptions for handling logger exceptions with lens.
+data LoggerLensException = EmptyLoggerName
+
+instance Exception LoggerLensException
+
+instance Show LoggerLensException where
+    show EmptyLoggerName = "Logger name should be provided"
