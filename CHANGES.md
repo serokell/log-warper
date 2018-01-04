@@ -1,3 +1,9 @@
+1.8.5
+=====
+
+* [#89](https://github.com/serokell/log-warper/issues/86):
+  Add upper-bounds for dependencies. Also use `build-tool-depends` field for `markdown-unlit`.
+
 1.8.4
 =====
 
