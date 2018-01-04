@@ -1,6 +1,5 @@
-language: generic
-
-sudo: false
+sudo: true
+language: haskell
 
 git:
   depth: 5
@@ -16,21 +15,24 @@ matrix:
 
   include:
 
-  - env: STACK_YAML="$HOME/build/serokell/log-warper/stack.yaml"
+  - ghc: 8.2.2
+    env: STACK_YAML="$HOME/build/serokell/log-warper/stack.yaml"
     os: linux
     addons:
       apt:
         packages:
         - libgmp-dev
 
-  - env: STACK_YAML="$HOME/build/serokell/log-warper/stack-8.0.2.yaml"
+  - ghc: 8.0.2
+    env: STACK_YAML="$HOME/build/serokell/log-warper/stack-8.0.2.yaml"
     os: linux
     addons:
       apt:
         packages:
         - libgmp-dev
 
-  - env: GHCVER='8.2.2' CABALVER='head'
+  - ghc: 8.2.2
+    env: GHCVER='8.2.2' CABALVER='head'
     os: linux
     addons:
       apt:
@@ -39,9 +41,6 @@ matrix:
         packages:
         - ghc-8.2.2
         - cabal-install-head
-
-  allow_failures:
-  - env: GHCVER='8.2.2' CABALVER='head'
 
 install:
   - |
@@ -55,6 +54,7 @@ install:
       travis_retry curl -L 'https://www.stackage.org/stack/linux-x86_64' | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
       stack --version
       stack setup --no-terminal
+      stack setup --no-terminal --upgrade-cabal
       stack ghc -- --version
       stack build --only-dependencies --no-terminal
     fi
