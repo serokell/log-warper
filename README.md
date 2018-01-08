@@ -60,6 +60,44 @@ Here is the list of feature `log-warper` provides.
 
    In case you want to analyze logging messages you can take them from in-memory cache.
 
+## Reference guide (FAQ)
+
+Here you can find hints and tips how to achieve desired behavior with `log-warper`.
+
+1. How can I redirect all output to stderr?
+
+   * Write `termSeveritiesErr: All` on top-level of your `.yaml` file.
+
+2. How can I disable only Error messages for my logger?
+
+   * Use [`excludeError`](https://hackage.haskell.org/package/log-warper-1.8.5/docs/System-Wlog-Severity.html#v:excludeError) function.
+
+3. How can I show `ThreadId` inside log message?
+
+   * Add `showTid: true` to your `.yaml` file.
+
+4. How to easily disable terminal output?
+
+   * Put these lines into `.yaml` file:
+
+   ```
+   termSeveritiesOut : []
+   termSeveritiesErr : []
+   ```
+
+5. How can I enable messages with severity `Info` and higher?
+
+   * Write `severity: Info+` inside tree node of your logger settings.
+
+6. How can I log inside functions like `forkIO`?
+
+   * Use [`liftLogIO`](https://hackage.haskell.org/package/log-warper-1.8.5/docs/System-Wlog-CanLog.html#v:liftLogIO) function.
+   It's Haddock contains nice usage example.
+
+7. How can I easily log exceptions without throwing them?
+
+   * Use functions from [`System.Wlog.Exceptions`](https://hackage.haskell.org/package/log-warper-1.8.5/docs/System-Wlog-Exception.html) module.
+
 ## Contributing
 
 > **This project uses [`universum`](https://github.com/serokell/universum)
