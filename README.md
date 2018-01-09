@@ -14,15 +14,15 @@ to see how to write logging with `log-warper`.
 
 ## Features
 
-Here is the list of feature `log-warper` provides.
+Here is the list of features `log-warper` provides.
 
 1. Hierarchical logger names.
 
-   Logger names (tags for loggers) forms hierarchy. It means, that `""`
-   (also known as `mempty` or `rootLoggerName`) is a parent of logger with name `"node"` which isDir
+   Logger names (tags for loggers) form hierarchy. It means, that `""`
+   (also known as `mempty` or `rootLoggerName`) is a parent of logger with name `"node"` which is
    a parent of logger with name `"node.communication"`. So, logger name comprises dot-separated components.
    This means that if some logger name doesn't have some settings (like severity or output file) it takes
-   its settings from its closest parent, containing this settings.
+   its settings from the closest parent, containing this settings.
 
 2. Logging initialization from `.yaml` configuration file.
 
@@ -92,7 +92,7 @@ Here you can find hints and tips how to achieve desired behavior with `log-warpe
 6. How can I log inside functions like `forkIO`?
 
    * Use [`liftLogIO`](https://hackage.haskell.org/package/log-warper-1.8.5/docs/System-Wlog-CanLog.html#v:liftLogIO) function.
-   It's Haddock contains nice usage example.
+   Its Haddock contains nice usage example.
 
 7. How can I easily log exceptions without throwing them?
 
