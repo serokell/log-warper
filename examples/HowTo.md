@@ -70,7 +70,7 @@ loggerTree:
 ```
 You don't need to worry about root logger for now. This part is explained in section devoted to hierarchical logging.
 
-For full information about all configuration file's features and options please see [this section](#link-to-readme-config).
+For full information about all configuration file's features and options please see [this section](https://github.com/serokell/log-warper#features).
 
 ### Setting up
 
