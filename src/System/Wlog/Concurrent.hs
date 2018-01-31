@@ -3,6 +3,8 @@
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+-- | This module introduces functions that allow to run action in parallel with logging.
+
 module System.Wlog.Concurrent
        ( WaitingDelta (..)
        , CanLogInParallel
@@ -18,7 +20,7 @@ import Control.Concurrent.Async.Lifted (withAsyncWithUnmask)
 import Control.Monad.Trans.Control (MonadBaseControl)
 import Fmt ((+|), (+||), (|+), (||+))
 import GHC.Real ((%))
-import Time (Microsecond, RatioNat, Second, Time, threadDelay, timeMul, toUnit)
+import Time (RatioNat, Second, Time, threadDelay, timeMul)
 
 import System.Wlog.CanLog (WithLoggerIO, logWarning)
 
@@ -30,7 +32,7 @@ data WaitingDelta
       -- | wait s, s * 2, s * 3  , s * 4  , ...      seconds
     | WaitLinear    (Time Second)
       -- | wait m, m * q, m * q^2, m * q^3, ... microseconds
-    | WaitGeometric (Time Microsecond) RatioNat
+    | WaitGeometric (Time Second) RatioNat
     deriving (Show)
 
 
@@ -57,26 +59,27 @@ logWarningLongAction logFunc delta actionTag action =
     -- this function is going to be called under 'mask'.
     withAsyncWithUnmask (\unmask -> unmask $ waitAndWarn delta) (const action)
   where
-    printWarning :: (Time Second) -> m ()
+    printWarning :: Time Second -> m ()
     printWarning t = logFunc $ "Action `"+|actionTag|+"` took more than "+||t||+""
 
     waitAndWarn :: WaitingDelta -> m ()
     waitAndWarn (WaitOnce   s) = delayAndPrint s s
     waitAndWarn (WaitLinear s) =
-        let waitLoop :: (Time Second) -> m ()
+        let waitLoop :: Time Second -> m ()
             waitLoop acc = do
                 delayAndPrint s acc
                 waitLoop (acc + s)
         in waitLoop s
     waitAndWarn (WaitGeometric ms k) =
-        let waitLoop :: (Time Microsecond) -> (Time Microsecond) -> m ()
+        let waitLoop :: Time Second -> Time Second -> m ()
             waitLoop acc delayT = do
                 let newAcc    = acc + delayT
                 let newDelayT = k `timeMul` delayT
-                delayAndPrint delayT (toUnit @Second newAcc)
+                delayAndPrint delayT newAcc
                 waitLoop newAcc newDelayT
         in waitLoop 0 ms
 
+    delayAndPrint :: Time Second -> Time Second -> m ()
     delayAndPrint delayT printT = do
         threadDelay delayT
         printWarning printT
@@ -84,16 +87,15 @@ logWarningLongAction logFunc delta actionTag action =
 {- Helper functions to avoid dealing with data type -}
 
 -- | Specialization of 'logWarningLongAction' with 'WaitOnce'.
-logWarningWaitOnce :: CanLogInParallel m => (Time Second) -> Text -> m a -> m a
+logWarningWaitOnce :: CanLogInParallel m => Time Second -> Text -> m a -> m a
 logWarningWaitOnce = logWarningLongAction logWarning . WaitOnce
 
 -- | Specialization of 'logWarningLongAction' with 'WaiLinear'.
-logWarningWaitLinear :: CanLogInParallel m => (Time Second) -> Text -> m a -> m a
+logWarningWaitLinear :: CanLogInParallel m => Time Second -> Text -> m a -> m a
 logWarningWaitLinear = logWarningLongAction logWarning . WaitLinear
 
 -- | Specialization of 'logWarningLongAction' with 'WaitGeometric'
 -- with parameter @1.3@. Accepts 'Second'.
-logWarningWaitInf :: CanLogInParallel m => (Time Second) -> Text -> m a -> m a
+logWarningWaitInf :: CanLogInParallel m => Time Second -> Text -> m a -> m a
 logWarningWaitInf = logWarningLongAction logWarning
                   . (`WaitGeometric` (13 % 10))
-                  . toUnit @Microsecond

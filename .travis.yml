@@ -32,6 +32,14 @@ matrix:
         - libgmp-dev
 
   - ghc: 8.2.2
+    env: STACK_YAML="$HOME/build/serokell/log-warper/stack-nightly.yaml"
+    os: linux
+    addons:
+      apt:
+        packages:
+        - libgmp-dev
+
+  - ghc: 8.2.2
     env: GHCVER='8.2.2' CABALVER='head'
     os: linux
     addons:

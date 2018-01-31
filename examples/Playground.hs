@@ -1,15 +1,29 @@
+{-# LANGUAGE CPP                 #-}
+{-# LANGUAGE ExplicitForAll      #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- | Testing module to play with logging.
 
 module Main where
 
 import Universum
 
+#if ( __GLASGOW_HASKELL__ >= 802 )
+import Control.Monad.Trans.Control (MonadBaseControl)
+#endif
 import Data.Yaml.Pretty (defConfig, encodePretty)
 import Lens.Micro ((?~))
+#if ( __GLASGOW_HASKELL__ >= 802 )
+import Time (sec, threadDelay)
+#endif
 
 import System.Wlog (CanLog, atLogger, defaultConfig, infoPlus, launchFromFile, launchWithConfig,
                     logDebug, logError, logInfo, logNotice, logWarning, ltSeverity,
                     modifyLoggerName, parseLoggerConfig, productionB, usingLoggerName)
+#if ( __GLASGOW_HASKELL__ >= 802 )
+import System.Wlog (WithLoggerIO, launchSimpleLogging, logWarningWaitInf)
+#endif
 
 testLoggerConfigPath :: FilePath
 testLoggerConfigPath = "logger-config-example.yaml"
@@ -52,3 +66,15 @@ main = do
 
     putTextLn "\nFrom file configurations.."
     launchFromFile testLoggerConfigPath "node" runPlayLog
+
+#if ( __GLASGOW_HASKELL__ >= 802 )
+    launchSimpleLogging "concurrent" concurrentActions
+
+concurrentActions :: forall m . (WithLoggerIO m, MonadBaseControl IO m) => m ()
+concurrentActions = logWarningWaitInf 2 "stupid action" someStupidAction
+  where
+    someStupidAction :: m ()
+    someStupidAction = replicateM_ 10 $ do
+      threadDelay $ sec 1
+      liftIO $ putTextLn "HEYYEYAAEYAAAEYAEYAA"
+#endif
