@@ -14,20 +14,23 @@ module System.Wlog.Concurrent
 
 import Universum
 
-import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async.Lifted (withAsyncWithUnmask)
 import Control.Monad.Trans.Control (MonadBaseControl)
-import Data.Time.Units (Microsecond, Second, convertUnit, toMicroseconds)
-import Fmt
+import Fmt ((+|), (+||), (|+), (||+))
+import GHC.Real ((%))
+import Time (Microsecond, RatioNat, Second, Time, threadDelay, timeMul, toUnit)
 
 import System.Wlog.CanLog (WithLoggerIO, logWarning)
 
 -- | Data type to represent waiting strategy for printing warnings
 -- if action take too much time.
 data WaitingDelta
-    = WaitOnce      Second              -- ^ wait s seconds and stop execution
-    | WaitLinear    Second              -- ^ wait s, s * 2, s * 3  , s * 4  , ...      seconds
-    | WaitGeometric Microsecond Double  -- ^ wait m, m * q, m * q^2, m * q^3, ... microseconds
+      -- | wait s seconds and stop execution
+    = WaitOnce      (Time Second)
+      -- | wait s, s * 2, s * 3  , s * 4  , ...      seconds
+    | WaitLinear    (Time Second)
+      -- | wait m, m * q, m * q^2, m * q^3, ... microseconds
+    | WaitGeometric (Time Microsecond) RatioNat
     deriving (Show)
 
 
@@ -35,10 +38,8 @@ data WaitingDelta
 type CanLogInParallel m = (MonadBaseControl IO m, WithLoggerIO m)
 
 -- | Run action and print warning if it takes more time than expected.
-logWarningLongAction
-    :: forall m a .
-       CanLogInParallel m
-    => (Text -> m ()) -> WaitingDelta -> Text -> m a -> m a
+logWarningLongAction :: forall m a . CanLogInParallel m
+                     => (Text -> m ()) -> WaitingDelta -> Text -> m a -> m a
 logWarningLongAction logFunc delta actionTag action =
     -- Previous implementation was
     --
@@ -56,39 +57,43 @@ logWarningLongAction logFunc delta actionTag action =
     -- this function is going to be called under 'mask'.
     withAsyncWithUnmask (\unmask -> unmask $ waitAndWarn delta) (const action)
   where
-    printWarning :: Second -> m ()
+    printWarning :: (Time Second) -> m ()
     printWarning t = logFunc $ "Action `"+|actionTag|+"` took more than "+||t||+""
 
     waitAndWarn :: WaitingDelta -> m ()
-    waitAndWarn (WaitOnce      s  ) = delayAndPrint s s
-    waitAndWarn (WaitLinear    s  ) =
-        let waitLoop acc = do
+    waitAndWarn (WaitOnce   s) = delayAndPrint s s
+    waitAndWarn (WaitLinear s) =
+        let waitLoop :: (Time Second) -> m ()
+            waitLoop acc = do
                 delayAndPrint s acc
                 waitLoop (acc + s)
         in waitLoop s
-    waitAndWarn (WaitGeometric s q) =
-        let waitLoop acc t = do
-                let newAcc = acc + t
-                let newT   = round $ fromIntegral t * q
-                delayAndPrint t (convertUnit newAcc :: Second)
-                waitLoop newAcc newT
-        in waitLoop 0 s
+    waitAndWarn (WaitGeometric ms k) =
+        let waitLoop :: (Time Microsecond) -> (Time Microsecond) -> m ()
+            waitLoop acc delayT = do
+                let newAcc    = acc + delayT
+                let newDelayT = k `timeMul` delayT
+                delayAndPrint delayT (toUnit @Second newAcc)
+                waitLoop newAcc newDelayT
+        in waitLoop 0 ms
 
-    delayAndPrint s t = do
-        liftIO $ threadDelay $ fromInteger $ toMicroseconds s
-        printWarning t
+    delayAndPrint delayT printT = do
+        threadDelay delayT
+        printWarning printT
 
 {- Helper functions to avoid dealing with data type -}
 
 -- | Specialization of 'logWarningLongAction' with 'WaitOnce'.
-logWarningWaitOnce :: CanLogInParallel m => Second -> Text -> m a -> m a
+logWarningWaitOnce :: CanLogInParallel m => (Time Second) -> Text -> m a -> m a
 logWarningWaitOnce = logWarningLongAction logWarning . WaitOnce
 
 -- | Specialization of 'logWarningLongAction' with 'WaiLinear'.
-logWarningWaitLinear :: CanLogInParallel m => Second -> Text -> m a -> m a
+logWarningWaitLinear :: CanLogInParallel m => (Time Second) -> Text -> m a -> m a
 logWarningWaitLinear = logWarningLongAction logWarning . WaitLinear
 
 -- | Specialization of 'logWarningLongAction' with 'WaitGeometric'
 -- with parameter @1.3@. Accepts 'Second'.
-logWarningWaitInf :: CanLogInParallel m => Second -> Text -> m a -> m a
-logWarningWaitInf = logWarningLongAction logWarning . (`WaitGeometric` 1.3) . convertUnit
+logWarningWaitInf :: CanLogInParallel m => (Time Second) -> Text -> m a -> m a
+logWarningWaitInf = logWarningLongAction logWarning
+                  . (`WaitGeometric` (13 % 10))
+                  . toUnit @Microsecond

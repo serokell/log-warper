@@ -24,7 +24,6 @@ tested-with:         GHC == 8.0.2
 library
   exposed-modules:     System.Wlog
                        System.Wlog.CanLog
-                       System.Wlog.Concurrent
                        System.Wlog.Exception
                        System.Wlog.FileUtils
                        System.Wlog.Formatter
@@ -40,6 +39,8 @@ library
                        System.Wlog.PureLogging
                        System.Wlog.Severity
                        System.Wlog.Terminal
+  if impl(ghc >= 8.2.2)
+     exposed-modules:  System.Wlog.Concurrent
 
   other-modules:       System.Wlog.Color
                        System.Wlog.MemoryQueue
@@ -60,13 +61,15 @@ library
                      , mtl                  ^>= 2.2.1
                      , text                 ^>= 1.2.2.0
                      , time                 ^>= 1.8
-                     , time-units           ^>= 1.0.0
                      , transformers         ^>= 0.5.2
                      , transformers-base    ^>= 0.4.4
                      , universum            ^>= 1.0.2
                      , unordered-containers >= 0.2.7.1 && < 0.2.9
                      , vector               ^>= 0.12
                      , yaml                 ^>= 0.8.20
+  if impl(ghc >= 8.2.2)
+     build-depends:   o-clock ^>= 0.0
+
   if !os(windows)
     build-depends:     unix
 
