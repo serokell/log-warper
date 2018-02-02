@@ -1,0 +1,4 @@
+resolver: nightly-2018-01-29
+
+nix:
+  packages: [git, openssh, gmp, binutils]

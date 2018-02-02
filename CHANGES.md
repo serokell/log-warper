@@ -1,3 +1,10 @@
+1.8.7
+=====
+
+* [#52](https://github.com/serokell/log-warper/issues/52):
+  Add `System.Wlog.Concurrent` module for `ghc-8.2.2` which
+  allows to run action in parallel with logging.
+
 1.8.6
 =====
 

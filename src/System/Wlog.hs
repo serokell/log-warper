@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 -- |
 -- Module      : System.Wlog
 -- Copyright   : (c) Serokell, 2016
@@ -13,6 +15,9 @@
 
 module System.Wlog
        ( module System.Wlog.CanLog
+#if ( __GLASGOW_HASKELL__ >= 802 )
+       , module System.Wlog.Concurrent
+#endif
        , module System.Wlog.Exception
        , module System.Wlog.FileUtils
        , module System.Wlog.HasLoggerName
@@ -29,6 +34,9 @@ module System.Wlog
        ) where
 
 import System.Wlog.CanLog
+#if ( __GLASGOW_HASKELL__ >= 802 )
+import System.Wlog.Concurrent
+#endif
 import System.Wlog.Exception
 import System.Wlog.FileUtils
 import System.Wlog.HasLoggerName
