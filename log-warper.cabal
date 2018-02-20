@@ -47,7 +47,7 @@ library
 
   build-depends:       base                 >= 4.9 && < 5
                      , aeson                ^>= 1.2
-                     , ansi-terminal        ^>= 0.7
+                     , ansi-terminal        >= 0.7 && < 0.9
                      , containers           ^>= 0.5.7.1
                      , deepseq              ^>= 1.4
                      , directory            ^>= 1.3
