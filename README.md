@@ -27,7 +27,7 @@ Here is the list of features `log-warper` provides.
 2. Logging initialization from `.yaml` configuration file.
 
    Whole logging configuration can be specifed in a single `.yaml` file.
-   See some [simple example here](https://github.com/input-output-hk/cardano-sl/blob/develop/log-config-prod.yaml)
+   See [example here](https://github.com/serokell/log-warper/blob/c1df47e70c48bae62ff81a11fea0b45d50c172e7/logger-config-example.yaml).
 
 3. Monadic logging interface.
 
