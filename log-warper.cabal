@@ -1,5 +1,5 @@
 name:                log-warper
-version:             1.8.8
+version:             1.8.9
 synopsis:            Flexible, configurable, monadic and pretty logging
 homepage:            https://github.com/serokell/log-warper
 license:             MIT
@@ -63,12 +63,12 @@ library
                      , time                 ^>= 1.8
                      , transformers         ^>= 0.5.2
                      , transformers-base    ^>= 0.4.4
-                     , universum            ^>= 1.0.2
-                     , unordered-containers >= 0.2.7.1 && < 0.2.9
+                     , universum            ^>= 1.1.0
+                     , unordered-containers >= 0.2.7.1
                      , vector               ^>= 0.12
                      , yaml                 ^>= 0.8.20
   if impl(ghc >= 8.2.2)
-     build-depends:   o-clock ^>= 0.0
+     build-depends:   o-clock ^>= 0.1
 
   if !os(windows)
     build-depends:     unix
@@ -95,7 +95,7 @@ executable play-log
                      , monad-control ^>= 1.0.1.0
                      , yaml       >= 0.8.20
   if impl(ghc >= 8.2.2)
-     build-depends:   o-clock ^>= 0.0
+     build-depends:   o-clock ^>= 0.1
 
   hs-source-dirs:      examples
   default-language:    Haskell2010

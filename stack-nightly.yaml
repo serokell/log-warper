@@ -1,4 +1,7 @@
-resolver: nightly-2018-01-29
+resolver: nightly-2018-02-21
+
+extra-deps:
+- universum-1.1.0
 
 nix:
   packages: [git, openssh, gmp, binutils]
