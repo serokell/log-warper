@@ -1,3 +1,8 @@
+1.8.9
+=====
+
+* Bump up lower bounds for `universum` and `o-clock` packages.
+
 1.8.8
 =====
 

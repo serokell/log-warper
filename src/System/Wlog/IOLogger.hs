@@ -170,7 +170,7 @@ getLogger lname = liftIO $ modifyMVar logInternalState $ \lt@LogInternalState{..
           return (LogInternalState newlt liPrefix, result)
   where
     createLoggers :: [LoggerName] -> LogTree -> LogTree
-    createLoggers xs lt = foldl' addLoggerToTree lt xs -- Add logger to tree
+    createLoggers xs lt = flipfoldl' addLoggerToTree lt xs -- Add logger to tree
 
     addLoggerToTree ::  LoggerName -> LogTree ->LogTree
     addLoggerToTree x lt =
