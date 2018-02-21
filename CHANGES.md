@@ -1,3 +1,9 @@
+1.8.10
+======
+
+* Remove exception handler from simple logger, which would catch all exceptions,
+  even asynchronous ones.
+
 1.8.9
 =====
 
