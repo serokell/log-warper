@@ -1,3 +1,8 @@
+1.8.8
+=====
+
+* Increase upper bound for `ansi-terminal` to `< 0.9`.
+
 1.8.7
 =====
 
