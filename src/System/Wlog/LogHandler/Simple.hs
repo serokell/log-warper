@@ -63,14 +63,7 @@ instance Typeable a => LogHandler (GenericHandler a) where
 
 -- | Default action which just prints to handle using given message.
 defaultHandleAction :: Handle -> Text -> IO ()
-defaultHandleAction h message =
-    TIO.hPutStrLn h message `catch` handleWriteException
-  where
-    handleWriteException :: SomeException -> IO ()
-    handleWriteException e = do
-        let errorMessage = "Error writing log message: "
-                        <> show e <> " (original message: " <> message <> ")"
-        TIO.hPutStrLn h errorMessage
+defaultHandleAction = TIO.hPutStrLn
 
 -- | Creates custom write action and memory queue where write action
 -- updates memory queue as well.
