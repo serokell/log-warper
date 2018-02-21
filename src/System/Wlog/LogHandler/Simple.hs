@@ -27,7 +27,6 @@ module System.Wlog.LogHandler.Simple
 import Universum
 
 import Control.Concurrent (modifyMVar_, withMVar)
-import Control.Exception (IOException)
 import Data.Text.Lazy.Builder as B
 import Data.Typeable (Typeable)
 import System.Directory (createDirectoryIfMissing)
@@ -64,18 +63,7 @@ instance Typeable a => LogHandler (GenericHandler a) where
 
 -- | Default action which just prints to handle using given message.
 defaultHandleAction :: Handle -> Text -> IO ()
-defaultHandleAction h message =
-    -- Catch IOExceptions, which are always synchronous.
-    -- It's very important that we don't catch SomeException, as was previously
-    -- the case, because it can and did squelch an exception that should have
-    -- killed this thread.
-    TIO.hPutStrLn h message `catch` handleWriteException
-  where
-    handleWriteException :: IOException -> IO ()
-    handleWriteException e = do
-        let errorMessage = "Error writing log message: "
-                        <> show e <> " (original message: " <> message <> ")"
-        TIO.hPutStrLn h errorMessage
+defaultHandleAction = TIO.hPutStrLn
 
 -- | Creates custom write action and memory queue where write action
 -- updates memory queue as well.
