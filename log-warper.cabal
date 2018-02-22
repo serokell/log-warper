@@ -84,43 +84,6 @@ library
                        TypeApplications
                        RecordWildCards
 
-executable play-log
-  main-is:             Playground.hs
-
-  build-depends:       base       >= 4.7 && < 5
-                     , exceptions >= 0.8.2.1
-                     , log-warper
-                     , text       >= 1.2.2.1
-                     , universum  >= 0.3
-                     , yaml       >= 0.8.20
-
-  hs-source-dirs:      examples
-  default-language:    Haskell2010
-  ghc-options:         -threaded -Wall
-                       -fno-warn-orphans
-
-  default-extensions:  GeneralizedNewtypeDeriving
-                       DeriveDataTypeable
-                       DeriveGeneric
-                       NoImplicitPrelude
-                       OverloadedStrings
-                       TypeApplications
-                       RecordWildCards
-
-executable how-to
-  main-is:             HowTo.lhs
-
-  build-depends:       base           >= 4.7 && < 5
-                     , log-warper
-                     , markdown-unlit >= 0.4.0
-                     , text           >= 1.2.2.1
-
-  hs-source-dirs:      examples
-  default-language:    Haskell2010
-  ghc-options:         -threaded -Wall
-                       -fno-warn-orphans
-                       -pgmL markdown-unlit
-
 test-suite log-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
