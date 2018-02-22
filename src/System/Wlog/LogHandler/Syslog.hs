@@ -51,8 +51,9 @@ import Data.Bits (shiftL, (.|.))
 import Data.Text.Lazy.Builder as B
 import Network.BSD (getHostByName, hostAddresses)
 import Network.Socket (Family (..), HostName, PortNumber, SockAddr (..), Socket,
-                       SocketType (Datagram, Stream), connect, socket)
+                       SocketType (Datagram, Stream), socket)
 #ifndef mingw32_HOST_OS
+import Network.Socket (connect)
 import System.Posix.Process (getProcessID)
 #endif
 import System.IO ()
@@ -61,8 +62,9 @@ import System.Wlog.Formatter (LogFormatter, varFormatter)
 import System.Wlog.LogHandler (LogHandler (..), LogHandlerTag (HandlerOther))
 import System.Wlog.Severity (Severities, Severity (..))
 
-
+#ifndef mingw32_HOST_OS
 import qualified Control.Exception as E
+#endif
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE

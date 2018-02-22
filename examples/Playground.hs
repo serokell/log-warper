@@ -1,7 +1,5 @@
 -- | Testing module to play with logging.
 
-module Main where
-
 import Universum
 
 import Data.Yaml.Pretty (defConfig, encodePretty)

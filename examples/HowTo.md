@@ -22,8 +22,6 @@ and imports up front.
 ``` haskell
 {-# LANGUAGE OverloadedStrings #-}
 
-module Main (main) where
-
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Semigroup ((<>))
