@@ -1,3 +1,8 @@
+1.8.10.1
+======
+
+* Make `o-clock` non-optional dependency.
+
 1.8.10
 ======
 
