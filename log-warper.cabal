@@ -59,7 +59,7 @@ library
                      , monad-loops          ^>= 0.4.3
                      , mmorph               ^>= 1.1
                      , mtl                  ^>= 2.2.1
-                     , o-clock              ^>= 0.1
+                     , o-clock              ^>= 0.1.1
                      , text                 ^>= 1.2.2.0
                      , time                 ^>= 1.8
                      , transformers         ^>= 0.5.2
