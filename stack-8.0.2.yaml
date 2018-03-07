@@ -2,17 +2,16 @@ resolver: lts-9.17
 packages: [.]
 
 extra-deps:
-- Cabal-2.0.0.2
 - bytestring-0.10.8.2
+- Cabal-2.0.0.2
 - containers-0.5.10.2
 - deepseq-1.4.3.0
 - fmt-0.5.0.0
 - ghc-prim-0.5.1.1
+- o-clock-0.1.1
 - universum-1.1.0
 
 nix:
   packages: [git, openssh, gmp, binutils]
 
-flags: {}
-extra-package-dbs: []
 allow-newer: true

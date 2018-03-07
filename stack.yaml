@@ -1,6 +1,7 @@
-resolver: lts-10.6
+resolver: lts-10.8
+
 extra-deps:
-- o-clock-0.1.0
+- o-clock-0.1.1
 - universum-1.1.0
 
 nix:
