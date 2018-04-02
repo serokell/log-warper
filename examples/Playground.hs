@@ -18,9 +18,9 @@ import Lens.Micro ((?~))
 import Time (sec, threadDelay)
 #endif
 
-import System.Wlog (CanLog, atLogger, defaultConfig, infoPlus, launchFromFile, launchWithConfig,
-                    logDebug, logError, logInfo, logNotice, logWarning, ltSeverity,
-                    modifyLoggerName, parseLoggerConfig, productionB, usingLoggerName)
+import System.Wlog (CanLog, atLogger, consoleActionB, defaultConfig, infoPlus, launchFromFile,
+                    launchWithConfig, logDebug, logError, logInfo, logNotice, logWarning,
+                    ltSeverity, modifyLoggerName, parseLoggerConfig, productionB, usingLoggerName)
 #if ( __GLASGOW_HASKELL__ >= 802 )
 import System.Wlog (WithLoggerIO, launchSimpleLogging, logWarningWaitInf)
 #endif
@@ -67,7 +67,13 @@ main = do
     putTextLn "\nFrom file configurations.."
     launchFromFile testLoggerConfigPath "node" runPlayLog
 
+    putTextLn "\nShould be silent..."
+    launchWithConfig (defaultConfig "node" <> consoleActionB (\_ _ -> return ()))
+                     "node"
+                     runPlayLog
+
 #if ( __GLASGOW_HASKELL__ >= 802 )
+    putTextLn "\nConcurrent..."
     launchSimpleLogging "concurrent" concurrentActions
 
 concurrentActions :: forall m . (WithLoggerIO m, MonadBaseControl IO m) => m ()
