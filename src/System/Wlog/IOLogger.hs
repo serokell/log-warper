@@ -71,6 +71,8 @@ import qualified Data.Text.IO as TIO
 
 import qualified System.Wlog.LogHandler (logHandlerMessage)
 
+import qualified GHC.Show as GHC
+
 ---------------------------------------------------------------------------
 -- Basic logger types
 ---------------------------------------------------------------------------
@@ -79,9 +81,13 @@ data HandlerT = forall a. LogHandler a => HandlerT a
 
 data Logger = Logger
     { _lLevel    :: Maybe Severities
+    -- FIXME: Why Maybe Severities, if it can be empty list/set?
     , _lHandlers :: [HandlerT]
     , _lName     :: LoggerName
     } deriving (Generic)
+
+instance GHC.Show Logger where
+    show l = "Logger " ++ show (_lLevel l) ++ " " ++ show (_lName l)
 
 makeLenses ''Logger
 
@@ -170,16 +176,21 @@ getLogger lname = liftIO $ modifyMVar logInternalState $ \lt@LogInternalState{..
           return (LogInternalState newlt liPrefix, result)
   where
     createLoggers :: [LoggerName] -> LogTree -> LogTree
-    createLoggers xs lt = flipfoldl' addLoggerToTree lt xs -- Add logger to tree
+    createLoggers (parent:logger:xs) lt = addLoggerToTree parent logger $ createLoggers (logger:xs) lt
+    createLoggers [logger] lt = addLoggerToTree rootLoggerName logger lt
+    createLoggers [] lt = lt
 
-    addLoggerToTree ::  LoggerName -> LogTree ->LogTree
-    addLoggerToTree x lt =
-        if M.member x lt
+    addLoggerToTree :: LoggerName -> LoggerName -> LogTree -> LogTree
+    addLoggerToTree parentName name lt =
+        if M.member name lt
             then lt
-            else M.insert x (defaultLogger & lName .~ x) lt
+            else M.insert name (parentLogger parentName lt & lName .~ name) lt
+
+    parentLogger :: LoggerName -> LogTree -> Logger
+    parentLogger ln lt = fromMaybe defaultLogger $ M.lookup ln lt
 
     defaultLogger :: Logger
-    defaultLogger = Logger Nothing [] (error "log-warper has some strange code") -- ???!??!
+    defaultLogger = Logger Nothing [] (error "log-warper has no root logger") -- FIXME: can happens only if no root logger in tree
 
 -- | Returns the root logger.
 getRootLogger :: MonadIO m => m Logger
