@@ -44,6 +44,11 @@ testLogging = usingLoggerName "node" $ do
     modifyLoggerName (<> "server") $ do
         logDebug  "provoda"
         logNotice "Ggurda"
+        modifyLoggerName (<> "missing") $ do
+            logInfo "should be in node.server"
+
+    modifyLoggerName (<> "missing") $ do
+        logInfo "should be in node"
 
     logError   "BARDAQ"
 
