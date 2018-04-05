@@ -71,6 +71,8 @@ import qualified Data.Text.IO as TIO
 
 import qualified System.Wlog.LogHandler (logHandlerMessage)
 
+import qualified GHC.Show as GHC
+
 ---------------------------------------------------------------------------
 -- Basic logger types
 ---------------------------------------------------------------------------
@@ -82,6 +84,9 @@ data Logger = Logger
     , _lHandlers :: [HandlerT]
     , _lName     :: LoggerName
     } deriving (Generic)
+
+instance GHC.Show Logger where
+    show l = "Logger " ++ show (_lLevel l) ++ " " ++ show (_lName l)
 
 makeLenses ''Logger
 

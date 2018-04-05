@@ -18,9 +18,10 @@ import Lens.Micro ((?~))
 import Time (sec, threadDelay)
 #endif
 
-import System.Wlog (CanLog, atLogger, consoleActionB, defaultConfig, infoPlus, launchFromFile,
-                    launchWithConfig, logDebug, logError, logInfo, logNotice, logWarning,
-                    ltSeverity, modifyLoggerName, parseLoggerConfig, productionB, usingLoggerName)
+import System.Wlog (CanLog, atLogger, consoleActionB, defaultConfig, getLogger, infoPlus,
+                    launchFromFile, launchWithConfig, logDebug, logError, logInfo, logNotice,
+                    logWarning, ltSeverity, modifyLoggerName, parseLoggerConfig, productionB,
+                    usingLoggerName)
 #if ( __GLASGOW_HASKELL__ >= 802 )
 import System.Wlog (WithLoggerIO, launchSimpleLogging, logWarningWaitInf)
 #endif
@@ -34,16 +35,25 @@ testToJsonConfigOutput = do
     let builtConfig  = cfg <> productionB
     putStrLn $ encodePretty defConfig builtConfig
 
-testLogging :: (CanLog m) => m ()
+testLogging :: (CanLog m, MonadIO m) => m ()
 testLogging = usingLoggerName "node" $ do
     logDebug   "skovoroda"
     logInfo    "patak"
     logNotice  "boroda"
     logWarning "haha"
 
+    getLogger "node" >>= \l -> logDebug $ show l
+    getLogger "node.server" >>= \l -> logDebug $ show l
+    getLogger "node.missing" >>= \l -> logDebug $ show l
+
     modifyLoggerName (<> "server") $ do
         logDebug  "provoda"
         logNotice "Ggurda"
+        modifyLoggerName (<> "missing") $ do
+            logInfo "should be in node.server"
+
+    modifyLoggerName (<> "missing") $ do
+        logInfo "should be in node"
 
     logError   "BARDAQ"
 
