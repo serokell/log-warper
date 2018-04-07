@@ -1,3 +1,9 @@
+1.8.11
+======
+
+* Resolve LW-34 bug, which was causing improper message handling in
+  nonexisting loggers
+
 1.8.10.1
 ======
 

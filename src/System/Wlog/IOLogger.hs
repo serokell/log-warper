@@ -1,5 +1,6 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE MultiWayIf                #-}
+{-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE TemplateHaskell           #-}
 {-# LANGUAGE TupleSections             #-}
 
@@ -61,7 +62,7 @@ import System.IO.Unsafe (unsafePerformIO)
 import System.Wlog.LoggerName (LoggerName (..))
 import System.Wlog.LogHandler (LogHandler (getTag), LogHandlerTag (HandlerFilelike), close,
                                readBack)
-import System.Wlog.Severity (LogRecord (..), Severities, Severity (..), debugPlus, warningPlus)
+import System.Wlog.Severity (LogRecord (..), Severities, Severity (..), warningPlus)
 
 
 import qualified Data.Map as M
@@ -117,21 +118,24 @@ logInternalState = unsafePerformIO $ do
         liPrefix = Nothing
     newMVar LogInternalState {..}
 
-{- | Given a name, return all components of it, starting from the root.
+{-
+Given a name, return all components of it, starting from the root.
+
 Example return value:
 
->["", "MissingH", "System.Cmd.Utils", "System.Cmd.Utils.pOpen"]
+λ> componentsOfName (LoggerName "a.b.c")
+[LoggerName {getLoggerName = ""},
+ LoggerName {getLoggerName = "a"},
+ LoggerName {getLoggerName = "a.b"},
+ LoggerName {getLoggerName = "a.b.c"}]
 
 -}
 componentsOfName :: LoggerName -> [LoggerName]
 componentsOfName (LoggerName name) =
-    rootLoggerName : (LoggerName <$> joinComp (T.splitOn "." name) "")
+    rootLoggerName : (LoggerName <$> joinComp (T.splitOn "." name))
   where
-    joinComp [] _ = []
-    joinComp (x:xs) "" = x : joinComp xs x
-    joinComp (x:xs) accum =
-        let newlevel = accum <> "." <> x
-        in newlevel : joinComp xs newlevel
+    joinComp :: [Text] -> [Text]
+    joinComp = map (T.intercalate ".") . drop 1 . inits
 
 ---------------------------------------------------------------------------
 -- Logging With Location
@@ -156,63 +160,68 @@ logMCond logname sev msg cond = do
 -- Public Logger Interaction Support
 ---------------------------------------------------------------------------
 
--- | Returns the logger for the given name.  If no logger with that name
--- exists, creates new loggers and any necessary parent loggers, with
--- no connected handlers.
+-- | Returns the logger for the given name. If no logger with that
+-- name exists, creates new loggers and any necessary parent loggers,
+-- with no connected handlers.
 getLogger :: MonadIO m => LoggerName -> m Logger
 getLogger lname = liftIO $ modifyMVar logInternalState $ \lt@LogInternalState{..} ->
     case M.lookup lname liTree of
       Just x ->  return (lt, x) -- A logger exists; return it and leave tree
       Nothing -> do
           -- Add logger(s).  Then call myself to retrieve it.
-          let newlt = createLoggers (componentsOfName lname) liTree
+          let newlt = createLoggers liTree
           let result = fromJust $ M.lookup lname newlt
           return (LogInternalState newlt liPrefix, result)
   where
-    createLoggers :: [LoggerName] -> LogTree -> LogTree
-    createLoggers xs lt = flipfoldl' addLoggerToTree lt xs -- Add logger to tree
+    createLoggers :: LogTree -> LogTree
+    createLoggers lt = foldl' addLoggerToTree lt (componentsOfName lname)
 
-    addLoggerToTree ::  LoggerName -> LogTree ->LogTree
-    addLoggerToTree x lt =
-        if M.member x lt
-            then lt
-            else M.insert x (defaultLogger & lName .~ x) lt
-
-    defaultLogger :: Logger
-    defaultLogger = Logger Nothing [] (error "log-warper has some strange code") -- ???!??!
+    addLoggerToTree ::  LogTree -> LoggerName -> LogTree
+    addLoggerToTree lt x = if M.member x lt then lt else M.insert x (Logger Nothing [] x) lt
 
 -- | Returns the root logger.
 getRootLogger :: MonadIO m => m Logger
 getRootLogger = getLogger rootLoggerName
 
 -- | Handle a log request.
-handle :: MonadIO m => Logger -> LogRecord -> (LogHandlerTag -> Bool) -> m ()
-handle l lrecord@(LR sev _) handlerFilter = do
-    lp <- getLoggerSeverities nm
-    when (sev `Set.member` lp) $ do
-        ph <- concatMap (view lHandlers) <$> parentLoggers nm
-        forM_ ph $ callHandler lrecord nm
+--
+-- 1. Find the deepest logger that has non-zero handlers to handle log message.
+-- 2. Validate if message severity matches this logger severity
+-- 3. Handle it by all parent handlers.
+handle :: forall m. MonadIO m => Logger -> LogRecord -> (LogHandlerTag -> Bool) -> m ()
+handle l lr@(LR sev _) handlerFilter =
+    traverseAndLog False =<< parentLoggers nm
   where
     nm :: LoggerName
     nm = view lName l
 
-    parentLoggers :: MonadIO m => LoggerName -> m [Logger]
-    parentLoggers = mapM getLogger . componentsOfName
+    -- Returns all loggers, root logger last
+    parentLoggers :: LoggerName -> m [Logger]
+    parentLoggers = fmap reverse . mapM getLogger . componentsOfName
 
-    -- Get the severity we should use. Find the first logger in the
-    -- tree, starting here, with a set severity. If even root doesn't
-    -- have one, assume "Debug".
-    getLoggerSeverities :: MonadIO m => LoggerName -> m Severities
-    getLoggerSeverities name = do
-        pl <- parentLoggers name
-        case mapMaybe (view lLevel) (l : pl) of
-            []    -> pure debugPlus
-            (x:_) -> pure x
+    -- Tries to log the message into handlers. sevFiltPassed variable
+    -- denotes the "has log message passed through the first severity
+    -- filter". We only apply severity filter once, the first time we
+    -- encounter it.
+    traverseAndLog :: Bool -> [Logger] -> m ()
+    traverseAndLog sevFiltPassed lgs = whenNotNull lgs $ \(x:|xs) -> do
+        let doLog n = do
+                forM_ (x ^. lHandlers) callHandler
+                traverseAndLog n xs
+        if sevFiltPassed
+        then doLog sevFiltPassed
+        else case x ^. lLevel of
+           -- We haven't yet met severity filter, so we still traverse
+           Nothing   -> doLog sevFiltPassed
+           -- If we didn't pass the first encountered filter check, we
+           -- don't proceed with logging. If we pass, we set
+           -- sevFiltPassed to true for next iterations.
+           (Just lp) -> when (sev `Set.member` lp) $ doLog True
 
-    callHandler :: MonadIO m => LogRecord -> LoggerName -> HandlerT -> m ()
-    callHandler lr loggername (HandlerT x) =
+    callHandler :: HandlerT -> m ()
+    callHandler (HandlerT x) =
         when (handlerFilter $ getTag x) $
-            System.Wlog.LogHandler.logHandlerMessage x lr loggername
+            System.Wlog.LogHandler.logHandlerMessage x lr nm
 
 -- | Sets file prefix to 'LogInternalState'.
 setPrefix :: MonadIO m => Maybe FilePath -> m ()

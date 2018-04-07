@@ -18,9 +18,10 @@ import Lens.Micro ((?~))
 import Time (sec, threadDelay)
 #endif
 
-import System.Wlog (CanLog, atLogger, defaultConfig, infoPlus, launchFromFile, launchWithConfig,
-                    logDebug, logError, logInfo, logNotice, logWarning, ltSeverity,
-                    modifyLoggerName, parseLoggerConfig, productionB, usingLoggerName)
+import System.Wlog (CanLog, atLogger, consoleActionB, debugPlus, defaultConfig, infoPlus,
+                    launchFromFile, launchWithConfig, logDebug, logError, logInfo, logNotice,
+                    logWarning, ltSeverity, modifyLoggerName, parseLoggerConfig, productionB,
+                    usingLoggerName)
 #if ( __GLASGOW_HASKELL__ >= 802 )
 import System.Wlog (WithLoggerIO, launchSimpleLogging, logWarningWaitInf)
 #endif
@@ -36,23 +37,34 @@ testToJsonConfigOutput = do
 
 testLogging :: (CanLog m) => m ()
 testLogging = usingLoggerName "node" $ do
-    logDebug   "skovoroda"
-    logInfo    "patak"
-    logNotice  "boroda"
-    logWarning "haha"
+    logDebug   "debug"
+    logInfo    "info"
+    logNotice  "notice"
+    logWarning "warning"
 
     modifyLoggerName (<> "server") $ do
-        logDebug  "provoda"
-        logNotice "Ggurda"
+        logDebug  "server-debug"
+        logInfo   "server-info"
+        logNotice "server-warning"
+        modifyLoggerName (<> "missing") $ do
+            logInfo "should be in node.server"
+
+    modifyLoggerName (<> "missing") $ do
+        logInfo "should be in node"
 
     logError   "BARDAQ"
 
 showSomeLog :: (CanLog m, MonadIO m) => m ()
-showSomeLog = do
-    putTextLn "Other log:"
-    usingLoggerName "naked" $ do
-        logWarning "Some warning"
-        logDebug   "Some debug"
+showSomeLog = usingLoggerName "naked" $ do
+    logDebug   "Some debug"
+    logInfo    "Some info"
+    logNotice  "Some notice"
+    logWarning "Some warning"
+    modifyLoggerName (<> "nested") $ do
+        logDebug   "Some nested debug"
+        logInfo    "Some nested info"
+        logNotice  "Some nested notice"
+        logWarning "Some nested warning"
 
 main :: IO ()
 main = do
@@ -60,14 +72,21 @@ main = do
     let runPlayLog = testLogging >> showSomeLog
 
     putTextLn "Default configurations with modification.."
-    launchWithConfig (defaultConfig "node" & atLogger "node" . ltSeverity ?~ infoPlus)
+    launchWithConfig (defaultConfig "node" & atLogger "node" . ltSeverity ?~ infoPlus
+                                           & atLogger "node.server" . ltSeverity ?~ debugPlus)
                      "node"
                      runPlayLog
 
     putTextLn "\nFrom file configurations.."
     launchFromFile testLoggerConfigPath "node" runPlayLog
 
+    putTextLn "\nShould be silent..."
+    launchWithConfig (defaultConfig "node" <> consoleActionB (\_ _ -> return ()))
+                     "node"
+                     runPlayLog
+
 #if ( __GLASGOW_HASKELL__ >= 802 )
+    putTextLn "\nConcurrent..."
     launchSimpleLogging "concurrent" concurrentActions
 
 concurrentActions :: forall m . (WithLoggerIO m, MonadBaseControl IO m) => m ()
