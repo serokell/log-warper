@@ -1,0 +1,31 @@
+name:                log-warper-core
+version:             2.0
+synopsis:            Core functions for log-warper
+description:         This package implements core functions and itself is a simple logging library
+homepage:            https://github.com/serokell/log-warper
+license:             MPL-2.0
+license-file:        LICENSE
+author:              @serokell
+maintainer:          Serokell <hi@serokell.io>
+copyright:           2016-2018 Serokell
+category:            Logging
+extra-doc-files:     CHANGES.md
+                   , README.md
+stability:           stable
+build-type:          Simple
+cabal-version:       >=2.0
+tested-with:         GHC == 8.0.2
+                   , GHC == 8.2.2
+                   , GHC == 8.4.1
+
+library
+  exposed-modules:     Log.Core
+                         Log.Core.Action
+                         Log.Core.Class
+
+  build-depends:       base >= 4.9 && < 5
+                     , transformers >= 0.5
+
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:         -Wall

@@ -1,10 +1,15 @@
+# termSeveritiesOut : [Debug, Info, Notice] # severities which go to `stdout`
+# termSeveritiesErr : Warning+              # severities which go to `stderr`
+
 rotation:                                 # parameters for logger rotation
-    logLimit: 256                         # size of file in bytes
+    maxSizeBytes: 256                     # size of file in bytes
     keepFiles: 3                          # max number of files to keep
-termSeveritiesOut : [Debug, Info, Notice] # severities which go to `stdout`
-termSeveritiesErr : Warning+              # severities which go to `stderr`
-filePrefix: logs                          # directory for logs
-loggerTree:                               # specify logger hierarchy
+
+global:                                   # global logging configuration
+    showTid: true                         # show thread id
+    logsDirectory: logs                   # directory for logs
+
+tree:                                     # specify logger hierarchy
   severity: Warning+                      # severities for «root» logger
   node:                                   # logger named «node»
     severity: Debug+                      # severities for logger «node»

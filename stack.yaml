@@ -1,8 +1,8 @@
-resolver: lts-10.8
+resolver: lts-11.5
 
-extra-deps:
-- o-clock-0.1.1
-- universum-1.1.0
+packages:
+- log-warper-core
+- log-warper
 
 nix:
   packages: [git, openssh, gmp, binutils]
