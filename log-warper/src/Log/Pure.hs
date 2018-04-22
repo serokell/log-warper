@@ -25,7 +25,7 @@ import Control.Monad.State.Strict (modify')
 import Data.Sequence ((|>))
 
 import Log.Core.Action (LogAction (..))
-import Log.Core.Class (ActionT, usingActionT)
+import Log.Core.Class (LoggerT, usingLoggerT)
 import Log.Event (Event (..))
 
 -- | Underlying monad for pure logging action Instead of writing log message to
@@ -39,11 +39,11 @@ pureLogAction :: Monad m => LogAction (PureLoggerT exts m) (Event exts)
 pureLogAction = LogAction $ \event -> PureLoggerT $ modify' (|> event)
 
 -- | Return log of pure logging action as list of 'LogEvent'.
-runPureLog :: Monad m => ActionT (Event exts) (PureLoggerT exts m) a -> m (a, [Event exts])
+runPureLog :: Monad m => LoggerT (Event exts) (PureLoggerT exts m) a -> m (a, [Event exts])
 runPureLog = fmap (second toList)
            . usingStateT mempty
            . runPureLoggerT
-           . usingActionT pureLogAction
+           . usingLoggerT pureLogAction
 
 -- -- | Logs all 'LogEvent'`s from given list. This function supposed to
 -- -- be used after 'runPureLog'.

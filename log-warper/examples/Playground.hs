@@ -17,7 +17,7 @@ import Universum
 import Data.Yaml (FromJSON, ToJSON, decodeFileEither, prettyPrintParseException)
 import Data.Yaml.Pretty (defConfig, encodePretty)
 
-import Log (Configuration, Context (..), Extension (..), RotationExtension, Severity (..),
+import Log (Configuration, Extension (..), LogCtx (..), RotationExtension, Severity (..),
             WithLogger, launchLogger, logM, logStdout, withSublogger)
 
 testLoggerConfigPath :: FilePath
@@ -56,7 +56,7 @@ testToJsonConfigOutput = do
 --     logError   "BARDAQ"
 --
 
-showSomeLog :: WithLogger m exts => m ()
+showSomeLog :: WithLogger exts m => m ()
 showSomeLog = do
     logM Debug   "Some debug"
     logM Info    "Some info"
@@ -78,7 +78,7 @@ main = do
     config <- fromRight (error "Parse error")
           <$> decodeFileEither @(Configuration '[ 'Rotation ]) testLoggerConfigPath
 
-    launchLogger logStdout (Context "app" config) showSomeLog
+    launchLogger logStdout (LogCtx "app" config) showSomeLog
 
 --     let runPlayLog = testLogging >> showSomeLog
 --

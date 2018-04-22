@@ -25,8 +25,8 @@ import Data.Semigroup (Semigroup (..), stimesMonoid)
 
 {- | Polymorphic and very general logging action type.
 
-@__a__@ type variables is an input for logger. It can be 'Text' or custom record
-with different data types you want to format in future.
+@__msg__@ type variables is an input for logger. It can be 'Text' or custom
+logging messsage with different data types you want to format in future.
 
 @__m__@ type variable is for monadic action inside which logging is happening. It
 can be either 'IO' or some custom pure monad.
@@ -41,8 +41,8 @@ __main__ = __do__
   launchLogging action application
 @
 -}
-newtype LogAction m a = LogAction
-    { unLogAction :: a -> m ()
+newtype LogAction m msg = LogAction
+    { unLogAction :: msg -> m ()
     }
 
 instance Applicative m => Semigroup (LogAction m a) where
@@ -59,6 +59,7 @@ instance Applicative m => Semigroup (LogAction m a) where
     {-# INLINE stimes #-}
 
 instance Applicative m => Monoid (LogAction m a) where
+    mappend :: LogAction m a -> LogAction m a -> LogAction m a
     mappend = (<>)
     {-# INLINE mappend #-}
 
@@ -83,8 +84,8 @@ joinActions actions = LogAction $ \a -> for_ actions $ \(LogAction action) -> ac
 {-# SPECIALIZE joinActions :: Applicative m => NonEmpty (LogAction m a) -> LogAction m a #-}
 
 -- | Takes predicate and performs given logging action only if predicate returns
--- 'True' on input.
-ward :: Applicative m => (a -> Bool) -> LogAction m a -> LogAction m a
+-- 'True' on input logging message.
+ward :: Applicative m => (msg -> Bool) -> LogAction m msg -> LogAction m msg
 ward predicate (LogAction action) = LogAction $ \a -> when (predicate a) (action a)
 {-# INLINE ward #-}
 

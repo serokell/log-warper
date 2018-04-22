@@ -61,12 +61,8 @@ import qualified Data.HashMap.Strict as HashMap hiding (HashMap)
 * 'Log.Configuration.Rotation.RotationParameters': parameters for logger rotation. Allowed to not be specified.
 
 Behavior of YAML parsing for any extension point (for example, 'Rotation') is
-the following:
-
-1. Has extension, has config fields: parses without problems.
-2. No extension, has config fields: runtime parsing exception.
-3. Has extension, no config fields: runtime parsing exception.
-4. No extension, no config fields: parses without problems.
+the following: parsing succeeds iff extension and config fields are both present
+or both absent.
 
 -}
 data Configuration (exts :: [Extension]) = Configuration
