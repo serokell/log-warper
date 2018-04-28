@@ -1,4 +1,3 @@
-{-# LANGUAGE StandaloneDeriving   #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 -- | Contains @newtype@ wrapper 'LoggerName' for list of components for logger name.
@@ -27,9 +26,7 @@ example of correspondence between list of components and string:
 -}
 newtype LoggerName = LoggerName
     { unLoggerName :: Vector Text
-    } deriving (Eq, Ord, Generic, Semigroup, Monoid)
-
-deriving instance Container LoggerName
+    } deriving (Eq, Ord, Generic, Semigroup, Monoid, Container)
 
 instance Hashable LoggerName where
     hashWithSalt = foldl' hashWithSalt

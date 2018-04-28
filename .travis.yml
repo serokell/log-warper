@@ -23,14 +23,6 @@ matrix:
         packages:
         - libgmp-dev
 
-  - ghc: 8.0.2
-    env: STACK_YAML="$HOME/build/serokell/log-warper/stack-8.0.2.yaml"
-    os: linux
-    addons:
-      apt:
-        packages:
-        - libgmp-dev
-
 # TODO: use GHC-8.4.1 when `universum` can be built with it. For now it's useless.
 #
 #  - ghc: 8.2.2
