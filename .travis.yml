@@ -31,13 +31,15 @@ matrix:
         packages:
         - libgmp-dev
 
-  - ghc: 8.2.2
-    env: STACK_YAML="$HOME/build/serokell/log-warper/stack-nightly.yaml"
-    os: linux
-    addons:
-      apt:
-        packages:
-        - libgmp-dev
+# TODO: use GHC-8.4.1 when `universum` can be built with it. For now it's useless.
+#
+#  - ghc: 8.2.2
+#    env: STACK_YAML="$HOME/build/serokell/log-warper/stack-nightly.yaml"
+#    os: linux
+#    addons:
+#      apt:
+#        packages:
+#        - libgmp-dev
 
   - ghc: 8.2.2
     env: GHCVER='8.2.2' CABALVER='head'
@@ -64,8 +66,7 @@ install:
       stack --version
       stack setup --no-terminal --install-cabal 2.0.1.0
       stack ghc -- --version
-      stack build log-warper --only-dependencies --no-terminal
-      stack build log-warper-core --only-dependencies --no-terminal
+      stack build --only-dependencies --no-terminal
     fi
 
 script:
@@ -75,7 +76,7 @@ script:
       cabal new-build log-warper
     else
       stack build log-warper-core --test --bench --no-terminal
-      stack build log-warper --test --bench --no-terminal
+      stack build log-warper      --test --bench --no-terminal
     fi
 
 notifications:

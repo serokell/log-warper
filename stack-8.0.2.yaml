@@ -1,5 +1,8 @@
 resolver: lts-9.17
-packages: [.]
+
+packages:
+- log-warper-core
+- log-warper
 
 extra-deps:
 - bytestring-0.10.8.2
