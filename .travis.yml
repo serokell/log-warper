@@ -55,7 +55,8 @@ install:
     if [ -z "$STACK_YAML" ]; then
       export PATH="/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$PATH"
       cabal new-update
-      cabal new-build log-warper --only-dependencies
+      cabal new-build log-warper-core --only-dependencies
+      cabal new-build log-warper      --only-dependencies
     else
       mkdir -p ~/.local/bin
       export PATH="$HOME/.local/bin:$PATH"
@@ -63,15 +64,18 @@ install:
       stack --version
       stack setup --no-terminal --install-cabal 2.0.1.0
       stack ghc -- --version
-      stack build --only-dependencies --no-terminal
+      stack build log-warper --only-dependencies --no-terminal
+      stack build log-warper-core --only-dependencies --no-terminal
     fi
 
 script:
   - |
     if [ -z "$STACK_YAML" ]; then
-      cabal new-test all
+      cabal new-build log-warper-core
+      cabal new-build log-warper
     else
-      stack build --test --bench --no-terminal
+      stack build log-warper-core --test --bench --no-terminal
+      stack build log-warper --test --bench --no-terminal
     fi
 
 notifications:
