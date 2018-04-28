@@ -17,8 +17,8 @@ import Universum
 import Data.Yaml (FromJSON, ToJSON, decodeFileEither, prettyPrintParseException)
 import Data.Yaml.Pretty (defConfig, encodePretty)
 
-import Log (Configuration, Extension (..), LogCtx (..), RotationExtension, Severity (..),
-            WithLogger, launchLogger, logEventStdout, logM, withSublogger)
+import Logw (Configuration, Extension (..), LogCtx (..), RotationExtension, Severity (..),
+             WithLogger, launchLogger, logEventStdout, logM, withSublogger)
 
 testLoggerConfigPath :: FilePath
 testLoggerConfigPath = "log-warper/logger-config-example.yaml"

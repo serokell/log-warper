@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Log.Configuration.Extension
+module Logw.Configuration.Extension
        ( Extension (..)
        , ElemExtension
        , ExtensionType

@@ -19,9 +19,9 @@ tested-with:         GHC == 8.0.2
                    , GHC == 8.4.1
 
 library
-  exposed-modules:     Log.Core
-                         Log.Core.Action
-                         Log.Core.Class
+  exposed-modules:     Logw.Core
+                         Logw.Core.Action
+                         Logw.Core.Class
 
   build-depends:       base >= 4.9 && < 5
                      , transformers >= 0.5

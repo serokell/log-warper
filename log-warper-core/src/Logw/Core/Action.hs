@@ -2,7 +2,7 @@
 
 -- | Implements general type for logging action.
 
-module Log.Core.Action
+module Logw.Core.Action
        ( -- * Core type and instances
          LogAction (..)
 

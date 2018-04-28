@@ -8,7 +8,7 @@
 -- | Contains base monad for all logging actions in @log-warper@ library. This
 -- monad keeps logging 'LogCtx' inside 'ReaderT'.
 
-module Log.Monad
+module Logw.Monad
        ( -- * Logger Context
          LogCtx (..)
        , ctxName
@@ -29,12 +29,12 @@ import Universum
 
 import Lens.Micro.Platform (makeLenses)
 
-import Log.Configuration (Configuration, Extension)
-import Log.Core.Action (LogAction (..))
-import Log.Core.Class (LoggerT, MonadLogger, logR, usingLoggerT, withR)
-import Log.Event (Event (..), eName)
-import Log.Name (LoggerName)
-import Log.Severity (Severity)
+import Logw.Configuration (Configuration, Extension)
+import Logw.Core.Action (LogAction (..))
+import Logw.Core.Class (LoggerT, MonadLogger, logR, usingLoggerT, withR)
+import Logw.Event (Event (..), eName)
+import Logw.Name (LoggerName)
+import Logw.Severity (Severity)
 
 -- | Runtime context for main 'LoggerT' monad. Keeps current 'LoggerName' inside
 -- 'ReaderT' context as well as global configuration.

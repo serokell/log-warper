@@ -4,7 +4,7 @@
 
 -- | Contains implementations of logging records and events which are consumed by 'LogAction'.
 
-module Log.Event
+module Logw.Event
        ( -- * Types
          Event (..)
        , eName
@@ -27,10 +27,10 @@ import Control.Concurrent (ThreadId, myThreadId)
 import Data.Time.Clock (UTCTime, getCurrentTime)
 import Lens.Micro.Platform (makeLenses)
 
-import Log.Configuration (Configuration, Extension, cGlobal, gpShowTid, gpShowTime)
-import Log.Core.Action (LogAction (..), cbind)
-import Log.Name (LoggerName (..))
-import Log.Severity (Severity (..))
+import Logw.Configuration (Configuration, Extension, cGlobal, gpShowTid, gpShowTime)
+import Logw.Core.Action (LogAction (..), cbind)
+import Logw.Name (LoggerName (..))
+import Logw.Severity (Severity (..))
 
 
 {- | Bundle of all basic logging data. This logging record also contains

@@ -10,7 +10,7 @@
 
 -- | Monad type class for things that have logging ability.
 
-module Log.Core.Class
+module Logw.Core.Class
        ( -- * Interface
          MonadLogger (..)
        , logR
@@ -33,7 +33,7 @@ import Control.Monad.Trans.Reader (ReaderT (..), ask, mapReaderT)
 import Control.Monad.Trans.State.Strict (StateT (..), get, mapStateT)
 import Data.Kind (Type)
 
-import Log.Core.Action (LogAction (..), cmap)
+import Logw.Core.Action (LogAction (..), cmap)
 
 {- | Type class for monads that have logging ability. In order to log things
 monad @m@ should be able to construct 'LogAction' for some logging message @msg@.

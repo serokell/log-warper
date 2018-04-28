@@ -3,7 +3,7 @@
 
 -- | This module contains implementation of @log-warper-core@ for pure monad.
 
-module Log.Pure
+module Logw.Pure
        ( -- * Pure logging manipulation
          PureLoggerT (..)
        , runPureLog
@@ -24,9 +24,9 @@ import Universum
 import Control.Monad.State.Strict (modify')
 import Data.Sequence ((|>))
 
-import Log.Core.Action (LogAction (..))
-import Log.Core.Class (LoggerT, usingLoggerT)
-import Log.Event (Event (..))
+import Logw.Core.Action (LogAction (..))
+import Logw.Core.Class (LoggerT, usingLoggerT)
+import Logw.Event (Event (..))
 
 -- | Underlying monad for pure logging action Instead of writing log message to
 -- console this monad appends them to 'Seq' inside 'StateT' context.

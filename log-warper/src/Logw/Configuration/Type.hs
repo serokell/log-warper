@@ -10,7 +10,7 @@
 configuration is stored inside 'ReaderT' configuration.
 -}
 
-module Log.Configuration.Type
+module Logw.Configuration.Type
        ( -- * Configuration type
          Configuration (..)
        , cRotation
@@ -43,10 +43,10 @@ import Data.Yaml (FromJSON (..), ToJSON, Value (Object), withObject, (.!=), (.:?
 import Lens.Micro.Platform (makeLenses)
 import System.FilePath (normalise)
 
-import Log.Configuration.Extension (Extension (..))
-import Log.Configuration.Rotation (RotationExtension)
-import Log.Name (LoggerName (..))
-import Log.Severity (Severities, severitiesJsonP)
+import Logw.Configuration.Extension (Extension (..))
+import Logw.Configuration.Rotation (RotationExtension)
+import Logw.Name (LoggerName (..))
+import Logw.Severity (Severities, severitiesJsonP)
 
 import qualified Data.HashMap.Strict as HashMap hiding (HashMap)
 

@@ -3,7 +3,7 @@
 
 -- | Parameters for logger rotation.
 
-module Log.Configuration.Rotation
+module Logw.Configuration.Rotation
        ( -- * Rotation type
          RotationParameters (..)
        , rpMaxSizeBytes
@@ -21,7 +21,7 @@ import Data.Yaml (FromJSON (..), Object, Parser, ToJSON, withObject, (.:))
 import Fmt (build, (||+))
 import Lens.Micro.Platform (makeLenses)
 
-import Log.Configuration.Extension (Extension (Rotation), ExtensionType)
+import Logw.Configuration.Extension (Extension (Rotation), ExtensionType)
 
 import qualified Data.HashMap.Strict as HashMap
 

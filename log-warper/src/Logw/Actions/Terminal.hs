@@ -1,6 +1,6 @@
 -- | Actions for printing logging records to terminal.
 
-module Log.Actions.Terminal
+module Logw.Actions.Terminal
        ( -- * Console printing actions
          logEventStdout
        , logTextStdout
@@ -8,9 +8,9 @@ module Log.Actions.Terminal
 
 import Universum
 
-import Log.Core.Action (LogAction (..), cmap)
-import Log.Event (Event, makeRich)
-import Log.Fmt (richEventF)
+import Logw.Core.Action (LogAction (..), cmap)
+import Logw.Event (Event, makeRich)
+import Logw.Fmt (richEventF)
 
 -- | Very simple action which just prints 'Text' to @stdout@.
 logTextStdout :: MonadIO m => LogAction m Text

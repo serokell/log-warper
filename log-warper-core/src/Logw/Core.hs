@@ -4,10 +4,10 @@
 2. 'MonadLogger' type class which describes how to get 'LogAction' from context.
 -}
 
-module Log.Core
-       ( module Log.Core.Action
-       , module Log.Core.Class
+module Logw.Core
+       ( module Logw.Core.Action
+       , module Logw.Core.Class
        ) where
 
-import Log.Core.Action
-import Log.Core.Class
+import Logw.Core.Action
+import Logw.Core.Class

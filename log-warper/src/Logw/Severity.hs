@@ -1,6 +1,6 @@
 -- | Level of logged message severity.
 
-module Log.Severity
+module Logw.Severity
        ( -- * Types
          Severity (..)
        , Severities

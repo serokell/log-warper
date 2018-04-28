@@ -1,6 +1,6 @@
 -- | Contains functions to format logging events in 'log-warper'.
 
-module Log.Fmt
+module Logw.Fmt
        ( -- * Default formatters
          eventF
        , richEventF
@@ -19,8 +19,8 @@ import Fmt.Time (dateDashF, hmsF, subsecondF, tzNameF)
 import System.Console.ANSI (Color (Blue, Green, Magenta, Red, Yellow), ColorIntensity (Vivid),
                             ConsoleLayer (Foreground), SGR (Reset, SetColor), setSGRCode)
 
-import Log.Event (Event (..), RichEvent (..))
-import Log.Severity (Severity (..))
+import Logw.Event (Event (..), RichEvent (..))
+import Logw.Severity (Severity (..))
 
 import qualified Data.Text as Text
 

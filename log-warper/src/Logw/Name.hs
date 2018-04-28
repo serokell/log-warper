@@ -2,7 +2,7 @@
 
 -- | Contains @newtype@ wrapper 'LoggerName' for list of components for logger name.
 
-module Log.Name
+module Logw.Name
        ( LoggerName (..)
        ) where
 

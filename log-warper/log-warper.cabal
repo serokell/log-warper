@@ -23,19 +23,19 @@ tested-with:         GHC == 8.0.2
                    , GHC == 8.4.1
 
 library
-  exposed-modules:     Log
-                         Log.Actions
-                           Log.Actions.Terminal
-                         Log.Configuration
-                           Log.Configuration.Extension
-                           Log.Configuration.Rotation
-                           Log.Configuration.Type
-                         Log.Event
-                         Log.Fmt
-                         Log.Monad
-                         Log.Name
-                         Log.Pure
-                         Log.Severity
+  exposed-modules:     Logw
+                         Logw.Actions
+                           Logw.Actions.Terminal
+                         Logw.Configuration
+                           Logw.Configuration.Extension
+                           Logw.Configuration.Rotation
+                           Logw.Configuration.Type
+                         Logw.Event
+                         Logw.Fmt
+                         Logw.Monad
+                         Logw.Name
+                         Logw.Pure
+                         Logw.Severity
 --                         Log.CanLog
 --                         Log.Concurrent
 --                         Log.Exception
