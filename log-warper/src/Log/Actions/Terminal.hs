@@ -2,8 +2,8 @@
 
 module Log.Actions.Terminal
        ( -- * Console printing actions
-         logPrint
-       , logStdout
+         logEventStdout
+       , logTextStdout
        ) where
 
 import Universum
@@ -13,9 +13,9 @@ import Log.Event (Event, makeRich)
 import Log.Fmt (richEventF)
 
 -- | Very simple action which just prints 'Text' to @stdout@.
-logPrint :: MonadIO m => LogAction m Text
-logPrint = LogAction putTextLn
+logTextStdout :: MonadIO m => LogAction m Text
+logTextStdout = LogAction putTextLn
 
 -- | Simple action which prints every incoming event into @stdout@.
-logStdout :: MonadIO m => LogAction m (Event exts)
-logStdout = makeRich $ cmap richEventF logPrint
+logEventStdout :: MonadIO m => LogAction m (Event exts)
+logEventStdout = makeRich $ cmap richEventF logTextStdout

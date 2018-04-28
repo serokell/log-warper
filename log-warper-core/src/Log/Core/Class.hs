@@ -176,7 +176,7 @@ newtype LoggerT msg m a = LoggerT
     { runLoggerT :: ReaderT (LogAction m msg) m a
     } deriving (Functor, Applicative, Monad, MonadIO)
 
--- TODO: depend on mtl and implement MonadError and etc?..
+-- TODO: depend on mtl and implement MonadError, etc?..
 
 instance MonadTrans (LoggerT msg) where
     lift :: Monad m => m a -> LoggerT msg m a

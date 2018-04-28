@@ -18,7 +18,7 @@ import Data.Yaml (FromJSON, ToJSON, decodeFileEither, prettyPrintParseException)
 import Data.Yaml.Pretty (defConfig, encodePretty)
 
 import Log (Configuration, Extension (..), LogCtx (..), RotationExtension, Severity (..),
-            WithLogger, launchLogger, logM, logStdout, withSublogger)
+            WithLogger, launchLogger, logEventStdout, logM, withSublogger)
 
 testLoggerConfigPath :: FilePath
 testLoggerConfigPath = "log-warper/logger-config-example.yaml"
@@ -78,7 +78,7 @@ main = do
     config <- fromRight (error "Parse error")
           <$> decodeFileEither @(Configuration '[ 'Rotation ]) testLoggerConfigPath
 
-    launchLogger logStdout (LogCtx "app" config) showSomeLog
+    launchLogger logEventStdout (LogCtx "app" config) showSomeLog
 
 --     let runPlayLog = testLogging >> showSomeLog
 --

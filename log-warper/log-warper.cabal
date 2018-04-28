@@ -1,6 +1,7 @@
 name:                log-warper
 version:             2.0
 synopsis:            Flexible, configurable, monadic and pretty logging
+description:         This package implements hierarchical and extensible logging over log-warper-core
 homepage:            https://github.com/serokell/log-warper
 license:             MPL-2.0
 license-file:        LICENSE
@@ -17,7 +18,6 @@ extra-source-files:  CHANGES.md
 stability:           experimental
 build-type:          Simple
 cabal-version:       >=2.0
-description:         This package implements nice and featureful wrapper around hslogger library.
 tested-with:         GHC == 8.0.2
                    , GHC == 8.2.2
                    , GHC == 8.4.1

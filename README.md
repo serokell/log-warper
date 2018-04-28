@@ -5,7 +5,7 @@ log-warper
 [![Hackage](https://img.shields.io/hackage/v/log-warper.svg)](https://hackage.haskell.org/package/log-warper)
 [![Stackage LTS](http://stackage.org/package/log-warper/badge/lts)](http://stackage.org/lts/package/log-warper)
 [![Stackage Nightly](http://stackage.org/package/log-warper/badge/nightly)](http://stackage.org/nightly/package/log-warper)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![MPL-2.0 license](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](https://github.com/serokell/log-warper/blob/master/LICENSE)
 
 `log-warper` is a high level and featureful logging library with monadic interface. It contains two parts:
 
