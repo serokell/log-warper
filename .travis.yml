@@ -23,21 +23,15 @@ matrix:
         packages:
         - libgmp-dev
 
-  - ghc: 8.0.2
-    env: STACK_YAML="$HOME/build/serokell/log-warper/stack-8.0.2.yaml"
-    os: linux
-    addons:
-      apt:
-        packages:
-        - libgmp-dev
-
-  - ghc: 8.2.2
-    env: STACK_YAML="$HOME/build/serokell/log-warper/stack-nightly.yaml"
-    os: linux
-    addons:
-      apt:
-        packages:
-        - libgmp-dev
+# TODO: use GHC-8.4.1 when `universum` can be built with it. For now it's useless.
+#
+#  - ghc: 8.2.2
+#    env: STACK_YAML="$HOME/build/serokell/log-warper/stack-nightly.yaml"
+#    os: linux
+#    addons:
+#      apt:
+#        packages:
+#        - libgmp-dev
 
   - ghc: 8.2.2
     env: GHCVER='8.2.2' CABALVER='head'
@@ -55,14 +49,14 @@ install:
     if [ -z "$STACK_YAML" ]; then
       export PATH="/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$PATH"
       cabal new-update
-      cabal new-build log-warper --only-dependencies
+      cabal new-build log-warper-core --only-dependencies
+      cabal new-build log-warper      --only-dependencies
     else
       mkdir -p ~/.local/bin
       export PATH="$HOME/.local/bin:$PATH"
       travis_retry curl -L 'https://www.stackage.org/stack/linux-x86_64' | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
       stack --version
-      stack setup --no-terminal
-      stack setup --no-terminal --upgrade-cabal
+      stack setup --no-terminal --install-cabal 2.0.1.0
       stack ghc -- --version
       stack build --only-dependencies --no-terminal
     fi
@@ -70,9 +64,11 @@ install:
 script:
   - |
     if [ -z "$STACK_YAML" ]; then
-      cabal new-test all
+      cabal new-build log-warper-core
+      cabal new-build log-warper
     else
-      stack build --test --bench --no-terminal
+      stack build log-warper-core --test --bench --no-terminal
+      stack build log-warper      --test --bench --no-terminal
     fi
 
 notifications:

@@ -1,3 +1,10 @@
+2.0
+===
+
+* Completely rewrite `log-warper`. It's now split into two packages:
+  + `log-warper-core`: basic abstract data types for implementing logging functions.
+  + `log-warper`: some implementation of logging library using `log-warper-core` as basis.
+
 1.8.11
 ======
 
