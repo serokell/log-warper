@@ -7,6 +7,7 @@ module Test.Wlog.RollingSpec
 import Universum
 
 import Control.Concurrent.Async (mapConcurrently)
+import Fmt (build, fmt)
 import Lens.Micro.Mtl (zoom, (.=), (?=))
 import System.Directory (doesFileExist, removeFile)
 import System.FilePath (takeExtension)
@@ -47,6 +48,7 @@ spec = do
       describe "Concurrent rolling" $ smaller $
           prop description_verifyLoggerRotation verifyLoggerRotation
   where
+    pretty = fmt . build
     description_verifyLoggerRotation =
       "logger rotation successfully creates files in concurrent environment"
 

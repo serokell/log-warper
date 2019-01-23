@@ -64,7 +64,7 @@ import Data.Aeson (withObject)
 import Data.Traversable (for)
 import Data.Yaml (FromJSON (..), Object, Parser, ToJSON (..), Value (..), object, (.!=), (.:),
                   (.:?), (.=))
-import Fmt (build, (||+))
+import Fmt (Buildable, build, (||+))
 import Lens.Micro.Platform (at, makeLenses, zoom, _Just)
 import System.FilePath (normalise)
 

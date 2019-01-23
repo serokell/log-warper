@@ -15,8 +15,8 @@ import Fmt ((+||), (||+))
 
 import System.Directory (removeFile, renameFile)
 import System.FilePath ((<.>))
-import System.IO (Handle, IOMode (ReadWriteMode), SeekMode (AbsoluteSeek, SeekFromEnd), hClose,
-                  hFileSize, hFlush, hSeek)
+import System.IO (Handle, IOMode (ReadWriteMode), SeekMode (AbsoluteSeek, SeekFromEnd), hFileSize,
+                  hFlush, hSeek)
 
 import System.Wlog.FileUtils (whenExist)
 import System.Wlog.Formatter (LogFormatter, nullFormatter)
