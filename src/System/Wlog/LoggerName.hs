@@ -7,7 +7,7 @@ module System.Wlog.LoggerName
 import Universum
 
 import Data.Aeson.Types (ToJSON, ToJSONKey (..), toJSONKeyText)
-import Fmt (build)
+import Fmt (Buildable, build)
 
 -- | Logger name to keep in context.
 newtype LoggerName = LoggerName

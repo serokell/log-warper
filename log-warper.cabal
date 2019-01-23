@@ -46,28 +46,28 @@ library
                        System.Wlog.MemoryQueue
 
   build-depends:       base                 >= 4.9 && < 5
-                     , aeson                ^>= 1.2
+                     , aeson                ^>= 1.4.2.0
                      , ansi-terminal        >= 0.7 && < 0.9
-                     , containers           ^>= 0.5.7.1
+                     , containers           ^>= 0.6.0.1
                      , deepseq              ^>= 1.4
                      , directory            ^>= 1.3
                      , filepath             ^>= 1.4.1
-                     , fmt                  ^>= 0.5.0.0
-                     , lifted-async         ^>= 0.9
+                     , fmt                  ^>= 0.6.1.1
+                     , lifted-async         ^>= 0.10
                      , microlens-platform   ^>= 0.3.9
                      , monad-control        ^>= 1.0.1.0
                      , monad-loops          ^>= 0.4.3
                      , mmorph               ^>= 1.1
                      , mtl                  ^>= 2.2.1
-                     , o-clock              ^>= 0.1.1
+                     , o-clock              ^>= 1.0.0.1
                      , text                 ^>= 1.2.2.0
                      , time                 ^>= 1.8
                      , transformers         ^>= 0.5.2
                      , transformers-base    ^>= 0.4.4
-                     , universum            ^>= 1.1.0
+                     , universum            ^>= 1.5.0
                      , unordered-containers >= 0.2.7.1
                      , vector               ^>= 0.12
-                     , yaml                 ^>= 0.8.20
+                     , yaml                 ^>= 0.11.0.0
 
   if !os(windows)
     build-depends:     unix
@@ -89,12 +89,12 @@ executable play-log
   main-is:             Playground.hs
 
   build-depends:       log-warper
-                     , universum  >= 1.0.2
-                     , microlens  >= 0.4
-                     , monad-control ^>= 1.0.1.0
-                     , yaml       >= 0.8.20
+                     , universum
+                     , microlens
+                     , monad-control
+                     , yaml
   if impl(ghc >= 8.2.2)
-     build-depends:   o-clock ^>= 0.1
+     build-depends:   o-clock
 
   hs-source-dirs:      examples
   default-language:    Haskell2010
@@ -117,7 +117,7 @@ executable how-to
   build-depends:       base           >= 4.9 && < 5
                      , log-warper
                      , markdown-unlit >= 0.4
-                     , text           >= 1.2.2.1
+                     , text          ^>= 1.2.2.0
 
   hs-source-dirs:      examples
   default-language:    Haskell2010
@@ -133,7 +133,7 @@ executable pure-how-to
                      , log-warper
                      , markdown-unlit >= 0.4
                      , mtl
-                     , text           >= 1.2.2.1
+                     , text          ^>= 1.2.2.0
 
   hs-source-dirs:      examples
   default-language:    Haskell2010
@@ -154,6 +154,7 @@ test-suite log-test
                      , data-default
                      , directory
                      , filepath
+                     , fmt
                      , hspec
                      , HUnit
                      , microlens-mtl

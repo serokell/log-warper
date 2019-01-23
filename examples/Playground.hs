@@ -15,7 +15,7 @@ import Control.Monad.Trans.Control (MonadBaseControl)
 import Data.Yaml.Pretty (defConfig, encodePretty)
 import Lens.Micro ((?~))
 #if ( __GLASGOW_HASKELL__ >= 802 )
-import Time (sec, threadDelay)
+import Time (sec, threadDelay, time)
 #endif
 
 import System.Wlog (CanLog, atLogger, consoleActionB, debugPlus, defaultConfig, infoPlus,
@@ -90,7 +90,7 @@ main = do
     launchSimpleLogging "concurrent" concurrentActions
 
 concurrentActions :: forall m . (WithLoggerIO m, MonadBaseControl IO m) => m ()
-concurrentActions = logWarningWaitInf 2 "stupid action" someStupidAction
+concurrentActions = logWarningWaitInf (time 2) "stupid action" someStupidAction
   where
     someStupidAction :: m ()
     someStupidAction = replicateM_ 10 $ do
