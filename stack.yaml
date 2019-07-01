@@ -1,8 +1,10 @@
-resolver: lts-10.8
+resolver: lts-12.26
 
 extra-deps:
 - o-clock-0.1.1
-- universum-1.1.0
+
+- fmt-0.5.0.0
+- text-format-0.3.2
 
 nix:
   packages: [git, openssh, gmp, binutils]
