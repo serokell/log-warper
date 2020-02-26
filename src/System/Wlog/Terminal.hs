@@ -17,7 +17,6 @@ module System.Wlog.Terminal
 import Universum
 
 import Data.Time (UTCTime)
-import System.IO (Handle, stderr, stdout)
 
 import System.Wlog.Formatter (stdoutFormatter)
 import System.Wlog.IOLogger (rootLoggerName, setHandlers, setLevel, updateGlobalLogger)

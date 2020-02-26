@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 -- | Tests for rolling logger.
 
 module Test.Wlog.RollingSpec
@@ -35,7 +37,7 @@ spec = do
               let wrongRP1 = RotationParameters 0 1
               let wrongRP2 = RotationParameters 1 0
               let expectedRollException rp =
-                    (== InvalidRotation ("Rotation parameters must be positive: " <> pretty rp))
+                    (== InvalidRotation ("Rotation parameters must be positive: " <> show rp))
               let rollExceptionChecker rp
                     = rotationFileHandler rp "" (error "Test roll!")
                         `shouldThrow`

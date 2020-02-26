@@ -90,7 +90,7 @@ main = do
     launchSimpleLogging "concurrent" concurrentActions
 
 concurrentActions :: forall m . (WithLoggerIO m, MonadBaseControl IO m) => m ()
-concurrentActions = logWarningWaitInf 2 "stupid action" someStupidAction
+concurrentActions = logWarningWaitInf (sec 2) "stupid action" someStupidAction
   where
     someStupidAction :: m ()
     someStupidAction = replicateM_ 10 $ do

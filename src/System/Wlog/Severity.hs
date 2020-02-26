@@ -15,7 +15,6 @@ module System.Wlog.Severity
 
 import Universum
 
-import Data.Typeable (Typeable)
 import Data.Yaml (FromJSON, ToJSON)
 
 import qualified Data.Set as Set

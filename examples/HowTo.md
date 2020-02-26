@@ -26,7 +26,6 @@ module Main (main) where
 
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
-import Data.Semigroup ((<>))
 import Data.Text (Text)
 import System.Wlog (WithLoggerIO, launchFromFile, logError, logInfo)
 

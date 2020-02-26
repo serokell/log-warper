@@ -332,7 +332,7 @@ retrieveLogContent filePath linesNum =
                 filter (\(HandlerT h) -> getTag h == HandlerFilelike filePathFull) $
                 concatMap _lHandlers $
                 M.elems liTree
-        let takeMaybe = maybe identity take linesNum
+        let takeMaybe = maybe id take linesNum
         case appropriateHandlers of
             [HandlerT h] -> liftIO $ readBack h 12345 -- all of them
             []  -> takeMaybe . reverse . T.lines <$> TIO.readFile filePathFull

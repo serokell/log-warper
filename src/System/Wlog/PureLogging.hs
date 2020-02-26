@@ -27,7 +27,6 @@ module System.Wlog.PureLogging
 import Universum
 
 import Control.Monad.Morph (MFunctor (..))
-import Control.Monad.State.Strict (modify')
 import Data.Sequence ((|>))
 
 import System.Wlog.CanLog (CanLog (..), WithLogger)

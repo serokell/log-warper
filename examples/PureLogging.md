@@ -27,7 +27,6 @@ module Main where
 
 
 import Control.Monad.State.Strict (MonadState (..), State, evalState, get, lift, modify')
-import Data.Semigroup ((<>))
 
 import System.Wlog (NamedPureLogger, WithLogger, WithLoggerIO, launchNamedPureLogWith,
                     launchSimpleLogging, logDebug, logInfo)

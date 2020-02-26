@@ -1,8 +1,9 @@
-resolver: lts-14.27
+resolver: lts-15.2
 
 extra-deps:
   - universum-1.6.1
   - o-clock-1.1.0
+  - fmt-0.6.1.2
 
 nix:
   packages: [git, openssh, gmp, binutils]
