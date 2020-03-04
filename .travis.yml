@@ -15,39 +15,34 @@ matrix:
 
   include:
 
-  - ghc: 8.2.2
+  - ghc: 8.6.5
     env: STACK_YAML="$HOME/build/serokell/log-warper/stack.yaml"
     os: linux
-    addons:
-      apt:
-        packages:
-        - libgmp-dev
 
-  - ghc: 8.0.2
-    env: STACK_YAML="$HOME/build/serokell/log-warper/stack-8.0.2.yaml"
+  - ghc: 8.8.2
+    env: STACK_YAML="$HOME/build/serokell/log-warper/stack-8.8.2.yaml"
     os: linux
-    addons:
-      apt:
-        packages:
-        - libgmp-dev
 
-  - ghc: 8.2.2
-    env: STACK_YAML="$HOME/build/serokell/log-warper/stack-nightly.yaml"
-    os: linux
-    addons:
-      apt:
-        packages:
-        - libgmp-dev
-
-  - ghc: 8.2.2
-    env: GHCVER='8.2.2' CABALVER='head'
+  - ghc: 8.4.4
+    env: GHCVER='8.4.4' CABALVER='head'
     os: linux
     addons:
       apt:
         sources:
         - hvr-ghc
         packages:
-        - ghc-8.2.2
+        - ghc-8.4.4
+        - cabal-install-head
+
+  - ghc: 8.8.2
+    env: GHCVER='8.8.2' CABALVER='head'
+    os: linux
+    addons:
+      apt:
+        sources:
+        - hvr-ghc
+        packages:
+        - ghc-8.8.2
         - cabal-install-head
 
 install:

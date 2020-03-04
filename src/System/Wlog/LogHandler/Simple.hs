@@ -28,10 +28,9 @@ import Universum
 
 import Control.Concurrent (modifyMVar_, withMVar)
 import Data.Text.Lazy.Builder as B
-import Data.Typeable (Typeable)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath (takeDirectory)
-import System.IO (Handle, IOMode (ReadWriteMode), SeekMode (SeekFromEnd), hClose, hFlush, hSeek)
+import System.IO (SeekMode (SeekFromEnd), hFlush, hSeek)
 
 import System.Wlog.Formatter (LogFormatter, nullFormatter)
 import System.Wlog.LogHandler (LogHandler (..), LogHandlerTag (..))
